@@ -27,7 +27,7 @@ No simulador iOS: `i` no terminal (precisa [Xcode](https://developer.apple.com/x
 
 ## Depois, com a API
 
-Quando for falar com o backend: no `linkgym-api`, `make dev`. No simulador, `localhost:8080` já está no `.env`. No telefone físico, troque `EXPO_PUBLIC_API_URL` pelo IP do Mac.
+Quando for falar com o backend: no `linkgym-api`, `make setup` e `make start`. No simulador, `localhost:8080` já está no `.env`. No telefone físico, troque `EXPO_PUBLIC_API_URL` pelo IP do Mac.
 
 ## Travas (não mexer)
 
