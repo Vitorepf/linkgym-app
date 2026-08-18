@@ -1,6 +1,12 @@
 import { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { today, type Person, type Studio, type TodayPayload } from "../../api";
+import {
+  putReadiness,
+  today,
+  type Person,
+  type Studio,
+  type TodayPayload,
+} from "../../api";
 import { productTheme } from "../../theme";
 import { PrimaryButton } from "../../ui/PrimaryButton";
 import { Screen } from "../../ui/Screen";
@@ -16,6 +22,10 @@ export function Hoje({ token, studio, onLeave }: Props) {
   const accent = studio.accent_color || productTheme.accentFallback;
   const [data, setData] = useState<TodayPayload | null>(null);
   const [error, setError] = useState("");
+  const [energy, setEnergy] = useState(0);
+  const [soreness, setSoreness] = useState(0);
+  const [sleep, setSleep] = useState(0);
+  const [saving, setSaving] = useState(false);
   // Task 5 persists client_id; Começar must not POST /v1/sessions.
   const [clientId, setClientId] = useState("");
 
@@ -26,6 +36,9 @@ export function Hoje({ token, studio, onLeave }: Props) {
         const payload = await today(token);
         if (alive) {
           setData(payload);
+          setEnergy(payload.readiness.energy);
+          setSoreness(payload.readiness.soreness);
+          setSleep(payload.readiness.sleep);
           setError("");
         }
       } catch {
@@ -40,9 +53,29 @@ export function Hoje({ token, studio, onLeave }: Props) {
   const prescription = data?.prescription ?? null;
   const kicker = prescription ? `Hoje · ${prescription.name}` : "Hoje";
   const empty = data !== null && prescription === null;
+  const ready =
+    inScale(energy) && inScale(soreness) && inScale(sleep);
+  const dirty =
+    energy !== (data?.readiness.energy ?? 0) ||
+    soreness !== (data?.readiness.soreness ?? 0) ||
+    sleep !== (data?.readiness.sleep ?? 0);
 
   function startLocal() {
     if (!clientId) setClientId(newClientId());
+  }
+
+  async function saveReadiness() {
+    if (!ready || saving) return;
+    setSaving(true);
+    setError("");
+    try {
+      const readiness = await putReadiness(token, { energy, soreness, sleep });
+      setData((prev) => (prev ? { ...prev, readiness } : prev));
+    } catch {
+      setError("Não deu para registrar como você está.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -54,14 +87,41 @@ export function Hoje({ token, studio, onLeave }: Props) {
       >
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
-        {empty ? (
-          <Text style={styles.empty}>Ainda não tem ficha hoje.</Text>
-        ) : null}
-
-        {data && prescription ? (
+        {data ? (
           <>
             <Text style={styles.score}>{data.readiness.score}</Text>
             <Text style={styles.label}>{data.readiness.label}</Text>
+
+            <View style={styles.scales}>
+              <Scale
+                name="Energia"
+                value={energy}
+                accent={accent}
+                onChange={setEnergy}
+              />
+              <Scale
+                name="Dor"
+                value={soreness}
+                accent={accent}
+                onChange={setSoreness}
+              />
+              <Scale
+                name="Sono"
+                value={sleep}
+                accent={accent}
+                onChange={setSleep}
+              />
+            </View>
+
+            {ready && dirty ? (
+              <Pressable
+                onPress={saveReadiness}
+                disabled={saving}
+                style={[styles.save, saving && styles.saveOff]}
+              >
+                <Text style={styles.saveText}>Registrar</Text>
+              </Pressable>
+            ) : null}
 
             <View style={styles.strip}>
               <Text style={styles.stripItem}>
@@ -71,20 +131,26 @@ export function Hoje({ token, studio, onLeave }: Props) {
               <Text style={styles.stripItem}>{data.xp_total} XP</Text>
             </View>
 
-            {data.coach_line ? (
+            {empty ? (
+              <Text style={styles.empty}>Ainda não tem ficha hoje.</Text>
+            ) : null}
+
+            {prescription && data.coach_line ? (
               <Text style={styles.coach}>{data.coach_line}</Text>
             ) : null}
 
-            {data.banner ? (
+            {prescription && data.banner ? (
               <Text style={[styles.banner, { borderLeftColor: accent }]}>
                 {data.banner.text}
               </Text>
             ) : null}
 
-            <PrimaryButton
-              label={ctaLabel(data.readiness.label)}
-              onPress={startLocal}
-            />
+            {prescription ? (
+              <PrimaryButton
+                label={ctaLabel(data.readiness.label)}
+                onPress={startLocal}
+              />
+            ) : null}
           </>
         ) : null}
 
@@ -96,9 +162,53 @@ export function Hoje({ token, studio, onLeave }: Props) {
   );
 }
 
+function inScale(n: number): boolean {
+  return n >= 1 && n <= 5;
+}
+
 function ctaLabel(label: string): string {
-  if (label === "Versão leve") return "Começar leve";
+  if (label === "Hoje não é dia de PR" || label === "Versão leve") {
+    return "Começar leve";
+  }
   return "Começar";
+}
+
+function Scale({
+  name,
+  value,
+  accent,
+  onChange,
+}: {
+  name: string;
+  value: number;
+  accent: string;
+  onChange: (n: number) => void;
+}) {
+  return (
+    <View style={styles.scale}>
+      <Text style={styles.scaleName}>{name}</Text>
+      <View style={styles.scaleRow}>
+        {[1, 2, 3, 4, 5].map((n) => {
+          const on = n === value;
+          return (
+            <Pressable
+              key={n}
+              onPress={() => onChange(n)}
+              accessibilityRole="button"
+              accessibilityLabel={`${name} ${n}`}
+              accessibilityState={{ selected: on }}
+              style={[
+                styles.tick,
+                on && { borderColor: accent },
+              ]}
+            >
+              <Text style={[styles.tickText, on && { color: accent }]}>{n}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
+  );
 }
 
 function newClientId(): string {
@@ -129,6 +239,57 @@ const styles = StyleSheet.create({
     color: productTheme.muted,
     fontSize: 16,
     marginTop: 4,
+  },
+  scales: {
+    marginTop: 24,
+    borderTopWidth: 2,
+    borderColor: productTheme.divider,
+  },
+  scale: {
+    paddingVertical: 12,
+    borderBottomWidth: 2,
+    borderColor: productTheme.divider,
+  },
+  scaleName: {
+    color: productTheme.muted,
+    fontFamily: "Archivo_800ExtraBold",
+    fontSize: 11,
+    letterSpacing: 1.6,
+    textTransform: "uppercase",
+    marginBottom: 8,
+  },
+  scaleRow: { flexDirection: "row", gap: 8 },
+  tick: {
+    flex: 1,
+    minHeight: 44,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: productTheme.divider,
+    borderRadius: productTheme.radius,
+  },
+  tickText: {
+    color: productTheme.ink,
+    fontFamily: "Archivo_800ExtraBold",
+    fontSize: 16,
+    fontVariant: ["tabular-nums"],
+  },
+  save: {
+    marginTop: 16,
+    alignSelf: "flex-start",
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderWidth: 2,
+    borderColor: productTheme.ink,
+    borderRadius: productTheme.radius,
+  },
+  saveOff: { opacity: 0.35 },
+  saveText: {
+    color: productTheme.ink,
+    fontFamily: "Archivo_800ExtraBold",
+    fontSize: 14,
+    letterSpacing: 1.2,
+    textTransform: "uppercase",
   },
   strip: {
     flexDirection: "row",
@@ -164,7 +325,7 @@ const styles = StyleSheet.create({
   empty: {
     color: productTheme.muted,
     fontSize: 16,
-    marginTop: 12,
+    marginTop: 20,
     lineHeight: 22,
   },
   error: {

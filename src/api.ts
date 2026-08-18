@@ -94,16 +94,18 @@ export type TodayItem = {
   video_url: string | null;
 };
 
+export type Readiness = {
+  score: number;
+  energy: number;
+  soreness: number;
+  sleep: number;
+  label: string;
+};
+
 export type TodayPayload = {
   studio: Studio;
   person: { id: string; name: string };
-  readiness: {
-    score: number;
-    energy: number;
-    soreness: number;
-    sleep: number;
-    label: string;
-  };
+  readiness: Readiness;
   streak: { current_count: number; protector_available: boolean };
   xp_total: number;
   prescription: {
@@ -140,6 +142,17 @@ export type OwnerHome = {
 
 export function today(token: string) {
   return request<TodayPayload>("/v1/today", { token });
+}
+
+export function putReadiness(
+  token: string,
+  body: { energy: number; soreness: number; sleep: number },
+) {
+  return request<Readiness>("/v1/today/readiness", {
+    method: "PUT",
+    token,
+    body: JSON.stringify(body),
+  });
 }
 
 export function ownerHome(token: string) {
