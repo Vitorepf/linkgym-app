@@ -14,7 +14,7 @@ export function StudioHome({ person, studio, onLeave }: Props) {
       <Text style={[styles.kicker, { color: accent }]}>
         {person.role === "owner" ? "Personal" : "Aluno"}
       </Text>
-      <Text style={styles.title}>{studio.name || "Seu estúdio"}</Text>
+      <Text style={styles.title}>{studio.name || "Seu time"}</Text>
       <Text style={styles.body}>{person.name}</Text>
       <Pressable onPress={onLeave} style={styles.leave}>
         <Text style={styles.leaveText}>Sair</Text>
