@@ -10,7 +10,13 @@ API: [linkgym-api](https://github.com/Vitorepf/linkgym-api)
 - [Expo Go](https://expo.dev/go) no telefone — **SDK 54**
 - A API no ar (`make dev` no `linkgym-api`)
 
-Este app fica no **Expo SDK 54** (React 19.1, React Native 0.81.5). É a mesma linha do Atlas e do Blackink. Não subir para 55/56/57.
+Este app fica no **Expo SDK 54** + **TypeScript** (React 19.1, React Native 0.81.5). É a mesma linha do Atlas e do Blackink. Não subir para 55/56/57. Não usar JavaScript solto.
+
+## Linguagem da UI
+
+TypeScript + `StyleSheet` + tokens (`src/theme.ts`). Animação: Reanimated 4.
+
+Não entra Tamagui, NativeWind nem styled-components. O Modernist precisa de raio 0, Archivo e um acento — biblioteca de componente genérica deixa o app com cara de template e a IA erra a API.
 
 ## Subir
 
