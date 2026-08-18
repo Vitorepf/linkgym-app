@@ -45,3 +45,7 @@ yarn-error.*
 
 # gate de UI (tools/*.mjs)
 tools/out/
+
+.gate/bloqueios
+.gate/ultima-saida
+.gate/serie.jsonl

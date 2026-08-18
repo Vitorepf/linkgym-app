@@ -1,0 +1,7 @@
+{
+  "tools/gate.mjs": "2fec5611fc77c771cd82ca0f236bffc9790dae2bb2159223db8653b5587df302",
+  "tools/medir.mjs": "125993f5b8081433c6eba23c9e38add68dd1bf0367d574d5fc4437e90a61c5f6",
+  "tools/contrast.mjs": "dd40d0d0c21ce111d8bfcffef582fe1df61a6b246197acefaa15ac1fff2236fe",
+  ".claude/hooks/stop-gate.mjs": "d29b2c77d7c664c53d70077f44faccdd0f83e466a869351fbc12212c1604b54e",
+  ".gate/config.json": "9174f29ef398f96a59a4b37de83f4ae4b4519b3d5af1de88521e6ec45d8e6bae"
+}

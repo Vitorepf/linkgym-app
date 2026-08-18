@@ -1,0 +1,10 @@
+{
+  "eixos": ["oficio", "operacao", "ritual"],
+  "protegidos": ["tools/gate.mjs", "tools/medir.mjs", "tools/contrast.mjs", ".claude/hooks/stop-gate.mjs", ".gate/config.json"],
+  "checks": [
+    { "nome": "tipos",     "cmd": "npx",  "args": ["tsc", "--noEmit"], "timeout_s": 120 },
+    { "nome": "contraste", "cmd": "node", "args": ["tools/medir.mjs", "contraste"] },
+    { "nome": "escala",    "cmd": "node", "args": ["tools/medir.mjs", "escala"] },
+    { "nome": "soltos",    "cmd": "node", "args": ["tools/medir.mjs", "soltos"] }
+  ]
+}

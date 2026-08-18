@@ -1,0 +1,6 @@
+{
+  "contraste": { "valor": 0, "melhor": "menor" },
+  "escala":    { "valor": 2, "melhor": "menor" },
+  "soltos":    { "valor": 0, "melhor": "menor" },
+  "telas":     { "valor": 25, "melhor": "maior" }
+}
