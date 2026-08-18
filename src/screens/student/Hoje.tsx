@@ -1,3 +1,5 @@
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import {
@@ -7,6 +9,7 @@ import {
   type Studio,
   type TodayPayload,
 } from "../../api";
+import type { RootStackParamList } from "../../nav/types";
 import { productTheme } from "../../theme";
 import { PrimaryButton } from "../../ui/PrimaryButton";
 import { Screen } from "../../ui/Screen";
@@ -19,6 +22,8 @@ type Props = {
 };
 
 export function Hoje({ token, studio, onLeave }: Props) {
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList, "Hoje">>();
   const accent = studio.accent_color || productTheme.accentFallback;
   const [data, setData] = useState<TodayPayload | null>(null);
   const [error, setError] = useState("");
@@ -143,6 +148,22 @@ export function Hoje({ token, studio, onLeave }: Props) {
               <Text style={[styles.banner, { borderLeftColor: accent }]}>
                 {data.banner.text}
               </Text>
+            ) : null}
+
+            {prescription ? (
+              <Pressable
+                onPress={() =>
+                  navigation.navigate("Ficha", {
+                    studioName: studio.name,
+                    accent,
+                    items: prescription.items,
+                  })
+                }
+                style={styles.ficha}
+                hitSlop={8}
+              >
+                <Text style={styles.fichaText}>Ficha</Text>
+              </Pressable>
             ) : null}
 
             {prescription ? (
@@ -327,6 +348,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginTop: 20,
     lineHeight: 22,
+  },
+  ficha: { marginTop: 24, alignSelf: "flex-start" },
+  fichaText: {
+    color: productTheme.ink,
+    fontFamily: "Archivo_800ExtraBold",
+    fontSize: 13,
+    letterSpacing: 1.1,
+    textTransform: "uppercase",
   },
   error: {
     color: productTheme.accentFallback,
