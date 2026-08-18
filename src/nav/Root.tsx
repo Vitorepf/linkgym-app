@@ -1,8 +1,8 @@
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { Pressable, StyleSheet, Text } from "react-native";
 import type { Person, Studio } from "../api";
+import { Painel } from "../screens/owner/Painel";
+import { Hoje } from "../screens/student/Hoje";
 import { productTheme } from "../theme";
-import { Screen } from "../ui/Screen";
 
 export type RootProps = {
   token: string;
@@ -13,9 +13,8 @@ export type RootProps = {
 
 const Stack = createNativeStackNavigator();
 
-export function Root({ person, studio, onLeave }: RootProps) {
-  const accent = studio.accent_color || productTheme.accentFallback;
-  const kicker = person.role === "owner" ? "Personal" : "Aluno";
+export function Root({ token, person, studio, onLeave }: RootProps) {
+  const owner = person.role === "owner";
 
   return (
     <Stack.Navigator
@@ -25,26 +24,29 @@ export function Root({ person, studio, onLeave }: RootProps) {
         animation: "none",
       }}
     >
-      <Stack.Screen name="Home">
-        {() => (
-          <Screen kicker={kicker} title={studio.name} accent={accent}>
-            <Pressable onPress={onLeave} style={styles.leave}>
-              <Text style={styles.leaveText}>Sair</Text>
-            </Pressable>
-          </Screen>
-        )}
-      </Stack.Screen>
+      {owner ? (
+        <Stack.Screen name="Painel">
+          {() => (
+            <Painel
+              token={token}
+              person={person}
+              studio={studio}
+              onLeave={onLeave}
+            />
+          )}
+        </Stack.Screen>
+      ) : (
+        <Stack.Screen name="Hoje">
+          {() => (
+            <Hoje
+              token={token}
+              person={person}
+              studio={studio}
+              onLeave={onLeave}
+            />
+          )}
+        </Stack.Screen>
+      )}
     </Stack.Navigator>
   );
 }
-
-const styles = StyleSheet.create({
-  leave: { marginTop: 40, alignSelf: "flex-start" },
-  leaveText: {
-    color: productTheme.muted,
-    fontFamily: "Archivo_800ExtraBold",
-    letterSpacing: 1.2,
-    textTransform: "uppercase",
-    fontSize: 12,
-  },
-});

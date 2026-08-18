@@ -80,3 +80,68 @@ export function me(token: string) {
 export function logout(token: string) {
   return request<{ ok: boolean }>("/v1/auth/logout", { method: "POST", token });
 }
+
+export type TodayItem = {
+  id: string;
+  exercise_id: string;
+  name: string;
+  position: number;
+  planned_sets: number;
+  planned_reps: string;
+  load_kg: number;
+  rest_seconds: number | null;
+  notes: string | null;
+  video_url: string | null;
+};
+
+export type TodayPayload = {
+  studio: Studio;
+  person: { id: string; name: string };
+  readiness: {
+    score: number;
+    energy: number;
+    soreness: number;
+    sleep: number;
+    label: string;
+  };
+  streak: { current_count: number; protector_available: boolean };
+  xp_total: number;
+  prescription: {
+    id: string;
+    name: string;
+    for_date: string;
+    minutes: number;
+    items: TodayItem[];
+  } | null;
+  banner: { text: string; kind: string } | null;
+  coach_line: string;
+  debut: boolean;
+  comeback: { id: string; minutes: number; coach_line: string } | null;
+};
+
+export type OwnerHome = {
+  greeting: string;
+  student_count: number;
+  fio: {
+    prescribed: number;
+    done: number;
+    week: { for_date: string; done: number; prescribed: number }[];
+  };
+  attention: {
+    id: string;
+    person_id: string;
+    name: string;
+    reason: string;
+    decision: string;
+    rank: number;
+  }[];
+  unread_returns: number;
+};
+
+export function today(token: string) {
+  return request<TodayPayload>("/v1/today", { token });
+}
+
+export function ownerHome(token: string) {
+  return request<OwnerHome>("/v1/owner/home", { token });
+}

@@ -32,8 +32,9 @@ const styles = StyleSheet.create({
   },
   pad: {
     flex: 1,
-    justifyContent: "center",
+    justifyContent: "flex-start",
     paddingHorizontal: 24,
+    paddingTop: 8,
   },
   kicker: {
     fontFamily: "Archivo_800ExtraBold",
