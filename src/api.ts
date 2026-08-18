@@ -335,6 +335,72 @@ export function ownerStudent(token: string, id: string) {
   return request<OwnerStudent>(`/v1/owner/students/${id}`, { token });
 }
 
+export type ModelSummary = {
+  id: string;
+  name: string;
+};
+
+export function listModels(token: string) {
+  return request<{ items: ModelSummary[] }>("/v1/models", { token });
+}
+
+export type DraftItem = {
+  id: string;
+  exercise_id: string;
+  name: string;
+  planned_sets: number;
+  planned_reps: string;
+  load_kg: number;
+  load_source: "history" | "starter" | "manual";
+};
+
+export function draftFromLast(
+  token: string,
+  modelId: string,
+  personId: string,
+  from: "last" | "model" = "last",
+) {
+  return request<{ draft_id: string; items: DraftItem[] }>(
+    `/v1/models/${modelId}/draft-from-last`,
+    {
+      method: "POST",
+      token,
+      body: JSON.stringify({ person_id: personId, from }),
+    },
+  );
+}
+
+export function patchPrescriptionItem(
+  token: string,
+  prescriptionId: string,
+  itemId: string,
+  body: { load_kg: number; planned_sets: number; planned_reps: string },
+) {
+  return request<{ ok: boolean }>(
+    `/v1/prescriptions/${prescriptionId}/items/${itemId}`,
+    {
+      method: "PATCH",
+      token,
+      body: JSON.stringify(body),
+    },
+  );
+}
+
+export function publishPrescription(
+  token: string,
+  prescriptionId: string,
+  alsoPersonIds: string[],
+) {
+  return request<{ ok: boolean }>("/v1/publish", {
+    method: "POST",
+    token,
+    body: JSON.stringify({
+      prescription_id: prescriptionId,
+      also_person_ids: alsoPersonIds,
+    }),
+  });
+}
+
 export type LeagueRow = {
   name: string;
   xp_total: number;

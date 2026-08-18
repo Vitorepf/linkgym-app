@@ -1,4 +1,4 @@
-import type { FinishRecord, TodayItem } from "../api";
+import type { DraftItem, FinishRecord, TodayItem } from "../api";
 
 export type SessionRoute = {
   token: string;
@@ -36,6 +36,30 @@ export type RootStackParamList = {
     personId: string;
     studioName: string;
     accent: string;
+  };
+  Base: {
+    token: string;
+    studioName: string;
+    accent: string;
+    personId?: string;
+    personName?: string;
+  };
+  Ajustar: {
+    token: string;
+    studioName: string;
+    accent: string;
+    prescriptionId: string;
+    personId: string;
+    personName: string;
+    items: DraftItem[];
+  };
+  Publicar: {
+    token: string;
+    studioName: string;
+    accent: string;
+    prescriptionId: string;
+    personId: string;
+    personName: string;
   };
   SobreVoce: undefined;
   Pronto: undefined;

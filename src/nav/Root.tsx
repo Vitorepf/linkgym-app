@@ -7,6 +7,9 @@ import { today } from "../api";
 import { Painel } from "../screens/owner/Painel";
 import { Atencao } from "../screens/owner/Atencao";
 import { Aluna } from "../screens/owner/Aluna";
+import { Ajustar } from "../screens/owner/Ajustar";
+import { Base } from "../screens/owner/Base";
+import { Publicar } from "../screens/owner/Publicar";
 import { Revisao } from "../screens/owner/Revisao";
 import { Retorno } from "../screens/owner/Retorno";
 import { ComoFazer } from "../screens/student/ComoFazer";
@@ -167,6 +170,21 @@ export function Root({
           <Stack.Screen
             name="Aluna"
             component={Aluna}
+            options={{ animation: "slide_from_right" }}
+          />
+          <Stack.Screen
+            name="Base"
+            component={Base}
+            options={{ animation: "slide_from_right" }}
+          />
+          <Stack.Screen
+            name="Ajustar"
+            component={Ajustar}
+            options={{ animation: "slide_from_right" }}
+          />
+          <Stack.Screen
+            name="Publicar"
+            component={Publicar}
             options={{ animation: "slide_from_right" }}
           />
         </>

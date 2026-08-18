@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { ownerStudent, type OwnerStudent } from "../../api";
@@ -10,7 +10,7 @@ import { Screen } from "../../ui/Screen";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Aluna">;
 
-export function Aluna({ route }: Props) {
+export function Aluna({ navigation, route }: Props) {
   const { token, personId, accent } = route.params;
   const [card, setCard] = useState<OwnerStudent | null>(null);
   const [error, setError] = useState("");
@@ -45,7 +45,24 @@ export function Aluna({ route }: Props) {
 
         {card ? (
           <>
-            <PrimaryButton label={primaryCopy(card.suggested)} onPress={() => {}} />
+            <PrimaryButton
+              label={primaryCopy(card.suggested)}
+              onPress={() => {
+                if (
+                  card.suggested !== "renew" &&
+                  card.suggested !== "debut"
+                ) {
+                  return;
+                }
+                navigation.navigate("Base", {
+                  token,
+                  studioName: route.params.studioName,
+                  accent,
+                  personId: card.person_id,
+                  personName: card.name,
+                });
+              }}
+            />
 
             {card.last_loads.map((row) => (
               <Text key={row.exercise_name} style={styles.line}>
@@ -59,6 +76,22 @@ export function Aluna({ route }: Props) {
             </Text>
 
             {effort ? <Text style={styles.line}>{effort}</Text> : null}
+
+            <Pressable
+              onPress={() =>
+                navigation.navigate("Base", {
+                  token,
+                  studioName: route.params.studioName,
+                  accent,
+                  personId: card.person_id,
+                  personName: card.name,
+                })
+              }
+              style={styles.nova}
+              hitSlop={8}
+            >
+              <Text style={styles.novaText}>Nova ficha</Text>
+            </Pressable>
           </>
         ) : null}
       </ScrollView>
@@ -119,5 +152,13 @@ const styles = StyleSheet.create({
     fontSize: 48,
     letterSpacing: -1,
     marginTop: 8,
+  },
+  nova: { marginTop: 32, alignSelf: "flex-start" },
+  novaText: {
+    color: productTheme.ink,
+    fontFamily: "Archivo_800ExtraBold",
+    fontSize: 13,
+    letterSpacing: 1.1,
+    textTransform: "uppercase",
   },
 });
