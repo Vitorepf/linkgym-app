@@ -1,24 +1,16 @@
 # linkgym-app
 
-App do LinkGym. Um binário, duas contas (personal e aluno). Depois do login, a cara é a marca do personal — não a da plataforma.
+App do LinkGym (personal + aluno). TypeScript, Expo SDK 54.
 
 API: [linkgym-api](https://github.com/Vitorepf/linkgym-api)
 
-## Precisa na máquina
+## Subir (front)
 
-- [Node 20.19+](https://nodejs.org/) (22 também serve)
-- [Expo Go](https://expo.dev/go) no telefone — **SDK 54**
-- A API no ar (`make dev` no `linkgym-api`)
+Na máquina, só isto:
 
-Este app fica no **Expo SDK 54** + **TypeScript** (React 19.1, React Native 0.81.5). É a mesma linha do Atlas e do Blackink. Não subir para 55/56/57. Não usar JavaScript solto.
-
-## Linguagem da UI
-
-TypeScript + `StyleSheet` + tokens (`src/theme.ts`). Animação: Reanimated 4.
-
-Não entra Tamagui, NativeWind nem styled-components. O Modernist precisa de raio 0, Archivo e um acento — biblioteca de componente genérica deixa o app com cara de template e a IA erra a API.
-
-## Subir
+1. [Node 20.19+](https://nodejs.org/) — 22 também serve. Se usa `nvm`: `nvm use` (tem `.nvmrc`).
+2. [Expo Go](https://expo.dev/go) no telefone, **SDK 54** (não o app novo de SDK 55+).
+3. Acesso a este repo (é privado — peça convite no GitHub).
 
 ```bash
 git clone https://github.com/Vitorepf/linkgym-app.git
@@ -29,21 +21,24 @@ make start
 
 Sem `make`: `npm run setup && npm start`
 
-Abre o QR no Expo Go. No simulador, `i` no terminal.
+O QR abre a tela **Convite** (fundo preto). Isto prova o front. A API **não** precisa estar no ar para esta tela.
 
-## Versões (não mexer no major)
+No simulador iOS: `i` no terminal (precisa [Xcode](https://developer.apple.com/xcode/)).
 
-| Pacote | Versão |
+## Depois, com a API
+
+Quando for falar com o backend: no `linkgym-api`, `make dev`. No simulador, `localhost:8080` já está no `.env`. No telefone físico, troque `EXPO_PUBLIC_API_URL` pelo IP do Mac.
+
+## Travas (não mexer)
+
+| | |
 | --- | --- |
-| expo | ~54.0.33 |
-| react | 19.1.0 |
-| react-native | 0.81.5 |
-| typescript | ~5.9.2 |
+| Linguagem | TypeScript |
+| Expo | SDK 54 (`~54.0.33`) |
+| React / RN | 19.1.0 / 0.81.5 |
+| UI | `StyleSheet` + `src/theme.ts` + Reanimated 4 |
+| Não entra | Tamagui, NativeWind, styled-components, SDK 55/56/57 |
 
-Dependências novas: `npx expo install <pacote>` — nunca `npm install` solto num módulo Expo. Depois: `npx expo-doctor`.
-
-## Design
-
-Modernist: fundo `#0b0a0a`, Archivo 800, raio 0, um acento (a cor do estúdio).
+Pacote Expo novo: `npx expo install <pacote>`. Nunca `npm install` solto num módulo Expo.
 
 Spec: [v1 design](https://github.com/Vitorepf/linkgym-api/blob/main/docs/superpowers/specs/2026-08-18-linkgym-v1-design.md)

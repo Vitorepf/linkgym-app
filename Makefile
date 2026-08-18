@@ -4,14 +4,18 @@
 
 help:
 	@echo "LinkGym app"
-	@echo "  make setup  copia .env (se faltar) e instala as dependências"
-	@echo "  make start  abre o Expo (SDK 54)"
-	@echo "  make ios    simulador iOS"
+	@echo "  make setup  Node + .env + deps + doctor (sócio: rode isto primeiro)"
+	@echo "  make start  Expo Go / QR (SDK 54)"
+	@echo "  make ios    simulador iOS (precisa Xcode)"
 	@echo "  make doctor confere versões do Expo"
 
 setup:
 	node scripts/setup.cjs
-	npm install
+	npm ci
+	npx tsc --noEmit
+	npx expo-doctor
+	@echo ""
+	@echo "Ambiente pronto. Próximo: make start"
 
 start:
 	npx expo start
