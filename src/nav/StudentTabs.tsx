@@ -1,13 +1,13 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import type { Person, Studio } from "../api";
+import { FichaTab } from "../screens/student/FichaTab";
 import { Hoje } from "../screens/student/Hoje";
 import { Perfil } from "../screens/student/Perfil";
 import { Progresso } from "../screens/student/Progresso";
 import { productTheme } from "../theme";
-import { RoleTabLabel, roleTabScreenOptions } from "./tabChrome";
+import { roleTabScreenOptions } from "./tabChrome";
 import type { StudentTabParamList } from "./types";
 
-/** Root stack route that hosts these tabs. Reset here to land on the Hoje tab. */
 export const STUDENT_HOME_ROUTE = "Hoje" as const;
 
 export const studentHomeTarget = {
@@ -41,12 +41,7 @@ export function StudentTabs({
     >
       <Tab.Screen
         name="Hoje"
-        options={{
-          tabBarLabel: ({ color }) => (
-            <RoleTabLabel label="HOJE" color={color} />
-          ),
-          tabBarAccessibilityLabel: "Hoje",
-        }}
+        options={{ tabBarAccessibilityLabel: "Hoje" }}
       >
         {() => (
           <Hoje
@@ -58,24 +53,22 @@ export function StudentTabs({
         )}
       </Tab.Screen>
       <Tab.Screen
+        name="MinhaFicha"
+        options={{ tabBarAccessibilityLabel: "Ficha" }}
+      >
+        {() => (
+          <FichaTab token={token} person={person} studio={studio} />
+        )}
+      </Tab.Screen>
+      <Tab.Screen
         name="Progresso"
-        options={{
-          tabBarLabel: ({ color }) => (
-            <RoleTabLabel label="PROGRESSO" color={color} />
-          ),
-          tabBarAccessibilityLabel: "Progresso",
-        }}
+        options={{ tabBarAccessibilityLabel: "Progresso" }}
       >
         {() => <Progresso token={token} person={person} studio={studio} />}
       </Tab.Screen>
       <Tab.Screen
         name="Perfil"
-        options={{
-          tabBarLabel: ({ color }) => (
-            <RoleTabLabel label="PERFIL" color={color} />
-          ),
-          tabBarAccessibilityLabel: "Perfil",
-        }}
+        options={{ tabBarAccessibilityLabel: "Perfil" }}
       >
         {() => (
           <Perfil

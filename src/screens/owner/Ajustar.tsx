@@ -3,9 +3,10 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { patchPrescriptionItem, type DraftItem } from "../../api";
 import type { RootStackParamList } from "../../nav/types";
-import { productTheme } from "../../theme";
-import { PrimaryButton } from "../../ui/PrimaryButton";
-import { Screen } from "../../ui/Screen";
+import { FONT, productTheme as T } from "../../theme";
+import { AccentCTA } from "../../ui/AccentCTA";
+import { DockFooter, Head, Phone } from "../../ui/Screen";
+import { formatKg } from "../../ui/format";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Ajustar">;
 
@@ -13,6 +14,9 @@ export function Ajustar({ navigation, route }: Props) {
   const { token, studioName, accent, prescriptionId, personId, personName } =
     route.params;
   const [items, setItems] = useState<DraftItem[]>(route.params.items);
+  const [focusedId, setFocusedId] = useState(
+    route.params.items[0]?.id ?? "",
+  );
   const [error, setError] = useState("");
   const timers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const latest = useRef<DraftItem[]>(route.params.items);
@@ -41,7 +45,10 @@ export function Ajustar({ navigation, route }: Props) {
     }, 300);
   }
 
-  function change(id: string, patch: Partial<Pick<DraftItem, "load_kg" | "planned_sets">>) {
+  function change(
+    id: string,
+    patch: Partial<Pick<DraftItem, "load_kg" | "planned_sets">>,
+  ) {
     setItems((prev) => {
       const row = prev.find((it) => it.id === id);
       if (!row) return prev;
@@ -81,8 +88,16 @@ export function Ajustar({ navigation, route }: Props) {
     );
   }
 
+  const focused = items.find((it) => it.id === focusedId) ?? items[0];
+
   return (
-    <Screen title="Ajustar" accent={accent}>
+    <Phone>
+      <Head
+        kicker={personName}
+        title="Confere e ajusta"
+        kickerMuted
+        accent={accent}
+      />
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}
@@ -90,49 +105,92 @@ export function Ajustar({ navigation, route }: Props) {
       >
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
-        {items.map((row) => (
-          <View key={row.id} style={styles.row}>
-            <Text style={styles.name}>{row.name}</Text>
-            <Text style={styles.meta}>{row.planned_reps}</Text>
-            <Text style={styles.load}>{formatKg(row.load_kg)} kg</Text>
-            <View style={styles.actions}>
-              <Pressable
-                style={styles.fat}
-                onPress={() => change(row.id, { load_kg: row.load_kg - 2.5 })}
+        {items.map((row) => {
+          const on = focused?.id === row.id;
+          if (on) {
+            return (
+              <View
+                key={row.id}
+                style={[styles.hero, { borderLeftColor: accent }]}
               >
-                <Text style={styles.fatText}>−2.5</Text>
-              </Pressable>
-              <Pressable
-                style={styles.fat}
-                onPress={() => change(row.id, { load_kg: row.load_kg + 2.5 })}
-              >
-                <Text style={styles.fatText}>+2.5</Text>
-              </Pressable>
-            </View>
-            <View style={styles.stepper}>
-              <Pressable
-                style={styles.step}
-                onPress={() =>
-                  change(row.id, { planned_sets: row.planned_sets - 1 })
-                }
-              >
-                <Text style={styles.stepText}>−</Text>
-              </Pressable>
-              <Text style={styles.sets}>{row.planned_sets} séries</Text>
-              <Pressable
-                style={styles.step}
-                onPress={() =>
-                  change(row.id, { planned_sets: row.planned_sets + 1 })
-                }
-              >
-                <Text style={styles.stepText}>+</Text>
-              </Pressable>
-            </View>
-          </View>
-        ))}
-
-        <PrimaryButton
-          label="Seguir para publicar"
+                <Text style={styles.name}>{row.name}</Text>
+                <View style={styles.stepper}>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Menos 2,5 kg"
+                    style={styles.sq}
+                    onPress={() =>
+                      change(row.id, { load_kg: row.load_kg - 2.5 })
+                    }
+                  >
+                    <Text style={styles.sqText}>−</Text>
+                  </Pressable>
+                  <View style={styles.loadBlock}>
+                    <Text style={styles.load}>
+                      {formatKg(row.load_kg)} kg
+                    </Text>
+                    <Text style={styles.meta}>
+                      {row.planned_sets} × {row.planned_reps}
+                    </Text>
+                  </View>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Mais 2,5 kg"
+                    style={[
+                      styles.sq,
+                      { backgroundColor: accent, borderColor: accent },
+                    ]}
+                    onPress={() =>
+                      change(row.id, { load_kg: row.load_kg + 2.5 })
+                    }
+                  >
+                    <Text style={[styles.sqText, { color: T.bg }]}>+</Text>
+                  </Pressable>
+                </View>
+                <View style={styles.setsRow}>
+                  <Pressable
+                    style={styles.setBtn}
+                    onPress={() =>
+                      change(row.id, { planned_sets: row.planned_sets - 1 })
+                    }
+                  >
+                    <Text style={styles.setBtnText}>−</Text>
+                  </Pressable>
+                  <Text style={styles.sets}>{row.planned_sets} séries</Text>
+                  <Pressable
+                    style={styles.setBtn}
+                    onPress={() =>
+                      change(row.id, { planned_sets: row.planned_sets + 1 })
+                    }
+                  >
+                    <Text style={styles.setBtnText}>+</Text>
+                  </Pressable>
+                </View>
+              </View>
+            );
+          }
+          return (
+            <Pressable
+              key={row.id}
+              accessibilityRole="button"
+              onPress={() => setFocusedId(row.id)}
+              style={styles.row}
+            >
+              <View style={styles.rowBody}>
+                <Text style={styles.rowName}>{row.name}</Text>
+                <Text style={styles.rowMeta}>
+                  {row.planned_sets} × {row.planned_reps} ·{" "}
+                  {formatKg(row.load_kg)} kg
+                </Text>
+              </View>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+      <DockFooter>
+        <AccentCTA
+          label="Publicar"
+          accent={accent}
           onPress={() => {
             void (async () => {
               try {
@@ -152,87 +210,110 @@ export function Ajustar({ navigation, route }: Props) {
             })();
           }}
         />
-      </ScrollView>
-    </Screen>
+      </DockFooter>
+    </Phone>
   );
-}
-
-function formatKg(n: number): string {
-  if (Number.isInteger(n)) return String(n);
-  return String(n).replace(".", ",");
 }
 
 const styles = StyleSheet.create({
   scroll: { flex: 1 },
-  content: { paddingBottom: 32, flexGrow: 1 },
+  content: { flexGrow: 1, paddingBottom: 8 },
   error: {
-    color: productTheme.accentFallback,
+    color: T.accentFallback,
     fontSize: 14,
-    marginTop: 12,
+    paddingHorizontal: T.pad,
+    paddingTop: 12,
   },
-  row: {
-    marginTop: 28,
-    paddingBottom: 20,
-    borderBottomWidth: 2,
-    borderBottomColor: productTheme.divider,
-    borderRadius: productTheme.radius,
+  hero: {
+    paddingHorizontal: T.pad,
+    paddingVertical: 24,
+    backgroundColor: T.raised,
+    borderLeftWidth: 3,
+    borderBottomWidth: 1,
+    borderBottomColor: T.hairline,
   },
   name: {
-    color: productTheme.ink,
-    fontFamily: "Archivo_800ExtraBold",
-    fontSize: 22,
-    letterSpacing: -0.4,
-  },
-  meta: {
-    color: productTheme.muted,
+    color: T.ink,
+    fontFamily: FONT,
     fontSize: 15,
-    marginTop: 6,
-  },
-  load: {
-    color: productTheme.ink,
-    fontFamily: "Archivo_800ExtraBold",
-    fontSize: 28,
-    letterSpacing: -0.6,
-    marginTop: 10,
-  },
-  actions: {
-    flexDirection: "row",
-    gap: 10,
-    marginTop: 14,
-  },
-  fat: {
-    backgroundColor: productTheme.ink,
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderRadius: productTheme.radius,
-    alignSelf: "flex-start",
-  },
-  fatText: {
-    color: productTheme.bg,
-    fontFamily: "Archivo_800ExtraBold",
-    fontSize: 16,
-    letterSpacing: 0.4,
+    letterSpacing: -0.2,
   },
   stepper: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginTop: 12,
+  },
+  sq: {
+    width: 52,
+    height: 52,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: T.divider,
+    backgroundColor: T.fill,
+    flexShrink: 0,
+  },
+  sqText: {
+    color: T.ink,
+    fontFamily: FONT,
+    fontSize: 22,
+  },
+  loadBlock: { flex: 1, alignItems: "center" },
+  load: {
+    color: T.ink,
+    fontFamily: FONT,
+    fontSize: 28,
+    letterSpacing: -0.8,
+    fontVariant: ["tabular-nums"],
+  },
+  meta: {
+    color: T.muted,
+    fontFamily: FONT,
+    fontSize: 11,
+    letterSpacing: 1.1,
+    marginTop: 2,
+  },
+  setsRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
     marginTop: 14,
   },
-  step: {
+  setBtn: {
     borderWidth: 2,
-    borderColor: productTheme.ink,
+    borderColor: T.ink,
     paddingHorizontal: 14,
     paddingVertical: 8,
-    borderRadius: productTheme.radius,
   },
-  stepText: {
-    color: productTheme.ink,
-    fontFamily: "Archivo_800ExtraBold",
+  setBtnText: {
+    color: T.ink,
+    fontFamily: FONT,
     fontSize: 18,
   },
   sets: {
-    color: productTheme.ink,
+    color: T.ink,
     fontSize: 16,
+  },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingHorizontal: T.pad,
+    paddingVertical: 24,
+    borderBottomWidth: 1,
+    borderBottomColor: T.hairline,
+  },
+  rowBody: { flex: 1 },
+  rowName: {
+    color: T.ink,
+    fontFamily: FONT,
+    fontSize: 15,
+    letterSpacing: -0.2,
+  },
+  rowMeta: {
+    color: T.muted,
+    fontSize: 13,
+    marginTop: 3,
   },
 });

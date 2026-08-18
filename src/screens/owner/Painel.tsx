@@ -9,8 +9,10 @@ import {
   type Studio,
 } from "../../api";
 import type { OwnerTabNavigation } from "../../nav/types";
-import { productTheme } from "../../theme";
-import { Screen } from "../../ui/Screen";
+import { FONT, productTheme as T } from "../../theme";
+import { Initials } from "../../ui/Initials";
+import { Band, Head, Phone } from "../../ui/Screen";
+import { weekdayLong } from "../../ui/format";
 
 type Props = {
   token: string;
@@ -19,19 +21,9 @@ type Props = {
   onLeave: () => void;
 };
 
-const WEEKDAYS = [
-  "Domingo",
-  "Segunda",
-  "Terça",
-  "Quarta",
-  "Quinta",
-  "Sexta",
-  "Sábado",
-];
-
 export function Painel({ token, person, studio, onLeave }: Props) {
   const navigation = useNavigation<OwnerTabNavigation>();
-  const accent = studio.accent_color || productTheme.accentFallback;
+  const accent = studio.accent_color || T.accentFallback;
   const [data, setData] = useState<OwnerHome | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
@@ -73,16 +65,20 @@ export function Painel({ token, person, studio, onLeave }: Props) {
     }
   }
 
-  const weekday = WEEKDAYS[new Date().getDay()];
-  const kicker = data
-    ? `${weekday} · ${data.student_count} alunos`
-    : weekday;
-  const title = data?.greeting ?? `Bom dia, ${person.name}`;
   const attention = data?.attention ?? [];
-  const empty = data !== null && attention.length === 0;
+  const ratio =
+    data && data.fio.prescribed > 0
+      ? Math.min(1, data.fio.done / data.fio.prescribed)
+      : 0;
 
   return (
-    <Screen kicker={kicker} title={title} accent={accent} tab>
+    <Phone tab>
+      <Head
+        kicker={`${weekdayLong()} · ${data?.student_count ?? 0} alunos`}
+        title={data?.greeting ?? `Bom dia, ${person.name}`}
+        kickerMuted
+        right={<Initials name={person.name} size={38} />}
+      />
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}
@@ -90,46 +86,116 @@ export function Painel({ token, person, studio, onLeave }: Props) {
       >
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
-        {empty ? (
-          <Text style={styles.empty}>Nada pendente. Pode voltar para a aula.</Text>
-        ) : null}
-
-        {attention.map((row) => (
-          <View key={row.id} style={styles.row}>
-            <View style={[styles.initials, { borderColor: accent }]}>
-              <Text style={[styles.initialsText, { color: accent }]}>
-                {initials(row.name)}
+        {data ? (
+          <Band>
+            <Text style={[styles.kicker, { color: accent }]}>
+              Treinos da semana
+            </Text>
+            <View style={styles.heroRow}>
+              <Text style={styles.heroNum}>{data.fio.done}</Text>
+              <Text style={styles.heroOf}>/ {data.fio.prescribed}</Text>
+            </View>
+            <View style={styles.track}>
+              <View
+                style={[
+                  styles.trackFill,
+                  { width: `${ratio * 100}%`, backgroundColor: accent },
+                ]}
+              />
+              <View style={styles.trackMark} />
+            </View>
+            <View style={styles.metaRow}>
+              <Text style={styles.metaK}>{Math.round(ratio * 100)}% FEITO</Text>
+              <Text style={styles.metaK}>
+                META {data.fio.prescribed}
               </Text>
             </View>
-            <View style={styles.rowBody}>
-              <Text style={styles.name}>{row.name}</Text>
-              <Text style={styles.why}>{whyFor(row.reason)}</Text>
-              <Text style={styles.decision}>{row.decision}</Text>
+            <View style={styles.stats}>
+              <View>
+                <Text style={styles.statN}>{data.student_count}</Text>
+                <Text style={styles.statL}>ALUNOS</Text>
+              </View>
+              <View>
+                <Text style={styles.statN}>{attention.length}</Text>
+                <Text style={styles.statL}>PENDÊNCIAS</Text>
+              </View>
+              <View>
+                <Text style={[styles.statN, { color: accent }]}>
+                  {data.unread_returns}
+                </Text>
+                <Text style={styles.statL}>RETORNOS</Text>
+              </View>
+            </View>
+          </Band>
+        ) : null}
+
+        <View style={styles.sectionHead}>
+          <Text style={styles.kickerMuted}>
+            {attention.length === 0
+              ? "Nada pendente"
+              : `${attention.length} ações de hoje`}
+          </Text>
+        </View>
+
+        {attention.length === 0 && data ? (
+          <Band>
+            <Text style={styles.empty}>Pode voltar para a aula.</Text>
+          </Band>
+        ) : null}
+
+        {attention.map((row, i) => (
+          <Pressable
+            key={row.id}
+            onPress={() =>
+              navigation.navigate("Aluna", {
+                token,
+                personId: row.person_id,
+                studioName: studio.name,
+                accent,
+              })
+            }
+            style={[
+              styles.action,
+              i === attention.length - 1 && styles.actionLast,
+            ]}
+          >
+            <Initials name={row.name} size={34} fill={i === 0} accent={accent} />
+            <View style={styles.actionBody}>
+              <Text style={styles.actionName}>
+                {row.name} · {whyFor(row.reason)}
+              </Text>
+              <Text style={styles.actionWhy}>{row.decision}</Text>
             </View>
             <Pressable
-              style={styles.apply}
               onPress={() => void apply(row.id)}
               disabled={busy === row.id}
+              hitSlop={8}
             >
-              <Text style={styles.applyText}>Aplicar</Text>
+              <Text style={[styles.verb, { color: accent }]}>
+                {verbFor(row.reason)}
+              </Text>
             </Pressable>
-          </View>
+          </Pressable>
         ))}
 
         {data ? (
-          <View style={styles.fio}>
-            <View style={styles.bars}>
+          <Band>
+            <View style={styles.rowBetween}>
+              <Text style={styles.kickerMuted}>O fio da carteira</Text>
+              <Text style={styles.metaK}>SEG A DOM</Text>
+            </View>
+            <View style={styles.fio}>
               {data.fio.week.map((d) => {
                 const pct =
                   d.prescribed === 0 ? 0 : Math.min(1, d.done / d.prescribed);
                 return (
-                  <View key={d.for_date} style={styles.barCol}>
-                    <View style={styles.barTrack}>
+                  <View key={d.for_date} style={styles.fioCol}>
+                    <View style={styles.fioTrack}>
                       <View
                         style={[
-                          styles.barFill,
+                          styles.fioFill,
                           {
-                            height: pct === 0 ? 0 : Math.max(4, pct * 52),
+                            height: pct === 0 ? 0 : Math.max(4, pct * 76),
                             backgroundColor: accent,
                           },
                         ]}
@@ -139,179 +205,244 @@ export function Painel({ token, person, studio, onLeave }: Props) {
                 );
               })}
             </View>
-            <Text style={styles.fioCaption}>
-              {data.fio.done} feitos · {data.fio.prescribed} prescritos
+            <Text style={styles.caption}>
+              {data.fio.prescribed} prescritos · {data.fio.done} feitos
             </Text>
-          </View>
+          </Band>
         ) : null}
 
-        <View style={styles.footer}>
-          <Pressable
-            onPress={() =>
-              navigation.navigate("Retorno", {
-                token,
-                studioName: studio.name,
-                accent,
-              })
-            }
-            hitSlop={8}
-          >
-            <Text style={styles.footerLink}>
-              {data && data.unread_returns > 0
-                ? `Retornos · ${data.unread_returns}`
-                : "Retornos"}
-            </Text>
-          </Pressable>
-          <Pressable
-            onPress={() =>
-              navigation.navigate("Atencao", {
-                token,
-                studioName: studio.name,
-                accent,
-              })
-            }
-            hitSlop={8}
-          >
-            <Text style={styles.footerLink}>Atenção do dia</Text>
-          </Pressable>
-          <Pressable
-            onPress={() => navigation.navigate("Semana")}
-            hitSlop={8}
-          >
-            <Text style={styles.footerLink}>Revisão da semana</Text>
-          </Pressable>
-          <Pressable
-            onPress={() => navigation.navigate("Fichas")}
-            hitSlop={8}
-          >
-            <Text style={styles.footerLink}>Nova ficha</Text>
-          </Pressable>
-        </View>
-
-        <Pressable onPress={onLeave} style={styles.leave} hitSlop={8}>
-          <Text style={styles.leaveText}>Sair</Text>
+        <Pressable
+          onPress={() =>
+            navigation.navigate("Retorno", {
+              token,
+              studioName: studio.name,
+              accent,
+            })
+          }
+          style={styles.linkRow}
+        >
+          <Text style={styles.link}>
+            {data && data.unread_returns > 0
+              ? `Retornos · ${data.unread_returns}`
+              : "Retornos"}
+          </Text>
+          <Text style={styles.chev}>›</Text>
+        </Pressable>
+        <Pressable
+          onPress={() =>
+            navigation.navigate("Atencao", {
+              token,
+              studioName: studio.name,
+              accent,
+            })
+          }
+          style={styles.linkRow}
+        >
+          <Text style={styles.link}>Atenção do dia</Text>
+          <Text style={styles.chev}>›</Text>
+        </Pressable>
+        <Pressable onPress={onLeave} style={styles.linkRow}>
+          <Text style={styles.leave}>Sair</Text>
         </Pressable>
       </ScrollView>
-    </Screen>
+    </Phone>
   );
-}
-
-function initials(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return "";
-  if (parts.length === 1) return parts[0].slice(0, 1).toUpperCase();
-  return (parts[0][0] + parts[1][0]).toUpperCase();
 }
 
 function whyFor(reason: string): string {
   switch (reason) {
     case "student_stopped":
-      return "Parou de treinar";
+      return "parou de treinar";
     case "pain_flag":
-      return "Marcou dor no onboarding";
+      return "marcou dor";
     case "debut":
-      return "Ainda não fez a estreia";
+      return "estreia pendente";
     case "high_effort":
-      return "Última sessão difícil";
+      return "última sessão difícil";
     default:
       return reason;
   }
 }
 
+function verbFor(reason: string): string {
+  switch (reason) {
+    case "student_stopped":
+      return "CHAMAR";
+    case "debut":
+      return "MONTAR";
+    case "pain_flag":
+      return "VER";
+    default:
+      return "APLICAR";
+  }
+}
+
 const styles = StyleSheet.create({
   scroll: { flex: 1 },
-  content: { paddingBottom: 32, flexGrow: 1 },
-  empty: {
-    color: productTheme.muted,
-    fontSize: 16,
-    marginTop: 20,
-    lineHeight: 22,
-  },
+  content: { flexGrow: 1, paddingBottom: 24 },
   error: {
-    color: productTheme.accentFallback,
+    color: T.accentFallback,
     fontSize: 14,
-    marginTop: 12,
+    paddingHorizontal: T.pad,
+    paddingTop: 12,
   },
-  row: {
+  kicker: {
+    fontFamily: FONT,
+    fontSize: 11,
+    letterSpacing: 1.43,
+    textTransform: "uppercase",
+  },
+  kickerMuted: {
+    color: T.muted,
+    fontFamily: FONT,
+    fontSize: 11,
+    letterSpacing: 1.43,
+    textTransform: "uppercase",
+  },
+  heroRow: {
     flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 12,
-    marginTop: 28,
-    paddingBottom: 20,
-    borderBottomWidth: 2,
-    borderBottomColor: productTheme.divider,
+    alignItems: "baseline",
+    gap: 9,
+    marginTop: 8,
   },
-  initials: {
-    width: 44,
-    height: 44,
-    borderWidth: 2,
+  heroNum: {
+    color: T.ink,
+    fontFamily: FONT,
+    fontSize: 52,
+    letterSpacing: -2.4,
+    lineHeight: 52,
+    fontVariant: ["tabular-nums"],
+  },
+  heroOf: {
+    color: T.muted,
+    fontFamily: FONT,
+    fontSize: 22,
+  },
+  track: {
+    height: 8,
+    backgroundColor: T.fill,
+    marginTop: 14,
+    position: "relative",
+  },
+  trackFill: { height: 8 },
+  trackMark: {
+    position: "absolute",
+    right: 0,
+    top: -4,
+    bottom: -4,
+    width: 2,
+    backgroundColor: T.ink,
+  },
+  metaRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 6,
+  },
+  metaK: {
+    color: T.muted,
+    fontFamily: FONT,
+    fontSize: 11,
+    letterSpacing: 1.2,
+  },
+  stats: {
+    flexDirection: "row",
+    gap: 18,
+    marginTop: 16,
+  },
+  statN: {
+    color: T.ink,
+    fontFamily: FONT,
+    fontSize: 17,
+    fontVariant: ["tabular-nums"],
+  },
+  statL: {
+    color: T.muted,
+    fontFamily: FONT,
+    fontSize: 11,
+    letterSpacing: 0.9,
+    marginTop: 2,
+  },
+  sectionHead: {
+    paddingHorizontal: T.pad,
+    paddingTop: 18,
+    paddingBottom: 10,
+  },
+  empty: { color: T.muted, fontSize: 15, lineHeight: 22 },
+  action: {
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
+    gap: 14,
+    paddingHorizontal: T.pad,
+    paddingVertical: 22,
+    borderTopWidth: 1,
+    borderTopColor: T.hairline,
   },
-  initialsText: {
-    fontFamily: "Archivo_800ExtraBold",
+  actionLast: {
+    borderBottomWidth: 2,
+    borderBottomColor: T.divider,
+  },
+  actionBody: { flex: 1, minWidth: 0 },
+  actionName: {
+    color: T.ink,
+    fontFamily: FONT,
     fontSize: 14,
+  },
+  actionWhy: {
+    color: T.muted,
+    fontSize: 13,
+    marginTop: 2,
+  },
+  verb: {
+    fontFamily: FONT,
+    fontSize: 11,
     letterSpacing: 1,
   },
-  rowBody: { flex: 1 },
-  name: {
-    color: productTheme.ink,
-    fontFamily: "Archivo_800ExtraBold",
-    fontSize: 18,
-    letterSpacing: -0.3,
+  rowBetween: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "baseline",
+    gap: 12,
   },
-  why: { color: productTheme.muted, fontSize: 14, marginTop: 4 },
-  decision: {
-    color: productTheme.ink,
-    fontSize: 14,
-    marginTop: 6,
-    lineHeight: 20,
-  },
-  apply: {
-    backgroundColor: productTheme.ink,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    alignSelf: "flex-start",
-  },
-  applyText: {
-    color: productTheme.bg,
-    fontFamily: "Archivo_800ExtraBold",
-    fontSize: 11,
-    letterSpacing: 1.1,
-    textTransform: "uppercase",
-  },
-  fio: { marginTop: 36 },
-  bars: { flexDirection: "row", gap: 8, height: 56, alignItems: "flex-end" },
-  barCol: { flex: 1, height: 56, justifyContent: "flex-end" },
-  barTrack: {
-    height: 56,
-    borderWidth: 2,
-    borderColor: productTheme.divider,
-    justifyContent: "flex-end",
-  },
-  barFill: { width: "100%" },
-  fioCaption: {
-    color: productTheme.muted,
-    fontSize: 13,
+  fio: {
+    flexDirection: "row",
+    gap: 6,
+    height: 80,
+    alignItems: "flex-end",
     marginTop: 12,
   },
-  footer: {
-    marginTop: 40,
-    gap: 14,
+  fioCol: { flex: 1, height: 80, justifyContent: "flex-end" },
+  fioTrack: {
+    height: 80,
+    borderWidth: 1,
+    borderColor: "#4a4645",
+    justifyContent: "flex-end",
   },
-  footerLink: {
-    color: productTheme.ink,
-    fontFamily: "Archivo_800ExtraBold",
+  fioFill: { width: "100%" },
+  caption: {
+    color: T.muted,
+    fontSize: 13,
+    marginTop: 10,
+  },
+  linkRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: T.pad,
+    paddingVertical: 22,
+    borderBottomWidth: 1,
+    borderBottomColor: T.hairline,
+  },
+  link: {
+    color: T.ink,
+    fontFamily: FONT,
+    fontSize: 14,
+  },
+  chev: { color: T.muted2, fontSize: 18 },
+  leave: {
+    color: T.muted,
+    fontFamily: FONT,
     fontSize: 13,
     letterSpacing: 1.1,
     textTransform: "uppercase",
-  },
-  leave: { marginTop: 32, alignSelf: "flex-start" },
-  leaveText: {
-    color: productTheme.muted,
-    fontFamily: "Archivo_800ExtraBold",
-    letterSpacing: 1.2,
-    textTransform: "uppercase",
-    fontSize: 12,
   },
 });

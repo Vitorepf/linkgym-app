@@ -1,25 +1,25 @@
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import { FONT, productTheme as T } from "../theme";
-import { IconChevron } from "./Icons";
+import { IconCheck, IconChevron } from "./Icons";
 
 type Props = {
   label: string;
   onPress: () => void;
-  disabled?: boolean;
-  busy?: boolean;
-  block?: boolean;
   accent?: string;
   meta?: string;
+  disabled?: boolean;
+  busy?: boolean;
+  check?: boolean;
 };
 
-export function PrimaryButton({
+export function AccentCTA({
   label,
   onPress,
-  disabled,
-  busy,
-  block,
   accent,
   meta,
+  disabled,
+  busy,
+  check,
 }: Props) {
   const ac = accent || T.accentFallback;
   const off = disabled || busy;
@@ -27,10 +27,10 @@ export function PrimaryButton({
     <Pressable
       onPress={onPress}
       disabled={off}
+      accessibilityRole="button"
       style={({ pressed }) => [
         styles.btn,
         { backgroundColor: ac },
-        block && styles.block,
         off && styles.off,
         pressed && !off && styles.pressed,
       ]}
@@ -41,9 +41,13 @@ export function PrimaryButton({
         <>
           <Text style={styles.label}>{label}</Text>
           {meta ? <Text style={styles.meta}>{meta}</Text> : null}
-          <View style={styles.chev}>
-            <IconChevron color={T.bg} />
-          </View>
+          {check ? (
+            <IconCheck color={T.bg} size={18} />
+          ) : (
+            <View style={styles.chev}>
+              <IconChevron color={T.bg} />
+            </View>
+          )}
         </>
       )}
     </Pressable>
@@ -52,18 +56,12 @@ export function PrimaryButton({
 
 const styles = StyleSheet.create({
   btn: {
-    marginTop: 16,
     minHeight: 56,
     paddingVertical: 16,
     paddingHorizontal: 16,
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    alignSelf: "stretch",
-  },
-  block: {
-    alignSelf: "stretch",
-    marginTop: 12,
   },
   off: { opacity: 0.35 },
   pressed: { transform: [{ translateY: 1 }] },

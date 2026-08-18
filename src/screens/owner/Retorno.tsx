@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import {
@@ -8,14 +8,27 @@ import {
   type OwnerReturn,
 } from "../../api";
 import type { RootStackParamList } from "../../nav/types";
-import { productTheme } from "../../theme";
-import { Screen } from "../../ui/Screen";
+import { FONT, productTheme as T } from "../../theme";
+import { AccentCTA } from "../../ui/AccentCTA";
+import { Choice } from "../../ui/Choice";
+import { Initials } from "../../ui/Initials";
+import { Head, Phone } from "../../ui/Screen";
+import { formatKg } from "../../ui/format";
+
+type Bump = 2.5 | 0 | -2.5;
 
 type Props = NativeStackScreenProps<RootStackParamList, "Retorno">;
+
+const BUMPS: { value: Bump; label: string }[] = [
+  { value: -2.5, label: "−2,5" },
+  { value: 0, label: "0" },
+  { value: 2.5, label: "+2,5" },
+];
 
 export function Retorno({ route }: Props) {
   const { token, studioName, accent } = route.params;
   const [items, setItems] = useState<OwnerReturn[]>([]);
+  const [bumpFor, setBumpFor] = useState<Record<string, Bump>>({});
   const [error, setError] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
 
@@ -35,7 +48,7 @@ export function Retorno({ route }: Props) {
     }, [load]),
   );
 
-  async function apply(alertId: string, bump: 2.5 | 0 | -2.5) {
+  async function apply(alertId: string, bump: Bump) {
     if (busy) return;
     setBusy(alertId);
     try {
@@ -50,7 +63,8 @@ export function Retorno({ route }: Props) {
   }
 
   return (
-    <Screen kicker={studioName} title="Retornos" accent={accent}>
+    <Phone>
+      <Head kicker={studioName} title="Retornos" kickerMuted accent={accent} />
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}
@@ -59,56 +73,69 @@ export function Retorno({ route }: Props) {
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
         {items.length === 0 && !error ? (
-          <Text style={styles.empty}>Nada para retornar.</Text>
+          <View style={styles.emptyWrap}>
+            <Text style={styles.empty}>Nada para retornar.</Text>
+          </View>
         ) : null}
 
-        {items.map((row) => (
-          <View key={row.alert_id} style={styles.card}>
-            <Text style={styles.name}>{row.name} · sessão de hoje</Text>
-            <Text style={styles.effort}>{effortWord(row.effort)}</Text>
+        {items.map((row) => {
+          const bump = bumpFor[row.alert_id] ?? 0;
+          return (
+            <View key={row.alert_id} style={styles.card}>
+              <View style={styles.cardHead}>
+                <Initials name={row.name} size={36} />
+                <View style={styles.cardCopy}>
+                  <Text style={styles.name}>{row.name}</Text>
+                  <Text style={styles.effort}>{effortWord(row.effort)}</Text>
+                </View>
+              </View>
 
-            {row.records.map((rec) => (
-              <Text
-                key={rec.exercise_name}
-                style={[styles.banner, { borderLeftColor: accent }]}
-              >
-                Elogia o PR de {rec.exercise_name}
-              </Text>
-            ))}
+              {row.records.map((rec) => (
+                <View
+                  key={rec.exercise_name}
+                  style={[styles.banner, { borderLeftColor: accent }]}
+                >
+                  <Text style={styles.bannerKicker}>PR</Text>
+                  <Text style={styles.bannerText}>
+                    Elogia o PR de {rec.exercise_name} · {formatKg(rec.load_kg)}{" "}
+                    kg
+                  </Text>
+                </View>
+              ))}
 
-            <View style={styles.actions}>
-              <Pressable
-                onPress={() => {
-                  void apply(row.alert_id, 2.5);
-                }}
-                disabled={busy === row.alert_id}
-                style={styles.btn}
-              >
-                <Text style={styles.btnText}>Subir 2,5 kg</Text>
-              </Pressable>
-              <Pressable
-                onPress={() => {
-                  void apply(row.alert_id, 0);
-                }}
-                disabled={busy === row.alert_id}
-                style={styles.btn}
-              >
-                <Text style={styles.btnText}>Manter</Text>
-              </Pressable>
-              <Pressable
-                onPress={() => {
-                  void apply(row.alert_id, -2.5);
-                }}
-                disabled={busy === row.alert_id}
-                style={styles.btn}
-              >
-                <Text style={styles.btnText}>Descer 2,5 kg</Text>
-              </Pressable>
+              <View style={styles.bumps}>
+                {BUMPS.map((b) => (
+                  <Choice
+                    key={b.label}
+                    label={b.label}
+                    selected={bump === b.value}
+                    flex
+                    accent={accent}
+                    onPress={() =>
+                      setBumpFor((prev) => ({
+                        ...prev,
+                        [row.alert_id]: b.value,
+                      }))
+                    }
+                  />
+                ))}
+              </View>
+
+              <View style={styles.cta}>
+                <AccentCTA
+                  label="Aplicar"
+                  accent={accent}
+                  check
+                  busy={busy === row.alert_id}
+                  disabled={busy !== null && busy !== row.alert_id}
+                  onPress={() => void apply(row.alert_id, bump)}
+                />
+              </View>
             </View>
-          </View>
-        ))}
+          );
+        })}
       </ScrollView>
-    </Screen>
+    </Phone>
   );
 }
 
@@ -120,57 +147,69 @@ function effortWord(n: number): string {
 
 const styles = StyleSheet.create({
   scroll: { flex: 1 },
-  content: { paddingBottom: 32, flexGrow: 1 },
+  content: { flexGrow: 1, paddingBottom: 24 },
+  emptyWrap: {
+    paddingHorizontal: T.pad,
+    paddingTop: 24,
+  },
   empty: {
-    color: productTheme.muted,
-    fontSize: 16,
-    marginTop: 20,
+    color: T.muted,
+    fontSize: 15,
     lineHeight: 22,
   },
   error: {
-    color: productTheme.accentFallback,
+    color: T.accentFallback,
     fontSize: 14,
-    marginTop: 12,
+    paddingHorizontal: T.pad,
+    paddingTop: 12,
   },
   card: {
-    marginTop: 28,
-    paddingBottom: 20,
+    paddingHorizontal: T.pad,
+    paddingVertical: 24,
     borderBottomWidth: 2,
-    borderBottomColor: productTheme.divider,
-    borderRadius: productTheme.radius,
+    borderBottomColor: T.divider,
   },
+  cardHead: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  cardCopy: { flex: 1, minWidth: 0 },
   name: {
-    color: productTheme.ink,
-    fontFamily: "Archivo_800ExtraBold",
-    fontSize: 20,
-    letterSpacing: -0.3,
+    color: T.ink,
+    fontFamily: FONT,
+    fontSize: 15,
   },
   effort: {
-    color: productTheme.muted,
-    fontSize: 15,
-    marginTop: 6,
+    color: T.muted,
+    fontSize: 13,
+    marginTop: 2,
   },
   banner: {
-    color: productTheme.ink,
-    fontSize: 15,
-    lineHeight: 22,
     marginTop: 14,
     paddingLeft: 12,
-    borderLeftWidth: 2,
-  },
-  actions: { marginTop: 18, gap: 10 },
-  btn: {
-    alignSelf: "flex-start",
-    backgroundColor: productTheme.ink,
-    paddingHorizontal: 16,
+    borderLeftWidth: 3,
+    backgroundColor: T.raised,
     paddingVertical: 12,
-    borderRadius: productTheme.radius,
+    paddingRight: 12,
   },
-  btnText: {
-    color: productTheme.bg,
-    fontFamily: "Archivo_800ExtraBold",
-    fontSize: 12,
-    letterSpacing: 1.1,
+  bannerKicker: {
+    color: T.ok,
+    fontFamily: FONT,
+    fontSize: 11,
+    letterSpacing: 1.32,
     textTransform: "uppercase",
   },
+  bannerText: {
+    color: T.ink,
+    fontSize: 15,
+    lineHeight: 22,
+    marginTop: 4,
+  },
+  bumps: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 16,
+  },
+  cta: { marginTop: 12 },
 });

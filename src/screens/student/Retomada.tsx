@@ -1,7 +1,7 @@
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useState } from "react";
-import { Pressable, StyleSheet, Text } from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 import {
   completeComeback,
   today,
@@ -12,9 +12,11 @@ import {
 import { studentHomeTarget, STUDENT_HOME_ROUTE } from "../../nav/StudentTabs";
 import type { RootStackParamList } from "../../nav/types";
 import { createSession, newClientId } from "../../offline/sessionQueue";
-import { productTheme } from "../../theme";
-import { PrimaryButton } from "../../ui/PrimaryButton";
-import { Screen } from "../../ui/Screen";
+import { FONT, productTheme as T } from "../../theme";
+import { AccentCTA } from "../../ui/AccentCTA";
+import { GhostCTA } from "../../ui/GhostCTA";
+import { Initials } from "../../ui/Initials";
+import { Band, DockFooter, Head, Phone } from "../../ui/Screen";
 
 type Props = {
   token: string;
@@ -32,7 +34,7 @@ export function Retomada({
 }: Props) {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList, "Retomada">>();
-  const accent = studio.accent_color || productTheme.accentFallback;
+  const accent = studio.accent_color || T.accentFallback;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -82,48 +84,73 @@ export function Retomada({
   }
 
   return (
-    <Screen
-      kicker={studio.name}
-      title="9 minutos."
-      body="Nenhuma culpa."
-      accent={accent}
-    >
-      <Text style={styles.line}>{comeback.coach_line}</Text>
-      {error ? <Text style={styles.error}>{error}</Text> : null}
-      <PrimaryButton
-        label="Fazer agora"
-        onPress={() => void startNow()}
-        busy={busy}
+    <Phone>
+      <Head
+        kicker="Retomada"
+        title={`${comeback.minutes} minutos.`}
+        body="Nenhuma culpa."
+        accent={accent}
       />
-      <Pressable
-        onPress={() => navigation.navigate(STUDENT_HOME_ROUTE)}
-        hitSlop={8}
-        style={styles.skip}
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.skipText}>Agora não</Text>
-      </Pressable>
-    </Screen>
+        <Band>
+          <View style={styles.coachHead}>
+            <Initials name={studio.name} size={34} />
+            <Text style={styles.coachName}>{studio.name}</Text>
+          </View>
+          <Text style={styles.line}>{comeback.coach_line}</Text>
+        </Band>
+        {error ? <Text style={styles.error}>{error}</Text> : null}
+      </ScrollView>
+      <DockFooter>
+        <AccentCTA
+          label="Fazer agora"
+          onPress={() => void startNow()}
+          busy={busy}
+          accent={accent}
+        />
+        <View style={styles.ghost}>
+          <GhostCTA
+            label="Agora não"
+            onPress={() => navigation.navigate(STUDENT_HOME_ROUTE)}
+          />
+        </View>
+      </DockFooter>
+    </Phone>
   );
 }
 
 const styles = StyleSheet.create({
+  scroll: { flex: 1 },
+  content: { flexGrow: 1, paddingBottom: 8 },
+  coachHead: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  coachName: {
+    flex: 1,
+    color: T.ink,
+    fontFamily: FONT,
+    fontSize: 15,
+  },
   line: {
-    color: productTheme.ink,
+    color: T.ink,
     fontSize: 18,
     lineHeight: 26,
-    marginTop: 20,
+    marginTop: 14,
+    paddingTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: T.hairline,
   },
   error: {
-    color: productTheme.accentFallback,
+    color: T.accentFallback,
     fontSize: 14,
-    marginTop: 16,
+    paddingHorizontal: T.pad,
+    paddingTop: 16,
   },
-  skip: { marginTop: 20, alignSelf: "flex-start" },
-  skipText: {
-    color: productTheme.muted,
-    fontFamily: "Archivo_800ExtraBold",
-    letterSpacing: 1.2,
-    textTransform: "uppercase",
-    fontSize: 12,
-  },
+  ghost: { marginTop: 10 },
 });

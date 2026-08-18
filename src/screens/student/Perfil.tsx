@@ -1,13 +1,15 @@
 import { useEffect, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import {
   progress,
   type Person,
   type ProgressPayload,
   type Studio,
 } from "../../api";
-import { productTheme } from "../../theme";
-import { Screen } from "../../ui/Screen";
+import { FONT, productTheme as T } from "../../theme";
+import { Initials } from "../../ui/Initials";
+import { MetricGrid } from "../../ui/Metric";
+import { Band, Phone } from "../../ui/Screen";
 
 type Props = {
   token: string;
@@ -16,8 +18,15 @@ type Props = {
   onLeave: () => void;
 };
 
+const BADGES = [
+  { key: "estreia", label: "ESTREIA", mark: "1" },
+  { key: "ofensiva_4", label: "SEMANAS", mark: "4" },
+  { key: "primeiro_pr", label: "PR", mark: "PR" },
+  { key: "retomada", label: "RETOMADA", mark: "R" },
+] as const;
+
 export function Perfil({ token, person, studio, onLeave }: Props) {
-  const accent = studio.accent_color || productTheme.accentFallback;
+  const accent = studio.accent_color || T.accentFallback;
   const [data, setData] = useState<ProgressPayload | null>(null);
   const [error, setError] = useState("");
 
@@ -39,10 +48,25 @@ export function Perfil({ token, person, studio, onLeave }: Props) {
     };
   }, [token]);
 
+  const name = person.name.trim() || "Você";
   const place = data ? data.league.findIndex((row) => row.me) + 1 : 0;
+  const earned = new Set((data?.badges ?? []).map((b) => b.badge_key));
+  const nextWeek = Math.max(0, 4 - (data?.streak.current_count ?? 0));
+  const weekPct = Math.min(1, (data?.streak.current_count ?? 0) / 4);
 
   return (
-    <Screen kicker="Perfil" title={person.name} accent={accent} tab>
+    <Phone tab>
+      <View style={styles.head}>
+        <Initials name={name} accent={accent} fill size={54} />
+        <View style={styles.headCopy}>
+          <Text style={styles.name}>{name}</Text>
+          <Text style={styles.sub}>
+            Com o {studio.name}
+            {place > 0 ? ` · ${place}º na liga` : ""}
+          </Text>
+        </View>
+      </View>
+
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}
@@ -50,74 +74,205 @@ export function Perfil({ token, person, studio, onLeave }: Props) {
       >
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
-        <Text style={styles.studio}>{studio.name}</Text>
-
         {data ? (
           <>
-            <Text style={styles.kicker}>Ofensiva</Text>
-            <Text style={[styles.stat, { color: accent }]}>
-              {data.streak.current_count}
-            </Text>
-            <Text style={styles.kicker}>XP</Text>
-            <Text style={styles.stat}>{data.xp_total}</Text>
-            {place > 0 ? (
-              <Text style={styles.liga}>
-                {place}º com o {studio.name}
-              </Text>
-            ) : null}
+            <MetricGrid
+              cells={[
+                {
+                  label: "Ofensiva atual",
+                  value: data.streak.current_count,
+                  hint: "sequência",
+                },
+                {
+                  label: "Recorde",
+                  value: data.streak.current_count,
+                  hint: "você está nele agora",
+                },
+                {
+                  label: "XP total",
+                  value: data.xp_total.toLocaleString("pt-BR"),
+                },
+                {
+                  label: "Liga",
+                  value: place > 0 ? `${place}º` : "—",
+                  hint: studio.name,
+                },
+              ]}
+            />
+
+            <Band>
+              <Text style={[styles.kicker, { color: accent }]}>Quanto falta</Text>
+              <View style={styles.goal}>
+                <View style={styles.goalRow}>
+                  <Text style={styles.goalName}>Selo · 4 semanas</Text>
+                  <Text style={styles.goalFrac}>
+                    {Math.min(4, data.streak.current_count)}/4
+                  </Text>
+                </View>
+                <View style={styles.bar}>
+                  <View
+                    style={[
+                      styles.barFill,
+                      { width: `${weekPct * 100}%`, backgroundColor: accent },
+                    ]}
+                  />
+                </View>
+                <Text style={styles.caption}>
+                  {nextWeek === 0
+                    ? "Selo de 4 semanas fechado."
+                    : `${nextWeek} semana${nextWeek === 1 ? "" : "s"} e ele é seu.`}
+                </Text>
+              </View>
+            </Band>
+
+            <Band>
+              <Text style={styles.kickerMuted}>Selos</Text>
+              <View style={styles.badges}>
+                {BADGES.map((badge) => {
+                  const on = earned.has(badge.key);
+                  return (
+                    <View key={badge.key} style={styles.badgeCol}>
+                      <View
+                        style={[
+                          styles.badge,
+                          on ? { backgroundColor: accent } : styles.badgeOff,
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.badgeMark,
+                            { color: on ? T.bg : T.muted2 },
+                          ]}
+                        >
+                          {badge.mark}
+                        </Text>
+                      </View>
+                      <Text
+                        style={[
+                          styles.badgeLabel,
+                          { color: on ? T.muted : T.muted2 },
+                        ]}
+                      >
+                        {badge.label}
+                      </Text>
+                    </View>
+                  );
+                })}
+              </View>
+            </Band>
           </>
         ) : null}
 
-        <Pressable onPress={onLeave} style={styles.leave} hitSlop={8}>
+        <Pressable onPress={onLeave} style={styles.leave} hitSlop={12}>
           <Text style={styles.leaveText}>Sair</Text>
         </Pressable>
       </ScrollView>
-    </Screen>
+    </Phone>
   );
 }
 
 const styles = StyleSheet.create({
-  scroll: { flex: 1 },
-  content: { paddingBottom: 32, flexGrow: 1 },
-  error: {
-    color: productTheme.accentFallback,
-    fontSize: 14,
-    marginTop: 8,
+  head: {
+    paddingHorizontal: T.pad,
+    paddingTop: 8,
+    paddingBottom: 18,
+    borderBottomWidth: 2,
+    borderBottomColor: T.divider,
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 14,
   },
-  studio: {
-    color: productTheme.muted,
-    fontSize: 16,
-    marginTop: 8,
+  headCopy: { flex: 1, minWidth: 0 },
+  name: {
+    color: T.ink,
+    fontFamily: FONT,
+    fontSize: 22,
+    letterSpacing: -0.5,
+  },
+  sub: {
+    color: T.muted,
+    fontSize: 13,
+    marginTop: 3,
+  },
+  scroll: { flex: 1 },
+  content: { flexGrow: 1, paddingBottom: 24 },
+  error: {
+    color: T.accentFallback,
+    fontSize: 14,
+    paddingHorizontal: T.pad,
+    paddingTop: 12,
   },
   kicker: {
-    color: productTheme.muted,
-    fontFamily: "Archivo_800ExtraBold",
+    fontFamily: FONT,
     fontSize: 11,
-    letterSpacing: 1.6,
+    letterSpacing: 1.43,
     textTransform: "uppercase",
-    marginTop: 32,
+    marginBottom: 16,
   },
-  stat: {
-    color: productTheme.ink,
-    fontFamily: "Archivo_800ExtraBold",
-    fontSize: 48,
-    letterSpacing: -1,
-    lineHeight: 52,
+  kickerMuted: {
+    color: T.muted,
+    fontFamily: FONT,
+    fontSize: 11,
+    letterSpacing: 1.43,
+    textTransform: "uppercase",
+  },
+  goal: { marginTop: 4 },
+  goalRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  goalName: {
+    color: T.ink,
+    fontFamily: FONT,
+    fontSize: 14,
+  },
+  goalFrac: {
+    color: T.ink,
+    fontFamily: FONT,
+    fontSize: 14,
     fontVariant: ["tabular-nums"],
-    marginTop: 4,
   },
-  liga: {
-    color: productTheme.ink,
-    fontSize: 16,
-    marginTop: 28,
-    lineHeight: 22,
+  bar: {
+    height: 8,
+    backgroundColor: T.fill,
+    marginTop: 8,
   },
-  leave: { marginTop: "auto", paddingTop: 48, alignSelf: "flex-start" },
+  barFill: { height: 8 },
+  caption: {
+    color: T.muted,
+    fontSize: 13,
+    marginTop: 7,
+  },
+  badges: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 14,
+  },
+  badgeCol: { flex: 1 },
+  badge: {
+    aspectRatio: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  badgeOff: {
+    borderWidth: 2,
+    borderColor: T.fill,
+  },
+  badgeMark: { fontFamily: FONT, fontSize: 15 },
+  badgeLabel: {
+    fontSize: 9,
+    letterSpacing: 0.6,
+    marginTop: 5,
+  },
+  leave: {
+    paddingHorizontal: T.pad,
+    paddingVertical: 24,
+  },
   leaveText: {
-    color: productTheme.muted,
-    fontFamily: "Archivo_800ExtraBold",
-    letterSpacing: 1.2,
+    color: T.muted,
+    fontFamily: FONT,
+    fontSize: 13,
+    letterSpacing: 1.1,
     textTransform: "uppercase",
-    fontSize: 12,
   },
 });

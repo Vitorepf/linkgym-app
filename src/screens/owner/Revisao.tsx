@@ -6,9 +6,12 @@ import {
   ownerWeek,
   type OwnerWeekItem,
 } from "../../api";
-import { productTheme } from "../../theme";
-import { PrimaryButton } from "../../ui/PrimaryButton";
-import { Screen } from "../../ui/Screen";
+import { FONT, productTheme as T } from "../../theme";
+import { AccentCTA } from "../../ui/AccentCTA";
+import { IconCheck } from "../../ui/Icons";
+import { Initials } from "../../ui/Initials";
+import { Band, DockFooter, Head, Phone } from "../../ui/Screen";
+import { weekdayLong } from "../../ui/format";
 
 type Props = {
   token: string;
@@ -78,16 +81,17 @@ export function Revisao({ token, studioName, accent, tab }: Props) {
   const title = n > 0 ? `A semana dos ${n}` : "A semana";
 
   return (
-    <Screen
-      title={title}
-      body={
-        done
-          ? undefined
-          : "O app já calculou o ajuste. Desmarque o que discordar."
-      }
-      accent={accent}
-      tab={tab}
-    >
+    <Phone tab={tab}>
+      <Head
+        kicker={weekdayLong()}
+        title={title}
+        body={
+          done
+            ? undefined
+            : "O app já calculou o ajuste. Desmarque o que discordar."
+        }
+        accent={accent}
+      />
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}
@@ -95,17 +99,14 @@ export function Revisao({ token, studioName, accent, tab }: Props) {
       >
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
-        {done ? (
-          <Text style={styles.done}>
-            {`Feito · ${doneSeconds}s · cada um recebe o ajuste com o nome do ${studioName} — não um texto genérico.`}
-          </Text>
-        ) : (
-          <>
-            {items.map((row) => {
+        {!done
+          ? items.map((row) => {
               const on = picked[row.person_id] !== false;
               return (
                 <Pressable
                   key={row.person_id}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: on }}
                   style={styles.row}
                   onPress={() =>
                     setPicked((prev) => ({
@@ -117,96 +118,166 @@ export function Revisao({ token, studioName, accent, tab }: Props) {
                   <View
                     style={[
                       styles.check,
-                      on && { backgroundColor: productTheme.ink },
+                      on && { backgroundColor: T.ink, borderColor: T.ink },
                     ]}
-                  />
-                  <View style={[styles.initials, { borderColor: accent }]}>
-                    <Text style={[styles.initialsText, { color: accent }]}>
-                      {initials(row.name)}
-                    </Text>
+                  >
+                    {on ? <IconCheck color={T.bg} size={14} /> : null}
                   </View>
+                  <Initials name={row.name} size={34} />
                   <View style={styles.rowBody}>
-                    <Text style={styles.name}>{row.name}</Text>
-                    <Text style={styles.meta}>{row.adherence}</Text>
+                    <Text style={styles.name}>
+                      {row.name}
+                      <Text style={styles.adh}> · {row.adherence}</Text>
+                    </Text>
                     <Text style={styles.suggested}>{row.suggested}</Text>
                   </View>
                 </Pressable>
               );
-            })}
-            <PrimaryButton
-              label={`Aprovar ${count} revisões`}
-              onPress={() => void approve()}
-              disabled={count === 0}
-              busy={busy}
-            />
-          </>
-        )}
-      </ScrollView>
-    </Screen>
-  );
-}
+            })
+          : null}
 
-function initials(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return "";
-  if (parts.length === 1) return parts[0].slice(0, 1).toUpperCase();
-  return (parts[0][0] + parts[1][0]).toUpperCase();
+        {!done && n > 0 ? (
+          <Band>
+            <Text style={styles.kickerMuted}>O que cada um recebe</Text>
+            <View style={styles.note}>
+              <Text style={styles.noteTitle}>
+                {`"${studioName} revisou sua semana"`}
+              </Text>
+              <Text style={styles.noteBody}>
+                Com o ajuste dele em uma linha. Não é notificação automática
+                genérica. É a decisão que você acabou de tomar.
+              </Text>
+            </View>
+          </Band>
+        ) : null}
+      </ScrollView>
+
+      {!done ? (
+        <DockFooter>
+          <AccentCTA
+            label={`Aprovar ${count} revisões`}
+            onPress={() => void approve()}
+            disabled={count === 0}
+            busy={busy}
+            accent={accent}
+          />
+        </DockFooter>
+      ) : null}
+
+      {done ? (
+        <View style={styles.overlay} pointerEvents="auto">
+          <View style={[styles.sheet, { borderColor: accent }]}>
+            <Text style={[styles.sheetKicker, { color: accent }]}>Feito</Text>
+            <Text style={styles.sheetNum}>{doneSeconds}s</Text>
+            <Text style={styles.sheetBody}>
+              {count} alunos revisados. Cada um recebe o ajuste com o nome do{" "}
+              {studioName}.
+            </Text>
+          </View>
+        </View>
+      ) : null}
+    </Phone>
+  );
 }
 
 const styles = StyleSheet.create({
   scroll: { flex: 1 },
-  content: { paddingBottom: 32, flexGrow: 1 },
+  content: { flexGrow: 1, paddingBottom: 8 },
   error: {
-    color: productTheme.accentFallback,
+    color: T.accentFallback,
     fontSize: 14,
-    marginTop: 12,
-  },
-  done: {
-    color: productTheme.ink,
-    fontSize: 18,
-    lineHeight: 26,
-    marginTop: 24,
+    paddingHorizontal: T.pad,
+    paddingTop: 12,
   },
   row: {
     flexDirection: "row",
-    alignItems: "flex-start",
+    alignItems: "center",
     gap: 12,
-    marginTop: 28,
-    paddingBottom: 20,
-    borderBottomWidth: 2,
-    borderBottomColor: productTheme.divider,
+    paddingHorizontal: T.pad,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: T.hairline,
   },
   check: {
     width: 22,
     height: 22,
     borderWidth: 2,
-    borderColor: productTheme.ink,
-    marginTop: 4,
-  },
-  initials: {
-    width: 44,
-    height: 44,
-    borderWidth: 2,
+    borderColor: T.ink,
     alignItems: "center",
     justifyContent: "center",
+    flexShrink: 0,
   },
-  initialsText: {
-    fontFamily: "Archivo_800ExtraBold",
-    fontSize: 14,
-    letterSpacing: 1,
-  },
-  rowBody: { flex: 1 },
+  rowBody: { flex: 1, minWidth: 0 },
   name: {
-    color: productTheme.ink,
-    fontFamily: "Archivo_800ExtraBold",
-    fontSize: 18,
-    letterSpacing: -0.3,
-  },
-  meta: { color: productTheme.muted, fontSize: 14, marginTop: 4 },
-  suggested: {
-    color: productTheme.ink,
+    color: T.ink,
+    fontFamily: FONT,
     fontSize: 14,
-    marginTop: 6,
+  },
+  adh: {
+    color: T.muted,
+  },
+  suggested: {
+    color: T.muted,
+    fontSize: 13,
+    marginTop: 2,
+  },
+  kickerMuted: {
+    color: T.muted,
+    fontFamily: FONT,
+    fontSize: 11,
+    letterSpacing: 1.43,
+    textTransform: "uppercase",
+  },
+  note: {
+    borderWidth: 2,
+    borderColor: T.divider,
+    padding: 14,
+    marginTop: 12,
+  },
+  noteTitle: {
+    color: T.ink,
+    fontFamily: FONT,
+    fontSize: 14,
+  },
+  noteBody: {
+    color: T.muted,
+    fontSize: 13,
     lineHeight: 20,
+    marginTop: 6,
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(11,10,10,0.86)",
+    justifyContent: "flex-end",
+    paddingHorizontal: T.pad,
+    paddingBottom: 24,
+  },
+  sheet: {
+    backgroundColor: T.surface,
+    borderWidth: 2,
+    paddingHorizontal: T.pad,
+    paddingTop: 24,
+    paddingBottom: 22,
+  },
+  sheetKicker: {
+    fontFamily: FONT,
+    fontSize: 11,
+    letterSpacing: 1.43,
+    textTransform: "uppercase",
+  },
+  sheetNum: {
+    color: T.ink,
+    fontFamily: FONT,
+    fontSize: 44,
+    letterSpacing: -1.8,
+    lineHeight: 44,
+    marginTop: 8,
+    fontVariant: ["tabular-nums"],
+  },
+  sheetBody: {
+    color: T.ink,
+    fontSize: 15,
+    lineHeight: 22,
+    marginTop: 10,
   },
 });

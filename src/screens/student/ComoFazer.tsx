@@ -1,9 +1,10 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { cuesFor } from "../../exerciseCues";
 import type { RootStackParamList } from "../../nav/types";
-import { productTheme } from "../../theme";
-import { Screen } from "../../ui/Screen";
+import { FONT, productTheme as T } from "../../theme";
+import { AccentCTA } from "../../ui/AccentCTA";
+import { Band, DockFooter, Head, Phone } from "../../ui/Screen";
 import { MaquinaOcupada } from "./MaquinaOcupada";
 
 type Props = NativeStackScreenProps<RootStackParamList, "ComoFazer">;
@@ -17,7 +18,8 @@ export function ComoFazer({ navigation, route }: Props) {
     : `Pergunte ao ${studioName}`;
 
   return (
-    <Screen kicker="Como fazer" title={item.name} accent={accent}>
+    <Phone>
+      <Head kicker="Como fazer" title={item.name} accent={accent} />
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}
@@ -29,112 +31,103 @@ export function ComoFazer({ navigation, route }: Props) {
           </Text>
         </View>
 
-        <Text style={styles.section}>Onde fica</Text>
-        <Text style={styles.body}>{place}</Text>
+        <Band>
+          <Text style={styles.section}>Onde fica</Text>
+          <Text style={styles.body}>{place}</Text>
+        </Band>
 
-        {shown.length > 0 ? (
-          <View style={styles.cues}>
-            {shown.map((cue, i) => (
+        {shown.length > 0
+          ? shown.map((cue, i) => (
               <View key={cue} style={styles.cueRow}>
                 <Text style={[styles.cueIndex, { color: accent }]}>{i + 1}</Text>
                 <Text style={styles.cue}>{cue}</Text>
               </View>
-            ))}
-          </View>
-        ) : null}
+            ))
+          : null}
 
         {error ? (
-          <>
+          <Band>
             <Text style={styles.section}>Erro comum</Text>
             <Text style={styles.body}>{error}</Text>
-          </>
+          </Band>
         ) : null}
 
-        <MaquinaOcupada
-          token={token}
-          studioName={studioName}
-          accent={accent}
-          prescriptionId={prescriptionId}
-          from={item}
-          items={items}
-        />
-
-        <Pressable
-          onPress={() => navigation.goBack()}
-          style={styles.back}
-          hitSlop={8}
-        >
-          <Text style={styles.backText}>Voltar</Text>
-        </Pressable>
+        <Band rule="none">
+          <MaquinaOcupada
+            token={token}
+            studioName={studioName}
+            accent={accent}
+            prescriptionId={prescriptionId}
+            from={item}
+            items={items}
+          />
+        </Band>
       </ScrollView>
-    </Screen>
+      <DockFooter>
+        <AccentCTA
+          label="Entendi"
+          onPress={() => navigation.goBack()}
+          accent={accent}
+        />
+      </DockFooter>
+    </Phone>
   );
 }
 
 const styles = StyleSheet.create({
   scroll: { flex: 1 },
-  content: { paddingBottom: 32, flexGrow: 1 },
+  content: { paddingBottom: 8, flexGrow: 1 },
   video: {
-    marginTop: 24,
-    minHeight: 180,
-    borderWidth: 2,
-    borderColor: productTheme.divider,
-    borderRadius: productTheme.radius,
+    aspectRatio: 16 / 9,
+    backgroundColor: T.bg,
+    borderBottomWidth: 2,
+    borderBottomColor: T.divider,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 20,
+    paddingHorizontal: T.pad,
   },
   videoText: {
-    color: productTheme.muted,
+    color: T.muted,
     fontSize: 15,
-    textAlign: "center",
+    textAlign: "left",
+    alignSelf: "stretch",
     lineHeight: 22,
   },
   section: {
-    color: productTheme.muted,
-    fontFamily: "Archivo_800ExtraBold",
+    color: T.muted,
+    fontFamily: FONT,
     fontSize: 11,
-    letterSpacing: 1.6,
+    letterSpacing: 1.43,
     textTransform: "uppercase",
-    marginTop: 28,
-    marginBottom: 10,
-    textAlign: "left",
   },
   body: {
-    color: productTheme.ink,
+    color: T.ink,
     fontSize: 16,
     lineHeight: 22,
+    marginTop: 10,
     textAlign: "left",
   },
-  cues: { marginTop: 28 },
   cueRow: {
     flexDirection: "row",
     alignItems: "flex-start",
     gap: 12,
-    paddingVertical: 10,
-    borderBottomWidth: 2,
-    borderBottomColor: productTheme.divider,
+    paddingHorizontal: T.pad,
+    paddingVertical: 18,
+    borderBottomWidth: 1,
+    borderBottomColor: T.hairline,
   },
   cueIndex: {
-    fontFamily: "Archivo_800ExtraBold",
+    fontFamily: FONT,
     fontSize: 16,
     fontVariant: ["tabular-nums"],
     minWidth: 16,
   },
   cue: {
     flex: 1,
-    color: productTheme.ink,
-    fontFamily: "Archivo_800ExtraBold",
+    color: T.ink,
+    fontFamily: FONT,
     fontSize: 18,
     letterSpacing: -0.3,
     textAlign: "left",
-  },
-  back: { marginTop: "auto", paddingTop: 40, alignSelf: "flex-start" },
-  backText: {
-    color: productTheme.muted,
-    fontFamily: "Archivo_800ExtraBold",
-    letterSpacing: 1.2,
-    textTransform: "uppercase",
-    fontSize: 12,
   },
 });

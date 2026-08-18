@@ -443,6 +443,9 @@ export type OnboardingBody = {
   experience: "never" | "before" | "training";
   days_per_week: 2 | 3 | 4 | 5 | 6;
   pain: boolean;
+  sex?: "male" | "female";
+  height_cm?: number;
+  weight_kg?: number;
 };
 
 export function putOnboarding(token: string, body: OnboardingBody) {

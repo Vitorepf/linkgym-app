@@ -1,49 +1,72 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
-import { today, type Studio } from "../../api";
+import { useEffect, useState } from "react";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { today, type Person, type Studio, type TodayPayload } from "../../api";
 import { studentHomeTarget } from "../../nav/StudentTabs";
 import type { RootStackParamList } from "../../nav/types";
 import { createSession, newClientId } from "../../offline/sessionQueue";
-import { productTheme } from "../../theme";
-import { PrimaryButton } from "../../ui/PrimaryButton";
-import { Screen } from "../../ui/Screen";
+import { FONT, productTheme as T } from "../../theme";
+import { AccentCTA } from "../../ui/AccentCTA";
+import { plannedSets } from "../../ui/format";
+import { Band, DockFooter, Head, Phone } from "../../ui/Screen";
 
 type Props = {
   token: string;
   studio: Studio;
   needsCommitment: boolean;
+  person?: Person;
 };
 
 export function estreiaSeenKey(studioId: string): string {
   return `estreia.seen.${studioId}`;
 }
 
-export function Estreia({ token, studio, needsCommitment }: Props) {
+export function Estreia({ token, studio, needsCommitment, person }: Props) {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList, "Estreia">>();
-  const accent = studio.accent_color || productTheme.accentFallback;
+  const accent = studio.accent_color || T.accentFallback;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [payload, setPayload] = useState<TodayPayload | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const data = await today(token);
+        if (alive) setPayload(data);
+      } catch {
+        if (alive) setPayload(null);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [token]);
+
+  const name =
+    person?.name.trim() || payload?.person.name.trim() || "";
+  const prescription = payload?.prescription ?? null;
 
   async function start() {
     if (busy) return;
     setBusy(true);
     setError("");
     try {
-      const payload = await today(token);
+      const data = payload ?? (await today(token));
+      setPayload(data);
       await AsyncStorage.setItem(estreiaSeenKey(studio.id), "1");
-      const prescription = payload.prescription;
-      if (!prescription) {
+      const next = data.prescription;
+      if (!next) {
         navigation.reset({
           index: 0,
           routes: [studentHomeTarget],
         });
         return;
       }
-      const session = await createSession(prescription.id, newClientId());
+      const session = await createSession(next.id, newClientId());
       navigation.reset({
         index: 1,
         routes: [
@@ -55,12 +78,12 @@ export function Estreia({ token, studio, needsCommitment }: Props) {
               studioName: studio.name,
               accent,
               clientId: session.client_id,
-              prescriptionId: prescription.id,
-              items: prescription.items,
+              prescriptionId: next.id,
+              items: next.items,
               itemIndex: 0,
               setIndex: 1,
-              streakCount: payload.streak.current_count,
-              xpTotal: payload.xp_total,
+              streakCount: data.streak.current_count,
+              xpTotal: data.xp_total,
               needsCommitment,
             },
           },
@@ -74,61 +97,112 @@ export function Estreia({ token, studio, needsCommitment }: Props) {
   }
 
   return (
-    <Screen
-      kicker={studio.name}
-      title="Seu primeiro treino"
-      body="Curto de propósito."
-      accent={accent}
-    >
-      <View
-        style={styles.bar}
-        accessibilityRole="progressbar"
-        accessibilityLabel="Ofensiva 1 de 4"
+    <Phone>
+      <Head
+        kicker="Primeiro treino"
+        title={name ? `Bem-vindo, ${name}` : "Seu primeiro treino"}
+        accent={accent}
+      />
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
       >
-        {[0, 1, 2, 3].map((i) => (
-          <View
-            key={i}
-            style={[
-              styles.seg,
-              i === 0
-                ? { backgroundColor: accent, borderColor: accent }
-                : styles.segEmpty,
-            ]}
-          />
-        ))}
-      </View>
-      <Text style={styles.copy}>A barra já anda quando você começa.</Text>
-      {error ? <Text style={styles.error}>{error}</Text> : null}
-      <PrimaryButton label="Começar" onPress={() => void start()} busy={busy} />
-    </Screen>
+        {prescription ? (
+          <Band>
+            <Text style={styles.workout}>{prescription.name}</Text>
+            <View style={styles.stats}>
+              <Text style={styles.stat}>
+                <Text style={styles.statN}>{prescription.items.length}</Text>
+                {"  "}exercícios
+              </Text>
+              <Text style={styles.stat}>
+                <Text style={styles.statN}>{plannedSets(prescription.items)}</Text>
+                {"  "}séries
+              </Text>
+              <Text style={styles.stat}>
+                <Text style={styles.statN}>{prescription.minutes}</Text>
+                {"  "}min
+              </Text>
+            </View>
+          </Band>
+        ) : null}
+
+        <Band>
+          <View style={styles.callout}>
+            <Text style={[styles.callKicker, { color: accent }]}>Estreia</Text>
+            <Text style={styles.callBody}>Curto de propósito.</Text>
+            <Text style={styles.callMuted}>
+              A barra já anda quando você começa.
+            </Text>
+          </View>
+        </Band>
+
+        {error ? <Text style={styles.error}>{error}</Text> : null}
+      </ScrollView>
+      <DockFooter>
+        <AccentCTA
+          label="Começar"
+          onPress={() => void start()}
+          busy={busy}
+          accent={accent}
+        />
+      </DockFooter>
+    </Phone>
   );
 }
 
 const styles = StyleSheet.create({
-  bar: {
+  scroll: { flex: 1 },
+  content: { flexGrow: 1, paddingBottom: 8 },
+  workout: {
+    color: T.ink,
+    fontFamily: FONT,
+    fontSize: 34,
+    letterSpacing: -1.2,
+    lineHeight: 36,
+    textAlign: "left",
+  },
+  stats: {
     flexDirection: "row",
-    gap: 6,
-    marginTop: 36,
+    gap: 18,
+    marginTop: 12,
   },
-  seg: {
-    flex: 1,
-    height: 12,
+  stat: { color: T.muted, fontSize: 13 },
+  statN: {
+    color: T.ink,
+    fontFamily: FONT,
+    fontSize: 15,
+  },
+  callout: {
     borderWidth: 2,
-    borderRadius: productTheme.radius,
+    borderColor: T.divider,
+    padding: 16,
   },
-  segEmpty: {
-    backgroundColor: "transparent",
-    borderColor: productTheme.divider,
+  callKicker: {
+    fontFamily: FONT,
+    fontSize: 11,
+    letterSpacing: 1.43,
+    textTransform: "uppercase",
   },
-  copy: {
-    color: productTheme.muted,
-    fontSize: 16,
+  callBody: {
+    color: T.ink,
+    fontFamily: FONT,
+    fontSize: 18,
+    letterSpacing: -0.3,
+    marginTop: 10,
+    textAlign: "left",
+  },
+  callMuted: {
+    color: T.muted,
+    fontSize: 15,
     lineHeight: 22,
-    marginTop: 14,
+    marginTop: 8,
   },
   error: {
-    color: productTheme.accentFallback,
+    color: T.accentFallback,
     fontSize: 14,
-    marginTop: 16,
+    paddingHorizontal: T.pad,
+    paddingTop: 16,
   },
 });

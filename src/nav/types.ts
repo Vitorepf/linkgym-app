@@ -28,6 +28,7 @@ export type OwnerTabParamList = {
 
 export type StudentTabParamList = {
   Hoje: undefined;
+  MinhaFicha: undefined;
   Progresso: undefined;
   Perfil: undefined;
 };

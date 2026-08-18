@@ -1,12 +1,12 @@
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { FinishRecord } from "../../api";
 import { studentHomeTarget } from "../../nav/StudentTabs";
 import type { RootStackParamList } from "../../nav/types";
 import { formatKg } from "../../offline/sessionQueue";
-import { productTheme } from "../../theme";
-import { PrimaryButton } from "../../ui/PrimaryButton";
-import { Screen } from "../../ui/Screen";
+import { FONT, productTheme as T } from "../../theme";
+import { AccentCTA } from "../../ui/AccentCTA";
+import { DockFooter, Phone } from "../../ui/Screen";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Recorde">;
 
@@ -16,30 +16,28 @@ export function Recorde({ navigation, route }: Props) {
   const previous = olderLoad(row);
 
   return (
-    <Screen kicker="Recorde" title={row?.exercise_name} accent={accent}>
-      <View style={[styles.bar, { backgroundColor: accent }]} />
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-      >
-        {row ? (
-          <>
-            <Text
-              style={[styles.load, { color: accent }]}
-              accessibilityLabel={`${formatKg(row.load_kg)} quilos`}
-            >
-              {formatKg(row.load_kg)}
-            </Text>
-            <Text style={styles.unit}>kg</Text>
-            {previous !== null ? (
-              <Text style={styles.previous}>{formatKg(previous)} kg</Text>
-            ) : null}
-            <Text style={styles.copy}>O corpo lembra.</Text>
-          </>
-        ) : null}
+    <Phone>
+      {row ? (
+        <View style={[styles.hero, { backgroundColor: accent }]}>
+          <Text style={styles.kicker}>Recorde</Text>
+          <Text
+            style={styles.load}
+            accessibilityLabel={`${formatKg(row.load_kg)} quilos`}
+          >
+            {formatKg(row.load_kg)}
+          </Text>
+          <Text style={styles.unit}>kg</Text>
+          {previous !== null ? (
+            <Text style={styles.previous}>{formatKg(previous)} kg</Text>
+          ) : null}
+          <Text style={styles.copy}>O corpo lembra.</Text>
+        </View>
+      ) : null}
 
-        <PrimaryButton
+      <View style={styles.grow} />
+
+      <DockFooter>
+        <AccentCTA
           label="Seguir"
           onPress={() => {
             if (needsCommitment) {
@@ -51,9 +49,10 @@ export function Recorde({ navigation, route }: Props) {
               routes: [studentHomeTarget],
             });
           }}
+          accent={accent}
         />
-      </ScrollView>
-    </Screen>
+      </DockFooter>
+    </Phone>
   );
 }
 
@@ -65,39 +64,55 @@ function olderLoad(row: FinishRecord | undefined): number | null {
 }
 
 const styles = StyleSheet.create({
-  bar: {
-    height: 2,
-    marginHorizontal: -24,
-    marginBottom: 12,
+  hero: {
+    paddingHorizontal: T.pad,
+    paddingTop: 20,
+    paddingBottom: 28,
   },
-  scroll: { flex: 1 },
-  content: { paddingBottom: 32, flexGrow: 1 },
+  kicker: {
+    color: T.bg,
+    fontFamily: FONT,
+    fontSize: 11,
+    letterSpacing: 1.43,
+    textTransform: "uppercase",
+    opacity: 0.8,
+    textAlign: "left",
+  },
   load: {
-    fontFamily: "Archivo_800ExtraBold",
+    color: T.bg,
+    fontFamily: FONT,
     fontSize: 88,
     letterSpacing: -2,
     lineHeight: 92,
     fontVariant: ["tabular-nums"],
     marginTop: 8,
+    textAlign: "left",
   },
   unit: {
-    color: productTheme.muted,
-    fontFamily: "Archivo_800ExtraBold",
+    color: T.bg,
+    fontFamily: FONT,
     fontSize: 16,
     letterSpacing: 1.2,
     textTransform: "uppercase",
     marginTop: 4,
+    opacity: 0.75,
+    textAlign: "left",
   },
   previous: {
-    color: productTheme.muted,
+    color: T.bg,
     fontSize: 22,
     marginTop: 12,
     textDecorationLine: "line-through",
+    opacity: 0.55,
+    textAlign: "left",
   },
   copy: {
-    color: productTheme.muted,
+    color: T.bg,
     fontSize: 16,
     lineHeight: 22,
     marginTop: 28,
+    opacity: 0.85,
+    textAlign: "left",
   },
+  grow: { flex: 1 },
 });

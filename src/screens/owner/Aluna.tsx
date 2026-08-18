@@ -1,12 +1,15 @@
 import { useCallback, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { ownerStudent, type OwnerStudent } from "../../api";
 import type { RootStackParamList } from "../../nav/types";
-import { productTheme } from "../../theme";
-import { PrimaryButton } from "../../ui/PrimaryButton";
-import { Screen } from "../../ui/Screen";
+import { FONT, productTheme as T } from "../../theme";
+import { AccentCTA } from "../../ui/AccentCTA";
+import { Initials } from "../../ui/Initials";
+import { MetricGrid } from "../../ui/Metric";
+import { Band, Head, Phone } from "../../ui/Screen";
+import { formatKg } from "../../ui/format";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Aluna">;
 
@@ -33,9 +36,53 @@ export function Aluna({ navigation, route }: Props) {
 
   const name = card?.name ?? "";
   const effort = effortWord(card?.last_effort ?? null);
+  const topLoad = card?.last_loads[0];
+
+  function goBase() {
+    if (!card) return;
+    navigation.navigate("Base", {
+      token,
+      studioName: route.params.studioName,
+      accent,
+      personId: card.person_id,
+      personName: card.name,
+    });
+  }
+
+  const metrics = card
+    ? [
+        {
+          label: "Ofensiva",
+          value: card.streak.current_count,
+          hint: effort || undefined,
+        },
+        {
+          label: "Cargas",
+          value: card.last_loads.length,
+        },
+        topLoad
+          ? {
+              label: topLoad.exercise_name,
+              value: formatKg(topLoad.load_kg),
+              hint: "kg",
+            }
+          : { label: "Carga", value: "—" },
+      ]
+    : [];
 
   return (
-    <Screen title={name} accent={accent}>
+    <Phone>
+      <Head
+        kicker={card?.commitment_text ?? undefined}
+        title={name || undefined}
+        kickerMuted
+        accent={accent}
+        right={
+          name ? (
+            <Initials name={name} accent={accent} fill size={46} />
+          ) : undefined
+        }
+      />
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}
@@ -45,61 +92,51 @@ export function Aluna({ navigation, route }: Props) {
 
         {card ? (
           <>
-            <PrimaryButton
-              label={primaryCopy(card.suggested)}
-              onPress={() => {
-                if (
-                  card.suggested !== "renew" &&
-                  card.suggested !== "debut"
-                ) {
-                  return;
-                }
-                navigation.navigate("Base", {
-                  token,
-                  studioName: route.params.studioName,
-                  accent,
-                  personId: card.person_id,
-                  personName: card.name,
-                });
-              }}
-            />
+            <MetricGrid cells={metrics} columns={3} />
+
+            <Band raised accentTop accent={accent}>
+              <Text style={[styles.kicker, { color: accent }]}>
+                Ação sugerida
+              </Text>
+              <View style={styles.cta}>
+                <AccentCTA
+                  label={primaryCopy(card.suggested)}
+                  accent={accent}
+                  onPress={() => {
+                    if (
+                      card.suggested !== "renew" &&
+                      card.suggested !== "debut"
+                    ) {
+                      return;
+                    }
+                    goBase();
+                  }}
+                />
+              </View>
+            </Band>
 
             {card.last_loads.map((row) => (
-              <Text key={row.exercise_name} style={styles.line}>
-                {row.exercise_name} · {formatKg(row.load_kg)} kg
-              </Text>
+              <View key={row.exercise_name} style={styles.loadRow}>
+                <Text style={styles.loadName}>{row.exercise_name}</Text>
+                <Text style={styles.loadKg}>
+                  {formatKg(row.load_kg)} kg
+                </Text>
+              </View>
             ))}
 
-            {card.commitment_text ? (
-              <Text style={styles.muted}>{card.commitment_text}</Text>
-            ) : null}
-
-            <Text style={styles.section}>Ofensiva</Text>
-            <Text style={[styles.streak, { color: accent }]}>
-              {card.streak.current_count}
-            </Text>
-
-            {effort ? <Text style={styles.line}>{effort}</Text> : null}
-
             <Pressable
-              onPress={() =>
-                navigation.navigate("Base", {
-                  token,
-                  studioName: route.params.studioName,
-                  accent,
-                  personId: card.person_id,
-                  personName: card.name,
-                })
-              }
+              onPress={goBase}
               style={styles.nova}
               hitSlop={8}
+              accessibilityRole="button"
             >
               <Text style={styles.novaText}>Nova ficha</Text>
+              <Text style={styles.chev}>›</Text>
             </Pressable>
           </>
         ) : null}
       </ScrollView>
-    </Screen>
+    </Phone>
   );
 }
 
@@ -124,50 +161,58 @@ function effortWord(n: number | null): string {
   return "";
 }
 
-function formatKg(n: number): string {
-  if (Number.isInteger(n)) return String(n);
-  return String(n).replace(".", ",");
-}
-
 const styles = StyleSheet.create({
   scroll: { flex: 1 },
-  content: { paddingBottom: 32, flexGrow: 1 },
+  content: { flexGrow: 1, paddingBottom: 24 },
   error: {
-    color: productTheme.accentFallback,
+    color: T.accentFallback,
     fontSize: 14,
-    marginTop: 12,
+    paddingHorizontal: T.pad,
+    paddingTop: 12,
   },
-  section: {
-    marginTop: 28,
-    color: productTheme.muted,
-    fontFamily: "Archivo_800ExtraBold",
+  kicker: {
+    fontFamily: FONT,
     fontSize: 11,
-    letterSpacing: 1.4,
+    letterSpacing: 1.43,
     textTransform: "uppercase",
   },
-  line: {
-    color: productTheme.ink,
-    fontSize: 16,
-    marginTop: 8,
-    lineHeight: 22,
+  cta: { marginTop: 10 },
+  loadRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+    paddingHorizontal: T.pad,
+    paddingVertical: 22,
+    borderBottomWidth: 1,
+    borderBottomColor: T.hairline,
   },
-  muted: {
-    color: productTheme.muted,
-    fontSize: 14,
-    marginTop: 8,
+  loadName: {
+    flex: 1,
+    color: T.ink,
+    fontFamily: FONT,
+    fontSize: 15,
+    letterSpacing: -0.2,
   },
-  streak: {
-    fontFamily: "Archivo_800ExtraBold",
-    fontSize: 48,
-    letterSpacing: -1,
-    marginTop: 8,
+  loadKg: {
+    color: T.ink,
+    fontFamily: FONT,
+    fontSize: 15,
+    fontVariant: ["tabular-nums"],
   },
-  nova: { marginTop: 32, alignSelf: "flex-start" },
+  nova: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: T.pad,
+    paddingVertical: 24,
+    borderBottomWidth: 1,
+    borderBottomColor: T.hairline,
+  },
   novaText: {
-    color: productTheme.ink,
-    fontFamily: "Archivo_800ExtraBold",
-    fontSize: 13,
-    letterSpacing: 1.1,
-    textTransform: "uppercase",
+    color: T.ink,
+    fontFamily: FONT,
+    fontSize: 14,
   },
+  chev: { color: T.muted2, fontSize: 18 },
 });

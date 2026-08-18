@@ -1,5 +1,5 @@
 import { useNavigation } from "@react-navigation/native";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import {
   putReadiness,
@@ -16,9 +16,14 @@ import {
   newClientId,
   resumeCursor,
 } from "../../offline/sessionQueue";
-import { productTheme } from "../../theme";
-import { PrimaryButton } from "../../ui/PrimaryButton";
-import { Screen } from "../../ui/Screen";
+import { FONT, productTheme as T } from "../../theme";
+import { AccentCTA } from "../../ui/AccentCTA";
+import { ArcGauge } from "../../ui/ArcGauge";
+import { IconMark } from "../../ui/Icons";
+import { Initials } from "../../ui/Initials";
+import { ScaleRow } from "../../ui/ScaleRow";
+import { Band, Phone } from "../../ui/Screen";
+import { dateShort, plannedSets, weekdayLong } from "../../ui/format";
 
 type Props = {
   token: string;
@@ -27,9 +32,9 @@ type Props = {
   needsCommitment: boolean;
 };
 
-export function Hoje({ token, studio, needsCommitment }: Props) {
+export function Hoje({ token, person, studio, needsCommitment }: Props) {
   const navigation = useNavigation<StudentTabNavigation>();
-  const accent = studio.accent_color || productTheme.accentFallback;
+  const accent = studio.accent_color || T.accentFallback;
   const [data, setData] = useState<TodayPayload | null>(null);
   const [error, setError] = useState("");
   const [energy, setEnergy] = useState(0);
@@ -38,6 +43,8 @@ export function Hoje({ token, studio, needsCommitment }: Props) {
   const [saving, setSaving] = useState(false);
   const [pendingLocal, setPendingLocal] = useState(false);
   const [resume, setResume] = useState(false);
+  const [open, setOpen] = useState(false);
+  const savingRef = useRef(false);
 
   useEffect(() => {
     let alive = true;
@@ -66,22 +73,40 @@ export function Hoje({ token, studio, needsCommitment }: Props) {
   }, [token]);
 
   const prescription = data?.prescription ?? null;
-  const kicker = prescription ? `Hoje · ${prescription.name}` : "Hoje";
-  const empty = data !== null && prescription === null;
-  const ready =
-    inScale(energy) && inScale(soreness) && inScale(sleep);
+  const ready = inScale(energy) && inScale(soreness) && inScale(sleep);
   const dirty =
     energy !== (data?.readiness.energy ?? 0) ||
     soreness !== (data?.readiness.soreness ?? 0) ||
     sleep !== (data?.readiness.sleep ?? 0);
 
+  useEffect(() => {
+    if (!ready || !dirty || savingRef.current) return;
+    savingRef.current = true;
+    setSaving(true);
+    void (async () => {
+      try {
+        const readiness = await putReadiness(token, {
+          energy,
+          soreness,
+          sleep,
+        });
+        setData((prev) => (prev ? { ...prev, readiness } : prev));
+        setError("");
+      } catch {
+        setError("Não deu para registrar como você está.");
+      } finally {
+        savingRef.current = false;
+        setSaving(false);
+      }
+    })();
+  }, [dirty, energy, ready, sleep, soreness, token]);
+
   async function startLocal() {
     if (!prescription || !data) return;
-    const accentColor = accent;
     const base = {
       token,
       studioName: studio.name,
-      accent: accentColor,
+      accent,
       prescriptionId: prescription.id,
       items: prescription.items,
       streakCount: data.streak.current_count,
@@ -95,8 +120,9 @@ export function Hoje({ token, studio, needsCommitment }: Props) {
         const finish = result.ok ? result.finish : undefined;
         navigation.navigate("Feito", {
           studioName: studio.name,
-          accent: accentColor,
-          streakCount: finish?.streak.current_count ?? data.streak.current_count + 1,
+          accent,
+          streakCount:
+            finish?.streak.current_count ?? data.streak.current_count + 1,
           xpGained: finish?.xp_gained ?? 10,
           xpTotal: finish?.xp_total ?? data.xp_total + 10,
           records: finish?.records ?? [],
@@ -137,22 +163,33 @@ export function Hoje({ token, studio, needsCommitment }: Props) {
     });
   }
 
-  async function saveReadiness() {
-    if (!ready || saving) return;
-    setSaving(true);
-    setError("");
-    try {
-      const readiness = await putReadiness(token, { energy, soreness, sleep });
-      setData((prev) => (prev ? { ...prev, readiness } : prev));
-    } catch {
-      setError("Não deu para registrar como você está.");
-    } finally {
-      setSaving(false);
-    }
-  }
+  const score = data?.readiness.score ?? 0;
+  const sets = prescription ? plannedSets(prescription.items) : 0;
+  const cta = resume
+    ? "Continuar"
+    : ctaLabel(data?.readiness.label ?? "");
+  const now = new Date();
 
   return (
-    <Screen kicker={kicker} accent={accent} title={studio.name} tab>
+    <Phone tab>
+      <View style={styles.head}>
+        <View style={styles.headLeft}>
+          <IconMark color={accent} />
+          <Text style={styles.headDate}>
+            {weekdayLong(now)} · {dateShort(now)}
+          </Text>
+        </View>
+        {data ? (
+          <View style={styles.xpRow}>
+            <Text style={styles.xpNum}>{data.streak.current_count}</Text>
+            <Text style={[styles.xpUnit, { color: accent }]}>OFENSIVA</Text>
+            <View style={styles.xpRule} />
+            <Text style={styles.xpNum}>{data.xp_total}</Text>
+            <Text style={styles.xpUnitMuted}>XP</Text>
+          </View>
+        ) : null}
+      </View>
+
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}
@@ -160,115 +197,117 @@ export function Hoje({ token, studio, needsCommitment }: Props) {
       >
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
-        {data ? (
-          <>
-            <Text style={styles.score}>{data.readiness.score}</Text>
-            <Text style={styles.label}>{data.readiness.label}</Text>
-
+        <Band>
+          <Text style={[styles.kicker, { color: accent }]}>
+            Prontidão de hoje
+          </Text>
+          <ArcGauge
+            value={score}
+            label={data?.readiness.label || "Como você está?"}
+            accent={accent}
+          />
+          <View style={styles.gaugeFoot}>
+            <Text style={styles.dim}>0</Text>
+            <Text style={styles.muted}>MÉDIA</Text>
+            <Text style={styles.dim}>100</Text>
+          </View>
+          {saving ? <Text style={styles.saving}>Registrando</Text> : null}
+          <Pressable onPress={() => setOpen((v) => !v)} style={styles.expand}>
+            <Text style={styles.expandLabel}>Sono, carga e dor da semana</Text>
+            <Text style={styles.expandAction}>{open ? "FECHAR" : "ABRIR"}</Text>
+          </Pressable>
+          {open ? (
             <View style={styles.scales}>
-              <Scale
-                name="Energia"
-                value={energy}
-                accent={accent}
-                onChange={setEnergy}
-              />
-              <Scale
-                name="Dor"
-                value={soreness}
-                accent={accent}
-                onChange={setSoreness}
-              />
-              <Scale
-                name="Sono"
-                value={sleep}
-                accent={accent}
-                onChange={setSleep}
-              />
+              <ScaleRow name="Energia" value={energy} onChange={setEnergy} />
+              <ScaleRow name="Dor" value={soreness} onChange={setSoreness} />
+              <ScaleRow name="Sono" value={sleep} onChange={setSleep} />
             </View>
+          ) : null}
+        </Band>
 
-            {ready && dirty ? (
-              <Pressable
-                onPress={saveReadiness}
-                disabled={saving}
-                style={[styles.save, saving && styles.saveOff]}
-              >
-                <Text style={styles.saveText}>Registrar</Text>
-              </Pressable>
-            ) : null}
+        {pendingLocal ? (
+          <View style={[styles.banner, { backgroundColor: accent }]}>
+            <Text style={styles.bannerText}>
+              Sessão neste celular. Sobe quando tiver rede.
+            </Text>
+          </View>
+        ) : null}
 
-            <View style={styles.strip}>
-              <Text style={styles.stripItem}>
-                Ofensiva {data.streak.current_count}
+        {prescription && data?.banner ? (
+          <View style={[styles.banner, { backgroundColor: accent }]}>
+            <Text style={styles.bannerText}>{data.banner.text}</Text>
+            <Text style={styles.bannerMeta}>AGORA</Text>
+          </View>
+        ) : null}
+
+        <Band>
+          <Text style={styles.kickerMuted}>
+            {prescription
+              ? `Hoje · ${prescription.name}`
+              : "Hoje"}
+          </Text>
+          <Text style={styles.heroTitle}>
+            {prescription
+              ? prescription.name
+              : "Ainda não tem ficha hoje."}
+          </Text>
+          {prescription ? (
+            <View style={styles.stats}>
+              <Text style={styles.stat}>
+                <Text style={styles.statN}>{prescription.items.length}</Text>
+                {"  "}exercícios
               </Text>
-              <Text style={[styles.stripItem, { color: accent }]}>·</Text>
-              <Text style={styles.stripItem}>{data.xp_total} XP</Text>
+              <Text style={styles.stat}>
+                <Text style={styles.statN}>{sets}</Text>
+                {"  "}séries
+              </Text>
+              <Text style={styles.stat}>
+                <Text style={styles.statN}>{prescription.minutes}</Text>
+                {"  "}min
+              </Text>
             </View>
-
-            {empty ? (
-              <Text style={styles.empty}>Ainda não tem ficha hoje.</Text>
-            ) : null}
-
-            {pendingLocal ? (
-              <Text style={[styles.banner, { borderLeftColor: accent }]}>
-                Sessão neste celular. Sobe quando tiver rede.
-              </Text>
-            ) : null}
-
-            {prescription && data.coach_line ? (
-              <Text style={styles.coach}>{data.coach_line}</Text>
-            ) : null}
-
-            {prescription && data.banner ? (
-              <Text style={[styles.banner, { borderLeftColor: accent }]}>
-                {data.banner.text}
-              </Text>
-            ) : null}
-
-            {prescription ? (
-              <Pressable
-                onPress={() =>
-                  navigation.navigate("Ficha", {
-                    token,
-                    studioName: studio.name,
-                    accent,
-                    items: prescription.items,
-                    prescriptionId: prescription.id,
-                  })
-                }
-                style={styles.ficha}
-                hitSlop={8}
-              >
-                <Text style={styles.fichaText}>Ficha</Text>
-              </Pressable>
-            ) : null}
-
-            {prescription ? (
-              <PrimaryButton
-                label={resume ? "Continuar" : ctaLabel(data.readiness.label)}
+          ) : null}
+          {prescription ? (
+            <View style={styles.cta}>
+              <AccentCTA
+                label={cta}
+                meta={prescription.minutes ? `${prescription.minutes} MIN` : undefined}
                 onPress={() => {
                   void startLocal();
                 }}
+                accent={accent}
               />
-            ) : null}
-          </>
+            </View>
+          ) : null}
+        </Band>
+
+        {prescription && data?.coach_line ? (
+          <Band rule="hair">
+            <View style={styles.coachHead}>
+              <Initials name={studio.name} size={34} />
+              <View style={styles.coachCopy}>
+                <Text style={styles.coachName}>
+                  {studio.name} revisou sua semana
+                </Text>
+                <Text style={styles.muted}>hoje</Text>
+              </View>
+            </View>
+            <Text style={styles.coachLine}>{data.coach_line}</Text>
+          </Band>
         ) : null}
 
-        <Pressable
-          onPress={() => navigation.navigate("Progresso")}
-          style={styles.link}
-          hitSlop={8}
-        >
-          <Text style={styles.linkText}>Progresso</Text>
-        </Pressable>
-        <Pressable
-          onPress={() => navigation.navigate("Perfil")}
-          style={styles.link}
-          hitSlop={8}
-        >
-          <Text style={styles.linkText}>Perfil</Text>
-        </Pressable>
+        {data?.streak.protector_available ? (
+          <Band rule="none">
+            <View style={styles.prot}>
+              <View style={styles.protMark}>
+                <Text style={styles.protN}>1</Text>
+              </View>
+              <Text style={styles.muted}>Protetor disponível esta semana</Text>
+            </View>
+          </Band>
+        ) : null}
       </ScrollView>
-    </Screen>
+    </Phone>
   );
 }
 
@@ -283,168 +322,182 @@ function ctaLabel(label: string): string {
   return "Começar";
 }
 
-function Scale({
-  name,
-  value,
-  accent,
-  onChange,
-}: {
-  name: string;
-  value: number;
-  accent: string;
-  onChange: (n: number) => void;
-}) {
-  return (
-    <View style={styles.scale}>
-      <Text style={styles.scaleName}>{name}</Text>
-      <View style={styles.scaleRow}>
-        {[1, 2, 3, 4, 5].map((n) => {
-          const on = n === value;
-          return (
-            <Pressable
-              key={n}
-              onPress={() => onChange(n)}
-              accessibilityRole="button"
-              accessibilityLabel={`${name} ${n}`}
-              accessibilityState={{ selected: on }}
-              style={[
-                styles.tick,
-                on && { borderColor: accent },
-              ]}
-            >
-              <Text style={[styles.tickText, on && { color: accent }]}>{n}</Text>
-            </Pressable>
-          );
-        })}
-      </View>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
-  scroll: { flex: 1 },
-  content: { paddingBottom: 32, flexGrow: 1 },
-  score: {
-    color: productTheme.ink,
-    fontFamily: "Archivo_800ExtraBold",
-    fontSize: 88,
-    letterSpacing: -2,
-    lineHeight: 92,
-    fontVariant: ["tabular-nums"],
-    marginTop: 8,
+  head: {
+    paddingHorizontal: T.pad,
+    paddingTop: 8,
+    paddingBottom: 14,
+    borderBottomWidth: 2,
+    borderBottomColor: T.divider,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
   },
-  label: {
-    color: productTheme.muted,
-    fontSize: 16,
+  headLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 9,
+    flexShrink: 1,
+  },
+  headDate: {
+    color: T.muted,
+    fontFamily: FONT,
+    fontSize: 11,
+    letterSpacing: 1.43,
+    textTransform: "uppercase",
+  },
+  scroll: { flex: 1 },
+  content: { flexGrow: 1, paddingBottom: 8 },
+  xpRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
     marginTop: 4,
   },
-  scales: {
-    marginTop: 24,
-    borderTopWidth: 2,
-    borderColor: productTheme.divider,
-  },
-  scale: {
-    paddingVertical: 12,
-    borderBottomWidth: 2,
-    borderColor: productTheme.divider,
-  },
-  scaleName: {
-    color: productTheme.muted,
-    fontFamily: "Archivo_800ExtraBold",
-    fontSize: 11,
-    letterSpacing: 1.6,
-    textTransform: "uppercase",
-    marginBottom: 8,
-  },
-  scaleRow: { flexDirection: "row", gap: 8 },
-  tick: {
-    flex: 1,
-    minHeight: 44,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 2,
-    borderColor: productTheme.divider,
-    borderRadius: productTheme.radius,
-  },
-  tickText: {
-    color: productTheme.ink,
-    fontFamily: "Archivo_800ExtraBold",
-    fontSize: 16,
+  xpNum: {
+    color: T.ink,
+    fontFamily: FONT,
+    fontSize: 15,
     fontVariant: ["tabular-nums"],
   },
-  save: {
-    marginTop: 16,
-    alignSelf: "flex-start",
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderWidth: 2,
-    borderColor: productTheme.ink,
-    borderRadius: productTheme.radius,
+  xpUnit: {
+    fontFamily: FONT,
+    fontSize: 11,
+    letterSpacing: 0.9,
   },
-  saveOff: { opacity: 0.35 },
-  saveText: {
-    color: productTheme.ink,
-    fontFamily: "Archivo_800ExtraBold",
-    fontSize: 14,
-    letterSpacing: 1.2,
+  xpUnitMuted: {
+    color: T.muted,
+    fontFamily: FONT,
+    fontSize: 11,
+    letterSpacing: 0.9,
+  },
+  xpRule: {
+    width: 2,
+    height: 14,
+    backgroundColor: T.divider,
+  },
+  kicker: {
+    fontFamily: FONT,
+    fontSize: 11,
+    letterSpacing: 1.43,
     textTransform: "uppercase",
   },
-  strip: {
+  kickerMuted: {
+    color: T.muted,
+    fontFamily: FONT,
+    fontSize: 11,
+    letterSpacing: 1.43,
+    textTransform: "uppercase",
+  },
+  gaugeFoot: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 14,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: T.hairline,
+  },
+  dim: { color: T.muted2, fontSize: 11, letterSpacing: 1 },
+  muted: { color: T.muted, fontSize: 13 },
+  saving: { color: T.muted, fontSize: 13, marginTop: 8 },
+  expand: {
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    marginTop: 28,
-    paddingVertical: 14,
-    borderTopWidth: 2,
-    borderBottomWidth: 2,
-    borderColor: productTheme.divider,
+    paddingTop: 15,
+    marginTop: 4,
+    borderTopWidth: 1,
+    borderTopColor: T.hairline,
   },
-  stripItem: {
-    color: productTheme.ink,
-    fontFamily: "Archivo_800ExtraBold",
-    fontSize: 12,
-    letterSpacing: 1.2,
-    textTransform: "uppercase",
+  expandLabel: { flex: 1, color: T.muted, fontSize: 12 },
+  expandAction: {
+    color: T.muted,
+    fontFamily: FONT,
+    fontSize: 11,
+    letterSpacing: 0.8,
   },
-  coach: {
-    color: productTheme.muted,
-    fontSize: 15,
-    lineHeight: 22,
-    marginTop: 24,
-  },
+  scales: { marginTop: 10 },
   banner: {
-    color: productTheme.ink,
-    fontSize: 15,
-    lineHeight: 22,
-    marginTop: 20,
-    paddingLeft: 12,
-    borderLeftWidth: 2,
+    paddingHorizontal: T.pad,
+    paddingVertical: 22,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
   },
-  empty: {
-    color: productTheme.muted,
-    fontSize: 16,
-    marginTop: 20,
-    lineHeight: 22,
-  },
-  ficha: { marginTop: 24, alignSelf: "flex-start" },
-  fichaText: {
-    color: productTheme.ink,
-    fontFamily: "Archivo_800ExtraBold",
+  bannerText: {
+    flex: 1,
+    color: T.bg,
+    fontFamily: FONT,
     fontSize: 13,
-    letterSpacing: 1.1,
-    textTransform: "uppercase",
+  },
+  bannerMeta: {
+    color: T.bg,
+    fontFamily: FONT,
+    fontSize: 11,
+  },
+  heroTitle: {
+    color: T.ink,
+    fontFamily: FONT,
+    fontSize: 32,
+    letterSpacing: -1.1,
+    lineHeight: 34,
+    marginTop: 6,
+  },
+  stats: {
+    flexDirection: "row",
+    gap: 18,
+    marginTop: 12,
+  },
+  stat: { color: T.muted, fontSize: 13 },
+  statN: {
+    color: T.ink,
+    fontFamily: FONT,
+    fontSize: 15,
+  },
+  cta: { marginTop: 18 },
+  coachHead: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  coachCopy: { flex: 1 },
+  coachName: {
+    color: T.ink,
+    fontFamily: FONT,
+    fontSize: 14,
+  },
+  coachLine: {
+    color: "#d7d3d3",
+    fontSize: 14,
+    lineHeight: 22,
+    marginTop: 14,
+    paddingTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: T.hairline,
+  },
+  prot: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  protMark: {
+    width: 22,
+    height: 22,
+    borderWidth: 2,
+    borderColor: T.divider,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  protN: {
+    color: "#d7d3d3",
+    fontFamily: FONT,
+    fontSize: 11,
   },
   error: {
-    color: productTheme.accentFallback,
+    color: T.accentFallback,
     fontSize: 14,
-    marginTop: 8,
-  },
-  link: { marginTop: 20, alignSelf: "flex-start" },
-  linkText: {
-    color: productTheme.ink,
-    fontFamily: "Archivo_800ExtraBold",
-    fontSize: 13,
-    letterSpacing: 1.1,
-    textTransform: "uppercase",
+    paddingHorizontal: T.pad,
+    paddingTop: 12,
   },
 });

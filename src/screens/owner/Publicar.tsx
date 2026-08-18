@@ -8,9 +8,10 @@ import {
   type OwnerWeekItem,
 } from "../../api";
 import type { RootStackParamList } from "../../nav/types";
-import { productTheme } from "../../theme";
-import { PrimaryButton } from "../../ui/PrimaryButton";
-import { Screen } from "../../ui/Screen";
+import { FONT, productTheme as T } from "../../theme";
+import { AccentCTA } from "../../ui/AccentCTA";
+import { IconCheck } from "../../ui/Icons";
+import { Band, DockFooter, Head, Phone } from "../../ui/Screen";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Publicar">;
 
@@ -57,7 +58,13 @@ export function Publicar({ route }: Props) {
   }
 
   return (
-    <Screen title="Publicar" accent={accent}>
+    <Phone>
+      <Head
+        kicker={personName}
+        title="Publicar"
+        kickerMuted
+        accent={accent}
+      />
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}
@@ -65,18 +72,20 @@ export function Publicar({ route }: Props) {
       >
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
-        {done ? (
-          <Text style={styles.done}>{`${personName} já vê no Hoje.`}</Text>
-        ) : (
+        {!done ? (
           <>
             {others.length > 0 ? (
               <>
-                <Text style={styles.kicker}>Também para</Text>
+                <View style={styles.section}>
+                  <Text style={styles.kicker}>Também para</Text>
+                </View>
                 {others.map((row) => {
                   const on = Boolean(picked[row.person_id]);
                   return (
                     <Pressable
                       key={row.person_id}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: on }}
                       style={styles.row}
                       onPress={() =>
                         setPicked((prev) => ({
@@ -88,79 +97,127 @@ export function Publicar({ route }: Props) {
                       <View
                         style={[
                           styles.check,
-                          on && { backgroundColor: productTheme.ink },
+                          on && { backgroundColor: T.ink, borderColor: T.ink },
                         ]}
-                      />
+                      >
+                        {on ? <IconCheck color={T.bg} size={14} /> : null}
+                      </View>
                       <Text style={styles.name}>{row.name}</Text>
                     </Pressable>
                   );
                 })}
               </>
             ) : null}
-            <Text style={styles.copy}>
-              A estrutura é a mesma. A carga é a de cada um.
-            </Text>
 
-            <PrimaryButton
-              label="Publicar agora"
-              onPress={() => void publish()}
-              busy={busy}
-            />
+            <Band>
+              <Text style={styles.copy}>
+                A estrutura é a mesma. A carga é a de cada um.
+              </Text>
+            </Band>
           </>
-        )}
+        ) : null}
       </ScrollView>
-    </Screen>
+
+      {!done ? (
+        <DockFooter>
+          <AccentCTA
+            label="Publicar"
+            onPress={() => void publish()}
+            busy={busy}
+            accent={accent}
+          />
+        </DockFooter>
+      ) : null}
+
+      {done ? (
+        <View style={styles.overlay} pointerEvents="auto">
+          <View style={[styles.sheet, { borderColor: accent }]}>
+            <Text style={styles.sheetKicker}>No celular</Text>
+            <Text style={styles.sheetTitle}>
+              {personName} já vê no Hoje
+            </Text>
+          </View>
+        </View>
+      ) : null}
+    </Phone>
   );
 }
 
 const styles = StyleSheet.create({
   scroll: { flex: 1 },
-  content: { paddingBottom: 32, flexGrow: 1 },
+  content: { flexGrow: 1, paddingBottom: 8 },
   error: {
-    color: productTheme.accentFallback,
+    color: T.accentFallback,
     fontSize: 14,
-    marginTop: 12,
+    paddingHorizontal: T.pad,
+    paddingTop: 12,
   },
-  done: {
-    color: productTheme.ink,
-    fontSize: 18,
-    lineHeight: 26,
-    marginTop: 24,
+  section: {
+    paddingHorizontal: T.pad,
+    paddingTop: 24,
+    paddingBottom: 8,
   },
   kicker: {
-    marginTop: 28,
-    color: productTheme.muted,
-    fontFamily: "Archivo_800ExtraBold",
+    color: T.muted,
+    fontFamily: FONT,
     fontSize: 11,
-    letterSpacing: 1.4,
+    letterSpacing: 1.43,
     textTransform: "uppercase",
   },
   row: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-    marginTop: 18,
-    paddingBottom: 16,
-    borderBottomWidth: 2,
-    borderBottomColor: productTheme.divider,
-    borderRadius: productTheme.radius,
+    gap: 14,
+    paddingHorizontal: T.pad,
+    paddingVertical: 24,
+    borderBottomWidth: 1,
+    borderBottomColor: T.hairline,
   },
   check: {
     width: 22,
     height: 22,
     borderWidth: 2,
-    borderColor: productTheme.ink,
+    borderColor: T.ink,
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
   },
   name: {
-    color: productTheme.ink,
-    fontFamily: "Archivo_800ExtraBold",
-    fontSize: 18,
-    letterSpacing: -0.3,
+    color: T.ink,
+    fontFamily: FONT,
+    fontSize: 14,
   },
   copy: {
-    color: productTheme.muted,
+    color: T.muted,
     fontSize: 15,
     lineHeight: 22,
-    marginTop: 20,
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(11,10,10,0.86)",
+    justifyContent: "flex-end",
+    paddingHorizontal: T.pad,
+    paddingBottom: 24,
+  },
+  sheet: {
+    backgroundColor: T.surface,
+    borderWidth: 2,
+    paddingHorizontal: T.pad,
+    paddingTop: 24,
+    paddingBottom: 22,
+  },
+  sheetKicker: {
+    color: T.muted,
+    fontFamily: FONT,
+    fontSize: 11,
+    letterSpacing: 1.43,
+    textTransform: "uppercase",
+  },
+  sheetTitle: {
+    color: T.ink,
+    fontFamily: FONT,
+    fontSize: 24,
+    letterSpacing: -0.6,
+    marginTop: 8,
   },
 });

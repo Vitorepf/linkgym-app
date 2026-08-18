@@ -1,16 +1,20 @@
 import { useState } from "react";
 import {
-  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from "react-native";
 import { ApiError, requestCode, verify, type Person, type Studio } from "../api";
-import { productTheme } from "../theme";
+import { FONT, productTheme as T } from "../theme";
+import { AccentCTA } from "../ui/AccentCTA";
+import { GhostCTA } from "../ui/GhostCTA";
+import { Initials } from "../ui/Initials";
+import { Band, DockFooter, Head, Phone } from "../ui/Screen";
 
 const DEV_PEOPLE = [
   { name: "Fred", phone: "11900000001" },
@@ -31,6 +35,8 @@ export function AccessScreen({ onEntered }: Props) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [studio, setStudio] = useState<Studio | null>(null);
+
+  const accent = studio?.accent_color || T.accentFallback;
 
   async function sendCode(nextPhone = phone) {
     setBusy(true);
@@ -78,117 +84,129 @@ export function AccessScreen({ onEntered }: Props) {
     }
   }
 
+  const body = studio
+    ? "Ele já montou a sua ficha. Aqui você marca o que fez e ele acompanha."
+    : step === "phone"
+      ? "Sem convite não nasce aluno. Trocar de iPhone: o mesmo número, um código novo."
+      : "Os 4 dígitos que chegaram.";
+
   return (
-    <KeyboardAvoidingView
-      style={styles.screen}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-    >
-      <View style={styles.container}>
-        <Text style={styles.kicker}>{studio ? "Convite" : "Acesso"}</Text>
-        <Text style={styles.title}>
-          {studio
-            ? `${studio.name} te chamou.`
-            : step === "phone"
-              ? "Seu telefone."
-              : "Os 4 dígitos que chegaram."}
-        </Text>
-        <Text style={styles.body}>
-          {studio
-            ? "Ele já montou a sua ficha. Aqui você marca o que fez e ele acompanha."
-            : "Sem convite não nasce aluno. Trocar de iPhone: o mesmo número, um código novo."}
-        </Text>
+    <Phone>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
+        <Head
+          kicker={studio ? "Convite" : "Acesso"}
+          title="Entrar"
+          body={
+            studio ? `${studio.name} te chamou. ${body}` : body
+          }
+          accent={accent}
+          right={
+            studio ? (
+              <Initials name={studio.name} accent={accent} fill size={34} />
+            ) : undefined
+          }
+        />
+        <ScrollView
+          style={styles.flex}
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <Band>
+            {step === "phone" ? (
+              <>
+                <TextInput
+                  value={phone}
+                  onChangeText={setPhone}
+                  placeholder="11 90000 0000"
+                  placeholderTextColor={T.muted}
+                  keyboardType="phone-pad"
+                  autoComplete="tel"
+                  style={styles.input}
+                />
+                <TextInput
+                  value={invite}
+                  onChangeText={setInvite}
+                  placeholder="Convite (só na primeira vez)"
+                  placeholderTextColor={T.muted}
+                  autoCapitalize="characters"
+                  style={styles.input}
+                />
+              </>
+            ) : (
+              <TextInput
+                value={otp}
+                onChangeText={setOtp}
+                placeholder="0000"
+                placeholderTextColor={T.muted}
+                keyboardType="number-pad"
+                maxLength={4}
+                style={styles.input}
+              />
+            )}
+            {error ? <Text style={styles.error}>{error}</Text> : null}
+          </Band>
 
-        {step === "phone" ? (
-          <>
-            <TextInput
-              value={phone}
-              onChangeText={setPhone}
-              placeholder="11 90000 0000"
-              placeholderTextColor={productTheme.muted}
-              keyboardType="phone-pad"
-              autoComplete="tel"
-              style={styles.input}
-            />
-            <TextInput
-              value={invite}
-              onChangeText={setInvite}
-              placeholder="Convite (só na primeira vez)"
-              placeholderTextColor={productTheme.muted}
-              autoCapitalize="characters"
-              style={styles.input}
-            />
-            <Pressable
-              onPress={() => sendCode()}
+          {studio ? (
+            <Band rule="hair">
+              <Text style={styles.footer}>
+                A cara é do seu personal. O app por dentro é o mesmo.
+              </Text>
+            </Band>
+          ) : null}
+
+          {__DEV__ ? (
+            <Band rule="none">
+              <Text style={styles.devKicker}>Dev · OTP 0000</Text>
+              <View style={styles.chips}>
+                {DEV_PEOPLE.map((p) => (
+                  <Pressable
+                    key={p.phone}
+                    onPress={() => void enterAs(p.phone)}
+                    style={styles.chip}
+                  >
+                    <Text style={styles.chipText}>{p.name}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            </Band>
+          ) : null}
+        </ScrollView>
+        <DockFooter>
+          {step === "phone" ? (
+            <AccentCTA
+              label="Enviar"
+              onPress={() => void sendCode()}
               disabled={busy || phone.length < 10}
-              style={[styles.btn, (busy || phone.length < 10) && styles.btnOff]}
-            >
-              {busy ? (
-                <ActivityIndicator color={productTheme.bg} />
-              ) : (
-                <Text style={styles.btnText}>Continuar</Text>
-              )}
-            </Pressable>
-          </>
-        ) : (
-          <>
-            <TextInput
-              value={otp}
-              onChangeText={setOtp}
-              placeholder="0000"
-              placeholderTextColor={productTheme.muted}
-              keyboardType="number-pad"
-              maxLength={4}
-              style={styles.input}
+              busy={busy}
+              accent={accent}
             />
-            <Pressable
-              onPress={() => confirm()}
-              disabled={busy || otp.length !== 4}
-              style={[styles.btn, (busy || otp.length !== 4) && styles.btnOff]}
-            >
-              {busy ? (
-                <ActivityIndicator color={productTheme.bg} />
-              ) : (
-                <Text style={styles.btnText}>Entrar</Text>
-              )}
-            </Pressable>
-            <Pressable
-              onPress={() => {
-                setStudio(null);
-                setStep("phone");
-              }}
-              style={styles.linkWrap}
-            >
-              <Text style={styles.link}>Trocar número</Text>
-            </Pressable>
-          </>
-        )}
-
-        {error ? <Text style={styles.error}>{error}</Text> : null}
-
-        {studio ? (
-          <Text style={styles.footer}>
-            A cara é do seu personal. O app por dentro é o mesmo.
-          </Text>
-        ) : null}
-
-        {__DEV__ ? (
-          <View style={styles.dev}>
-            <Text style={styles.devKicker}>Dev · OTP 0000</Text>
-            <View style={styles.chips}>
-              {DEV_PEOPLE.map((p) => (
-                <Pressable
-                  key={p.phone}
-                  onPress={() => enterAs(p.phone)}
-                  style={styles.chip}
-                >
-                  <Text style={styles.chipText}>{p.name}</Text>
-                </Pressable>
-              ))}
-            </View>
-          </View>
-        ) : null}
-      </View>
-    </KeyboardAvoidingView>
+          ) : (
+            <>
+              <AccentCTA
+                label="Entrar"
+                onPress={() => void confirm()}
+                disabled={busy || otp.length !== 4}
+                busy={busy}
+                accent={accent}
+              />
+              <View style={styles.ghost}>
+                <GhostCTA
+                  label="Trocar número"
+                  onPress={() => {
+                    setStudio(null);
+                    setStep("phone");
+                  }}
+                />
+              </View>
+            </>
+          )}
+        </DockFooter>
+      </KeyboardAvoidingView>
+    </Phone>
   );
 }
 
@@ -211,83 +229,49 @@ function messageFor(e: unknown): string {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: productTheme.bg },
-  container: {
-    flex: 1,
-    justifyContent: "center",
-    paddingHorizontal: 24,
-  },
-  kicker: {
-    color: productTheme.accentFallback,
-    fontFamily: "Archivo_800ExtraBold",
-    fontSize: 11,
-    letterSpacing: 1.6,
-    textTransform: "uppercase",
-    marginBottom: 12,
-  },
-  title: {
-    color: productTheme.ink,
-    fontFamily: "Archivo_800ExtraBold",
-    fontSize: 28,
-    letterSpacing: -0.6,
-  },
-  body: {
-    color: productTheme.muted,
-    fontSize: 15,
-    marginTop: 14,
-    lineHeight: 22,
-    marginBottom: 28,
-  },
+  flex: { flex: 1 },
+  content: { flexGrow: 1, paddingBottom: 8 },
   input: {
-    color: productTheme.ink,
+    color: T.ink,
+    fontFamily: FONT,
     fontSize: 18,
     paddingVertical: 14,
-    borderBottomWidth: 2,
-    borderBottomColor: productTheme.divider,
+    paddingHorizontal: 14,
+    borderWidth: 2,
+    borderColor: T.divider,
     marginBottom: 8,
   },
-  btn: {
-    marginTop: 20,
-    backgroundColor: productTheme.ink,
-    paddingVertical: 16,
-    alignItems: "center",
-  },
-  btnOff: { opacity: 0.35 },
-  btnText: {
-    color: productTheme.bg,
-    fontFamily: "Archivo_800ExtraBold",
+  error: {
+    color: T.accentFallback,
+    marginTop: 8,
     fontSize: 14,
-    letterSpacing: 1.2,
-    textTransform: "uppercase",
   },
-  linkWrap: { marginTop: 16 },
-  link: { color: productTheme.muted, fontSize: 14 },
-  error: { color: productTheme.accentFallback, marginTop: 16, fontSize: 14 },
   footer: {
-    color: productTheme.muted,
+    color: T.muted,
     fontSize: 13,
-    marginTop: 24,
     lineHeight: 20,
   },
-  dev: {
-    marginTop: 40,
-    paddingTop: 16,
-    borderTopWidth: 2,
-    borderTopColor: productTheme.divider,
-  },
   devKicker: {
-    color: productTheme.muted,
+    color: T.muted,
+    fontFamily: FONT,
     fontSize: 11,
-    letterSpacing: 1.4,
+    letterSpacing: 1.43,
     textTransform: "uppercase",
     marginBottom: 12,
   },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   chip: {
     borderWidth: 2,
-    borderColor: productTheme.divider,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    borderColor: T.divider,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    minHeight: 44,
+    justifyContent: "center",
   },
-  chipText: { color: productTheme.ink, fontFamily: "Archivo_800ExtraBold" },
+  chipText: {
+    color: T.ink,
+    fontFamily: FONT,
+    fontSize: 15,
+  },
+  ghost: { marginTop: 10 },
 });

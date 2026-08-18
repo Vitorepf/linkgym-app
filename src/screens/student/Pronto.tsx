@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, Text } from "react-native";
 import { today, type Person, type Studio } from "../../api";
-import { productTheme } from "../../theme";
-import { PrimaryButton } from "../../ui/PrimaryButton";
-import { Screen } from "../../ui/Screen";
+import { FONT, productTheme as T } from "../../theme";
+import { AccentCTA } from "../../ui/AccentCTA";
+import { Band, DockFooter, Head, Phone } from "../../ui/Screen";
 
 type Props = {
   token: string;
@@ -13,13 +13,13 @@ type Props = {
 };
 
 const BEATS = [
-  { kicker: "Hoje", line: (name: string) => `${name} vê suas respostas.` },
+  { kicker: "Hoje", line: (name: string) => `${name} vê o corpo e as respostas.` },
   { kicker: "Quando publicar", line: () => "Você recebe o Hoje com a ficha." },
   { kicker: "Primeiro treino", line: () => "Curto. Impossível de falhar." },
 ] as const;
 
 export function Pronto({ token, person, studio, onContinue }: Props) {
-  const accent = studio.accent_color || productTheme.accentFallback;
+  const accent = studio.accent_color || T.accentFallback;
   const name = person.name.trim() || "você";
   const [hasFicha, setHasFicha] = useState(false);
 
@@ -39,42 +39,47 @@ export function Pronto({ token, person, studio, onContinue }: Props) {
   }, [token]);
 
   return (
-    <Screen
-      kicker="Tudo enviado"
-      title={`Bem-vindo, ${name}`}
-      accent={accent}
-    >
-      <View style={styles.beats}>
+    <Phone>
+      <Head kicker="Enviado" title={`Bem-vindo, ${name}`} accent={accent} />
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
         {BEATS.map((beat) => (
-          <View key={beat.kicker} style={styles.beat}>
+          <Band key={beat.kicker}>
             <Text style={[styles.beatKicker, { color: accent }]}>
               {beat.kicker}
             </Text>
             <Text style={styles.beatLine}>{beat.line(studio.name)}</Text>
-          </View>
+          </Band>
         ))}
-      </View>
-
-      <PrimaryButton
-        label={hasFicha ? "Ver o Hoje" : "Entendi"}
-        onPress={onContinue}
-      />
-    </Screen>
+      </ScrollView>
+      <DockFooter>
+        <AccentCTA
+          label={hasFicha ? "Ver o Hoje" : "Entendi"}
+          onPress={onContinue}
+          accent={accent}
+        />
+      </DockFooter>
+    </Phone>
   );
 }
 
 const styles = StyleSheet.create({
-  beats: { marginTop: 32, gap: 22 },
-  beat: { gap: 6 },
+  scroll: { flex: 1 },
+  content: { flexGrow: 1, paddingBottom: 8 },
   beatKicker: {
-    fontFamily: "Archivo_800ExtraBold",
+    fontFamily: FONT,
     fontSize: 11,
-    letterSpacing: 1.6,
+    letterSpacing: 1.43,
     textTransform: "uppercase",
   },
   beatLine: {
-    color: productTheme.ink,
+    color: T.ink,
     fontSize: 18,
     lineHeight: 24,
+    marginTop: 8,
+    textAlign: "left",
   },
 });

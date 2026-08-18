@@ -9,9 +9,10 @@ import {
 } from "../../offline/sessionQueue";
 import { studentHomeTarget } from "../../nav/StudentTabs";
 import type { RootStackParamList } from "../../nav/types";
-import { productTheme } from "../../theme";
-import { PrimaryButton } from "../../ui/PrimaryButton";
-import { Screen } from "../../ui/Screen";
+import { FONT, productTheme as T } from "../../theme";
+import { AccentCTA } from "../../ui/AccentCTA";
+import { Choice } from "../../ui/Choice";
+import { Band, DockFooter, Phone } from "../../ui/Screen";
 
 type Effort = 1 | 2 | 3;
 
@@ -50,7 +51,12 @@ export function Descanso({ navigation, route }: Props) {
 
   const nxt = nextAfter(items, itemIndex, setIndex);
   const ending = last || nxt === "done";
-  const note = noteFor(effort, studioName);
+  const item = items[itemIndex];
+  const blocks = 8;
+  const filled =
+    restSeconds <= 0
+      ? blocks
+      : Math.round(((restSeconds - left) / restSeconds) * blocks);
 
   async function pick(n: Effort) {
     setEffort(n);
@@ -90,7 +96,7 @@ export function Descanso({ navigation, route }: Props) {
 
   async function goNext() {
     if (!effort || busy) return;
-    if (ending) {
+    if (nxt === "done") {
       await goFinish();
       return;
     }
@@ -101,71 +107,133 @@ export function Descanso({ navigation, route }: Props) {
     });
   }
 
-  return (
-    <Screen kicker={studioName} accent={accent}>
-      <Text style={styles.kicker}>Descanso</Text>
-      <Text
-        style={[styles.timer, left === 0 && { color: accent }]}
-        accessibilityLabel={`${left} segundos`}
-      >
-        {left}
-      </Text>
-      <Text style={styles.unit}>{left === 0 ? "Pode ir" : "segundos"}</Text>
+  const nextLabel =
+    nxt === "done"
+      ? "Fim do treino"
+      : nxt.setIndex > 1
+        ? `Série ${nxt.setIndex}`
+        : (items[nxt.itemIndex]?.name ?? "Próxima");
 
-      <Text style={styles.ask}>Como foi</Text>
-      <View style={styles.words}>
-        {WORDS.map((w) => {
-          const on = effort === w.effort;
-          return (
-            <Pressable
-              key={w.effort}
-              onPress={() => pick(w.effort)}
-              accessibilityRole="button"
-              accessibilityState={{ selected: on }}
-              accessibilityLabel={w.label}
-              style={[
-                styles.word,
-                on && { borderColor: accent },
-              ]}
-            >
-              <Text style={[styles.wordText, on && { color: accent }]}>
-                {w.label}
-              </Text>
-            </Pressable>
-          );
-        })}
+  return (
+    <Phone>
+      <View style={styles.top}>
+        <View style={styles.topRow}>
+          <Text style={styles.topKicker}>
+            {item?.name ?? "Série"} · série {setIndex} feita
+          </Text>
+        </View>
       </View>
 
-      {note ? <Text style={styles.note}>{note}</Text> : null}
+      <View style={styles.doneRow}>
+        <View style={styles.check}>
+          <Text style={styles.checkMark}>✓</Text>
+        </View>
+        <Text style={styles.doneLoad}>
+          {item ? `${item.load_kg} kg × ${item.planned_reps}` : ""}
+        </Text>
+        <Text style={styles.ok}>
+          {effort === 0 ? "" : WORDS.find((w) => w.effort === effort)?.label.toUpperCase()}
+        </Text>
+      </View>
 
-      <PrimaryButton
-        label={ending ? "Terminar" : "Próxima série"}
-        onPress={goNext}
-        disabled={!effort}
-        busy={busy}
-      />
-
-      {!ending ? (
-        <Pressable
-          onPress={() => {
-            void goFinish();
-          }}
-          disabled={!effort || busy}
-          style={styles.finish}
-          hitSlop={8}
+      <Band>
+        <Text style={[styles.kicker, { color: accent }]}>Descanso</Text>
+        <Text
+          style={[styles.timer, left === 0 && { color: accent }]}
+          accessibilityLabel={`${left} segundos`}
         >
-          <Text style={[styles.finishText, (!effort || busy) && styles.finishOff]}>
-            Terminar
-          </Text>
-        </Pressable>
-      ) : null}
-    </Screen>
+          {left === 0 ? "Pode ir" : left}
+        </Text>
+        <View style={styles.blocks}>
+          {Array.from({ length: blocks }, (_, i) => (
+            <View
+              key={i}
+              style={[
+                styles.block,
+                { backgroundColor: i < filled ? accent : T.divider },
+              ]}
+            />
+          ))}
+        </View>
+        <Text style={styles.note}>
+          {left === 0
+            ? "Descanso fechado. Marca como foi e segue."
+            : `Ainda ${left}s. A série já está registrada.`}
+        </Text>
+      </Band>
+
+      <View style={styles.grow} />
+
+      <Band>
+        <Text style={styles.kickerMuted}>Como foi essa série?</Text>
+        <View style={styles.words}>
+          {WORDS.map((w) => (
+            <Choice
+              key={w.effort}
+              label={w.label}
+              selected={effort === w.effort}
+              flex
+              accent={accent}
+              onPress={() => void pick(w.effort)}
+            />
+          ))}
+        </View>
+        {effort ? (
+          <Text style={styles.note}>{noteFor(effort, studioName)}</Text>
+        ) : null}
+      </Band>
+
+      <Band rule="none">
+        <View style={styles.nextRow}>
+          <View>
+            <Text style={styles.kickerMuted}>A seguir</Text>
+            <Text style={styles.nextName}>{nextLabel}</Text>
+          </View>
+        </View>
+      </Band>
+
+      <DockFooter>
+        <AccentCTA
+          label={
+            ending
+              ? "Terminar treino"
+              : left === 0
+                ? "Próxima série"
+                : "Pular descanso"
+          }
+          onPress={() => {
+            void goNext();
+          }}
+          disabled={!effort}
+          busy={busy}
+          accent={accent}
+        />
+        {!ending ? (
+          <Pressable
+            onPress={() => {
+              void goFinish();
+            }}
+            disabled={!effort || busy}
+            style={styles.finish}
+          >
+            <Text
+              style={[
+                styles.finishText,
+                (!effort || busy) && styles.off,
+              ]}
+            >
+              Terminar
+            </Text>
+          </Pressable>
+        ) : null}
+      </DockFooter>
+    </Phone>
   );
 }
 
 function noteFor(effort: Effort | 0, studioName: string): string {
   if (effort === 1) {
-    return `Sobrou tanque — o ${studioName} sobe a carga na próxima.`;
+    return `Sobrou tanque. O ${studioName} sobe a carga na próxima.`;
   }
   if (effort === 2) {
     return "Era esse o treino.";
@@ -177,68 +245,104 @@ function noteFor(effort: Effort | 0, studioName: string): string {
 }
 
 const styles = StyleSheet.create({
+  top: {
+    paddingHorizontal: T.pad,
+    paddingTop: 8,
+    paddingBottom: 12,
+    borderBottomWidth: 2,
+    borderBottomColor: T.divider,
+  },
+  topRow: { flexDirection: "row", justifyContent: "space-between" },
+  topKicker: {
+    color: T.muted,
+    fontFamily: FONT,
+    fontSize: 11,
+    letterSpacing: 1.43,
+    textTransform: "uppercase",
+  },
+  doneRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingHorizontal: T.pad,
+    paddingVertical: 22,
+    borderBottomWidth: 1,
+    borderBottomColor: T.hairline,
+  },
+  check: {
+    width: 22,
+    height: 22,
+    backgroundColor: T.ok,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  checkMark: {
+    color: T.bg,
+    fontFamily: FONT,
+    fontSize: 13,
+  },
+  doneLoad: {
+    flex: 1,
+    color: T.ink,
+    fontFamily: FONT,
+    fontSize: 15,
+  },
+  ok: {
+    color: T.ok,
+    fontFamily: FONT,
+    fontSize: 11,
+    letterSpacing: 1,
+  },
   kicker: {
-    color: productTheme.ink,
-    fontFamily: "Archivo_800ExtraBold",
-    fontSize: 28,
-    letterSpacing: -0.6,
-    marginTop: 8,
+    fontFamily: FONT,
+    fontSize: 11,
+    letterSpacing: 1.43,
+    textTransform: "uppercase",
+  },
+  kickerMuted: {
+    color: T.muted,
+    fontFamily: FONT,
+    fontSize: 11,
+    letterSpacing: 1.43,
+    textTransform: "uppercase",
   },
   timer: {
-    color: productTheme.ink,
-    fontFamily: "Archivo_800ExtraBold",
-    fontSize: 88,
-    letterSpacing: -2,
-    lineHeight: 92,
+    color: T.ink,
+    fontFamily: FONT,
+    fontSize: 92,
+    letterSpacing: -5.5,
+    lineHeight: 84,
     fontVariant: ["tabular-nums"],
-    marginTop: 12,
-  },
-  unit: {
-    color: productTheme.muted,
-    fontFamily: "Archivo_800ExtraBold",
-    fontSize: 12,
-    letterSpacing: 1.4,
-    textTransform: "uppercase",
     marginTop: 4,
   },
-  ask: {
-    color: productTheme.muted,
-    fontFamily: "Archivo_800ExtraBold",
-    fontSize: 11,
-    letterSpacing: 1.6,
-    textTransform: "uppercase",
-    marginTop: 32,
-    marginBottom: 10,
-  },
-  words: { gap: 8 },
-  word: {
-    minHeight: 56,
-    paddingHorizontal: 18,
-    justifyContent: "center",
-    borderWidth: 2,
-    borderColor: productTheme.divider,
-    borderRadius: productTheme.radius,
-    alignSelf: "stretch",
-  },
-  wordText: {
-    color: productTheme.ink,
-    fontFamily: "Archivo_800ExtraBold",
-    fontSize: 16,
-    letterSpacing: 0.4,
-  },
+  blocks: { flexDirection: "row", gap: 3, marginTop: 18 },
+  block: { flex: 1, height: 10 },
   note: {
-    color: productTheme.muted,
-    fontSize: 15,
-    lineHeight: 22,
-    marginTop: 16,
+    color: T.muted,
+    fontSize: 13,
+    marginTop: 14,
+    lineHeight: 18,
   },
-  finish: { marginTop: 20, alignSelf: "flex-start" },
+  grow: { flex: 1 },
+  words: { flexDirection: "row", gap: 8, marginTop: 12 },
+  nextRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  nextName: {
+    color: T.ink,
+    fontFamily: FONT,
+    fontSize: 15,
+    marginTop: 4,
+  },
+  finish: { paddingTop: 14 },
   finishText: {
-    color: productTheme.ink,
-    fontFamily: "Archivo_800ExtraBold",
+    color: T.muted,
+    fontFamily: FONT,
     fontSize: 13,
     letterSpacing: 1.1,
     textTransform: "uppercase",
   },
-  finishOff: { opacity: 0.35 },
+  off: { opacity: 0.35 },
 });

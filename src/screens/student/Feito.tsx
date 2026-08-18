@@ -3,9 +3,10 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { formatKg } from "../../offline/sessionQueue";
 import { studentHomeTarget } from "../../nav/StudentTabs";
 import type { RootStackParamList } from "../../nav/types";
-import { productTheme } from "../../theme";
-import { PrimaryButton } from "../../ui/PrimaryButton";
-import { Screen } from "../../ui/Screen";
+import { FONT, productTheme as T } from "../../theme";
+import { AccentCTA } from "../../ui/AccentCTA";
+import { MetricGrid } from "../../ui/Metric";
+import { Band, DockFooter, Phone } from "../../ui/Screen";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Feito">;
 
@@ -21,183 +22,178 @@ export function Feito({ navigation, route }: Props) {
     needsCommitment,
   } = route.params;
 
+  function follow() {
+    if (records.length > 0) {
+      navigation.navigate("Recorde", {
+        accent,
+        records,
+        needsCommitment,
+      });
+      return;
+    }
+    if (needsCommitment) {
+      navigation.navigate("Compromisso");
+      return;
+    }
+    navigation.reset({
+      index: 0,
+      routes: [studentHomeTarget],
+    });
+  }
+
   return (
-    <Screen kicker={studioName} accent={accent}>
-      <View style={[styles.bar, { backgroundColor: accent }]} />
+    <Phone>
+      <View style={[styles.hero, { backgroundColor: accent }]}>
+        <Text style={styles.heroKicker}>Ofensiva mantida</Text>
+        <Text style={styles.heroNum}>{streakCount}</Text>
+        <Text style={styles.heroSub}>
+          {streakCount === 1 ? "treino" : "treinos"} na sequência
+        </Text>
+      </View>
+
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.kicker}>Ofensiva</Text>
-        <Text
-          style={[styles.streak, { color: accent }]}
-          accessibilityLabel={`Ofensiva ${streakCount}`}
-        >
-          {streakCount}
-        </Text>
-
-        <Text style={styles.xp}>+{xpGained} XP</Text>
-        <Text style={styles.total}>{xpTotal} XP</Text>
-
-        {pending ? (
-          <Text style={styles.pending}>
-            Sessão neste celular. Sobe quando tiver rede.
-          </Text>
-        ) : null}
+        <MetricGrid
+          cells={[
+            { label: "XP hoje", value: `+${xpGained}` },
+            { label: "XP total", value: xpTotal.toLocaleString("pt-BR") },
+          ]}
+        />
 
         {records.length > 0 ? (
-          <View style={styles.records}>
-            <Text style={styles.recordKicker}>Recorde</Text>
+          <Band raised accentTop accent={accent}>
+            <Text style={[styles.kicker, { color: accent }]}>
+              {records.length} recorde{records.length === 1 ? "" : "s"}
+            </Text>
             {records.map((row) => (
-              <View key={row.exercise_name} style={styles.recordRow}>
-                <Text style={styles.recordName}>{row.exercise_name}</Text>
-                <Text style={styles.recordKg}>
-                  {formatKg(row.load_kg)} kg
+              <View key={row.exercise_name} style={styles.prRow}>
+                <Text style={styles.prName}>{row.exercise_name}</Text>
+                <Text style={styles.prKg}>
+                  {formatKg(row.load_kg).replace(".", ",")} kg
                 </Text>
-                {row.previous_kg > 0 ? (
-                  <Text style={styles.previous}>
-                    {formatKg(row.previous_kg)} kg
-                  </Text>
-                ) : (
-                  <Text style={styles.first}>Primeiro registro</Text>
-                )}
               </View>
             ))}
-            <Pressable
-              onPress={() =>
-                navigation.navigate("Recorde", {
-                  accent,
-                  records,
-                  needsCommitment,
-                })
-              }
-              style={styles.recordeLink}
-              hitSlop={8}
-            >
-              <Text style={styles.recordeLinkText}>Recorde</Text>
-            </Pressable>
-          </View>
+          </Band>
         ) : null}
 
-        <PrimaryButton
-          label="Seguir"
-          onPress={() => {
-            if (records.length > 0) {
-              navigation.navigate("Recorde", {
-                accent,
-                records,
-                needsCommitment,
-              });
-              return;
-            }
-            if (needsCommitment) {
-              navigation.navigate("Compromisso");
-              return;
-            }
-            navigation.reset({
-              index: 0,
-              routes: [studentHomeTarget],
-            });
-          }}
-        />
+        {pending ? (
+          <Band>
+            <Text style={styles.caption}>
+              Sessão neste celular. Sobe quando tiver rede.
+            </Text>
+          </Band>
+        ) : (
+          <Band rule="hair">
+            <View style={styles.okRow}>
+              <View style={[styles.tick, { backgroundColor: accent }]}>
+                <Text style={styles.tickMark}>✓</Text>
+              </View>
+              <Text style={styles.caption}>
+                {studioName} já recebeu o resultado
+              </Text>
+            </View>
+          </Band>
+        )}
       </ScrollView>
-    </Screen>
+
+      <DockFooter>
+        <AccentCTA
+          label={
+            records.length > 0 ? "Ver seu recorde de hoje" : "Seguir"
+          }
+          onPress={follow}
+          accent={accent}
+        />
+        {records.length > 0 ? (
+          <Pressable onPress={follow} style={styles.ghost}>
+            <Text style={styles.ghostText}>Seguir</Text>
+          </Pressable>
+        ) : null}
+      </DockFooter>
+    </Phone>
   );
 }
 
 const styles = StyleSheet.create({
-  bar: {
-    height: 2,
-    marginHorizontal: -24,
-    marginBottom: 20,
+  hero: {
+    paddingHorizontal: T.pad,
+    paddingTop: 20,
+    paddingBottom: 22,
+  },
+  heroKicker: {
+    color: T.bg,
+    fontFamily: FONT,
+    fontSize: 11,
+    letterSpacing: 1.43,
+    textTransform: "uppercase",
+    opacity: 0.8,
+  },
+  heroNum: {
+    color: T.bg,
+    fontFamily: FONT,
+    fontSize: 64,
+    letterSpacing: -3.2,
+    lineHeight: 62,
+    marginTop: 6,
+  },
+  heroSub: {
+    color: T.bg,
+    fontFamily: FONT,
+    fontSize: 14,
+    marginTop: 8,
   },
   scroll: { flex: 1 },
-  content: { paddingBottom: 32, flexGrow: 1 },
+  content: { flexGrow: 1, paddingBottom: 8 },
   kicker: {
-    color: productTheme.muted,
-    fontFamily: "Archivo_800ExtraBold",
+    fontFamily: FONT,
     fontSize: 11,
-    letterSpacing: 1.6,
+    letterSpacing: 1.43,
     textTransform: "uppercase",
   },
-  streak: {
-    fontFamily: "Archivo_800ExtraBold",
-    fontSize: 88,
-    letterSpacing: -2,
-    lineHeight: 92,
+  prRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 10,
+  },
+  prName: {
+    color: T.ink,
+    fontFamily: FONT,
+    fontSize: 15,
+  },
+  prKg: {
+    color: T.ink,
+    fontFamily: FONT,
+    fontSize: 15,
     fontVariant: ["tabular-nums"],
-    marginTop: 4,
   },
-  xp: {
-    color: productTheme.ink,
-    fontFamily: "Archivo_800ExtraBold",
-    fontSize: 28,
-    letterSpacing: -0.4,
-    marginTop: 12,
+  okRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
   },
-  total: {
-    color: productTheme.muted,
-    fontSize: 15,
-    marginTop: 4,
+  tick: {
+    width: 20,
+    height: 20,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  pending: {
-    color: productTheme.muted,
-    fontSize: 15,
-    lineHeight: 22,
-    marginTop: 20,
-    paddingLeft: 12,
-    borderLeftWidth: 2,
-    borderLeftColor: productTheme.divider,
+  tickMark: {
+    color: T.bg,
+    fontFamily: FONT,
+    fontSize: 12,
   },
-  records: {
-    marginTop: 32,
-    borderTopWidth: 2,
-    borderColor: productTheme.divider,
+  caption: {
+    color: T.muted,
+    fontSize: 13,
+    flex: 1,
   },
-  recordKicker: {
-    color: productTheme.muted,
-    fontFamily: "Archivo_800ExtraBold",
-    fontSize: 11,
-    letterSpacing: 1.6,
-    textTransform: "uppercase",
-    marginTop: 20,
-    marginBottom: 8,
-  },
-  recordRow: {
-    paddingVertical: 14,
-    borderBottomWidth: 2,
-    borderColor: productTheme.divider,
-  },
-  recordName: {
-    color: productTheme.ink,
-    fontFamily: "Archivo_800ExtraBold",
-    fontSize: 18,
-    letterSpacing: -0.3,
-  },
-  recordKg: {
-    color: productTheme.ink,
-    fontFamily: "Archivo_800ExtraBold",
-    fontSize: 28,
-    letterSpacing: -0.6,
-    fontVariant: ["tabular-nums"],
-    marginTop: 4,
-  },
-  previous: {
-    color: productTheme.muted,
-    fontSize: 15,
-    marginTop: 4,
-    textDecorationLine: "line-through",
-  },
-  first: {
-    color: productTheme.muted,
-    fontSize: 15,
-    marginTop: 4,
-  },
-  recordeLink: { marginTop: 16, alignSelf: "flex-start" },
-  recordeLinkText: {
-    color: productTheme.ink,
-    fontFamily: "Archivo_800ExtraBold",
+  ghost: { paddingTop: 14 },
+  ghostText: {
+    color: T.muted,
+    fontFamily: FONT,
     fontSize: 13,
     letterSpacing: 1.1,
     textTransform: "uppercase",

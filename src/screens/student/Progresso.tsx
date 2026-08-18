@@ -1,15 +1,13 @@
 import { useEffect, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 import {
   progress,
   type Person,
   type ProgressPayload,
   type Studio,
 } from "../../api";
-import type { StudentTabNavigation } from "../../nav/types";
-import { productTheme } from "../../theme";
-import { Screen } from "../../ui/Screen";
+import { FONT, productTheme as T } from "../../theme";
+import { Band, Head, Phone } from "../../ui/Screen";
 
 type Props = {
   token: string;
@@ -18,15 +16,14 @@ type Props = {
 };
 
 const BADGES = [
-  { key: "estreia", label: "Estreia" },
-  { key: "ofensiva_4", label: "Ofensiva 4" },
-  { key: "primeiro_pr", label: "Primeiro PR" },
-  { key: "retomada", label: "Retomada" },
+  { key: "estreia", label: "ESTREIA", mark: "1" },
+  { key: "ofensiva_4", label: "SEMANAS", mark: "4" },
+  { key: "primeiro_pr", label: "PR", mark: "PR" },
+  { key: "retomada", label: "RETOMADA", mark: "R" },
 ] as const;
 
-export function Progresso({ token, studio }: Props) {
-  const navigation = useNavigation<StudentTabNavigation>();
-  const accent = studio.accent_color || productTheme.accentFallback;
+export function Progresso({ token, person, studio }: Props) {
+  const accent = studio.accent_color || T.accentFallback;
   const [data, setData] = useState<ProgressPayload | null>(null);
   const [error, setError] = useState("");
 
@@ -49,9 +46,16 @@ export function Progresso({ token, studio }: Props) {
   }, [token]);
 
   const earned = new Set((data?.badges ?? []).map((b) => b.badge_key));
+  const me = data?.league.findIndex((row) => row.me) ?? -1;
+  const weeks = Math.min(12, data?.streak.current_count ?? 0);
 
   return (
-    <Screen kicker="Progresso" title={studio.name} accent={accent} tab>
+    <Phone tab>
+      <Head
+        kicker={`${person.name} · agora`}
+        title="Progresso"
+        kickerMuted
+      />
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}
@@ -61,180 +65,248 @@ export function Progresso({ token, studio }: Props) {
 
         {data ? (
           <>
-            <Text style={styles.kicker}>Ofensiva</Text>
-            <Text
-              style={[styles.streak, { color: accent }]}
-              accessibilityLabel={`Ofensiva ${data.streak.current_count}`}
-            >
-              {data.streak.current_count}
-            </Text>
-            <Text style={styles.protector}>
-              {data.streak.protector_available
-                ? "Protetor disponível"
-                : "Protetor usado"}
-            </Text>
-
-            <Text style={styles.section}>Liga</Text>
-            {data.league.map((row, i) => (
-              <View key={row.name} style={styles.leagueRow}>
-                <Text style={[styles.rank, row.me && { color: accent }]}>
-                  {i + 1}º
+            <Band>
+              <View style={styles.rowBetween}>
+                <Text style={[styles.kicker, { color: accent }]}>
+                  Ofensiva · {data.streak.current_count}
                 </Text>
-                <Text style={[styles.leagueName, row.me && { color: accent }]}>
-                  {row.name}
-                </Text>
-                <Text style={[styles.leagueXp, row.me && { color: accent }]}>
-                  {row.xp_total} XP
+                <Text style={styles.muted}>
+                  {data.streak.protector_available
+                    ? "1 protetor"
+                    : "protetor usado"}
                 </Text>
               </View>
-            ))}
+              <View style={styles.grid12}>
+                {Array.from({ length: 12 }, (_, i) => (
+                  <View
+                    key={i}
+                    style={[
+                      styles.sq,
+                      {
+                        backgroundColor: i < weeks ? accent : T.fill,
+                      },
+                    ]}
+                  />
+                ))}
+              </View>
+              <Text style={styles.caption}>
+                Semana fechada = treinos do compromisso. Você fechou{" "}
+                {data.streak.current_count} seguidas.
+              </Text>
+            </Band>
 
-            <Text style={styles.section}>Prontidão</Text>
-            <View style={styles.ticks}>
-              {data.readiness_week.map((d) => {
-                const on = d.score > 0;
-                return (
-                  <View key={d.for_date} style={styles.tickCol}>
-                    <View
+            <Band>
+              <Text style={styles.kickerMuted}>
+                {me >= 0 ? `${me + 1}º na liga` : "Liga"}
+              </Text>
+              <View style={styles.league}>
+                {data.league.map((row, i) => (
+                  <View
+                    key={`${row.name}-${i}`}
+                    style={[
+                      styles.leagueRow,
+                      row.me && { backgroundColor: accent, marginHorizontal: -12, paddingHorizontal: 12 },
+                    ]}
+                  >
+                    <Text
                       style={[
-                        styles.tick,
-                        on && {
-                          borderColor: accent,
-                          backgroundColor: accent,
-                        },
+                        styles.rank,
+                        row.me && { color: T.bg },
                       ]}
-                    />
+                    >
+                      {i + 1}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.leagueName,
+                        row.me && { color: T.bg, fontFamily: FONT },
+                      ]}
+                    >
+                      {row.me ? "Você" : row.name}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.leagueXp,
+                        row.me && { color: T.bg },
+                      ]}
+                    >
+                      {row.xp_total.toLocaleString("pt-BR")}
+                    </Text>
                   </View>
-                );
-              })}
-            </View>
+                ))}
+              </View>
+            </Band>
 
-            <Text style={styles.section}>Selos</Text>
-            {BADGES.map((badge) => {
-              const on = earned.has(badge.key);
-              return (
-                <Text
-                  key={badge.key}
-                  style={[styles.badge, !on && styles.badgeOff]}
-                >
-                  {badge.label}
-                </Text>
-              );
-            })}
+            <Band>
+              <Text style={styles.kickerMuted}>Prontidão · 7 dias</Text>
+              <View style={styles.week}>
+                {data.readiness_week.map((d, i) => {
+                  const pct = Math.max(0, Math.min(1, d.score / 100));
+                  const last = i === data.readiness_week.length - 1;
+                  return (
+                    <View key={d.for_date} style={styles.weekCol}>
+                      <View
+                        style={[
+                          styles.weekBar,
+                          {
+                            height: Math.max(6, pct * 60),
+                            backgroundColor: last && pct > 0 ? accent : T.divider,
+                          },
+                        ]}
+                      />
+                    </View>
+                  );
+                })}
+              </View>
+              <Text style={styles.caption}>
+                Os dias preenchidos são os que você registrou como estava.
+              </Text>
+            </Band>
+
+            <Band rule="none">
+              <Text style={styles.kickerMuted}>Selos</Text>
+              <View style={styles.badges}>
+                {BADGES.map((badge) => {
+                  const on = earned.has(badge.key);
+                  return (
+                    <View key={badge.key} style={styles.badgeCol}>
+                      <View
+                        style={[
+                          styles.badge,
+                          on
+                            ? { backgroundColor: accent }
+                            : styles.badgeOff,
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.badgeMark,
+                            { color: on ? T.bg : T.muted2 },
+                          ]}
+                        >
+                          {badge.mark}
+                        </Text>
+                      </View>
+                      <Text
+                        style={[
+                          styles.badgeLabel,
+                          { color: on ? T.muted : T.muted2 },
+                        ]}
+                      >
+                        {badge.label}
+                      </Text>
+                    </View>
+                  );
+                })}
+              </View>
+            </Band>
           </>
         ) : null}
-
-        <Pressable
-          onPress={() => navigation.navigate("Hoje")}
-          style={styles.back}
-          hitSlop={8}
-        >
-          <Text style={styles.backText}>Voltar</Text>
-        </Pressable>
       </ScrollView>
-    </Screen>
+    </Phone>
   );
 }
 
 const styles = StyleSheet.create({
   scroll: { flex: 1 },
-  content: { paddingBottom: 32, flexGrow: 1 },
+  content: { flexGrow: 1, paddingBottom: 8 },
   error: {
-    color: productTheme.accentFallback,
+    color: T.accentFallback,
     fontSize: 14,
-    marginTop: 8,
+    paddingHorizontal: T.pad,
+    paddingTop: 12,
+  },
+  rowBetween: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "baseline",
   },
   kicker: {
-    color: productTheme.muted,
-    fontFamily: "Archivo_800ExtraBold",
+    fontFamily: FONT,
     fontSize: 11,
-    letterSpacing: 1.6,
+    letterSpacing: 1.43,
     textTransform: "uppercase",
-    marginTop: 20,
   },
-  streak: {
-    fontFamily: "Archivo_800ExtraBold",
-    fontSize: 88,
-    letterSpacing: -2,
-    lineHeight: 92,
-    fontVariant: ["tabular-nums"],
-    marginTop: 4,
-  },
-  protector: {
-    color: productTheme.muted,
-    fontSize: 15,
-    marginTop: 4,
-  },
-  section: {
-    color: productTheme.muted,
-    fontFamily: "Archivo_800ExtraBold",
+  kickerMuted: {
+    color: T.muted,
+    fontFamily: FONT,
     fontSize: 11,
-    letterSpacing: 1.6,
+    letterSpacing: 1.43,
     textTransform: "uppercase",
-    marginTop: 32,
-    marginBottom: 8,
-    paddingTop: 16,
-    borderTopWidth: 2,
-    borderColor: productTheme.divider,
   },
+  muted: { color: T.muted, fontSize: 11 },
+  grid12: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 4,
+    marginTop: 14,
+  },
+  sq: {
+    width: "7.2%",
+    aspectRatio: 1,
+    flexGrow: 1,
+  },
+  caption: {
+    color: T.muted,
+    fontSize: 13,
+    marginTop: 12,
+    lineHeight: 18,
+  },
+  league: { marginTop: 14, gap: 10 },
   leagueRow: {
     flexDirection: "row",
-    alignItems: "baseline",
+    alignItems: "center",
     gap: 12,
-    paddingVertical: 12,
-    borderBottomWidth: 2,
-    borderColor: productTheme.divider,
+    paddingVertical: 10,
   },
   rank: {
-    color: productTheme.muted,
-    fontFamily: "Archivo_800ExtraBold",
-    fontSize: 14,
-    width: 36,
+    width: 16,
+    color: T.muted,
+    fontFamily: FONT,
+    fontSize: 12,
   },
   leagueName: {
-    color: productTheme.ink,
-    fontFamily: "Archivo_800ExtraBold",
-    fontSize: 18,
-    letterSpacing: -0.3,
     flex: 1,
+    color: T.ink,
+    fontSize: 14,
   },
   leagueXp: {
-    color: productTheme.muted,
-    fontFamily: "Archivo_800ExtraBold",
+    color: T.ink,
+    fontFamily: FONT,
     fontSize: 13,
-    letterSpacing: 1,
+    fontVariant: ["tabular-nums"],
   },
-  ticks: {
+  week: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: 6,
+    height: 60,
+    marginTop: 14,
+  },
+  weekCol: { flex: 1, justifyContent: "flex-end" },
+  weekBar: { width: "100%" },
+  badges: {
     flexDirection: "row",
     gap: 8,
-    marginTop: 4,
+    marginTop: 14,
   },
-  tickCol: { flex: 1 },
-  tick: {
-    height: 28,
-    borderWidth: 2,
-    borderColor: productTheme.divider,
-    borderRadius: productTheme.radius,
-  },
+  badgeCol: { flex: 1 },
   badge: {
-    color: productTheme.ink,
-    fontFamily: "Archivo_800ExtraBold",
-    fontSize: 16,
-    letterSpacing: -0.2,
-    paddingVertical: 12,
-    borderBottomWidth: 2,
-    borderColor: productTheme.divider,
+    aspectRatio: 1,
+    alignItems: "center",
+    justifyContent: "center",
   },
   badgeOff: {
-    color: productTheme.muted,
-    opacity: 0.45,
+    borderWidth: 2,
+    borderColor: T.fill,
   },
-  back: { marginTop: 32, alignSelf: "flex-start" },
-  backText: {
-    color: productTheme.muted,
-    fontFamily: "Archivo_800ExtraBold",
-    letterSpacing: 1.2,
-    textTransform: "uppercase",
-    fontSize: 12,
+  badgeMark: {
+    fontFamily: FONT,
+    fontSize: 15,
+  },
+  badgeLabel: {
+    fontSize: 9,
+    letterSpacing: 0.6,
+    marginTop: 5,
   },
 });
