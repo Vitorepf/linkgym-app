@@ -6,6 +6,7 @@ import {
   putReadiness,
   today,
   type Person,
+  type Readiness,
   type Studio,
   type TodayPayload,
 } from "../../api";
@@ -22,7 +23,14 @@ import { AccentCTA } from "../../ui/AccentCTA";
 import { Baseline } from "../../ui/Baseline";
 import { Figure } from "../../ui/Figure";
 import { GhostCTA } from "../../ui/GhostCTA";
-import { IconMark } from "../../ui/Icons";
+import {
+  IconCheck,
+  IconFicha,
+  IconMark,
+  IconPerson,
+  IconPulse,
+  TrendMark,
+} from "../../ui/Icons";
 import { Initials } from "../../ui/Initials";
 import { MetricGrid } from "../../ui/Metric";
 import { ScaleRow } from "../../ui/ScaleRow";
@@ -190,8 +198,9 @@ export function Hoje({ token, studio, needsCommitment }: Props) {
   const mean = past.length
     ? Math.round(past.reduce((s, d) => s + d.score, 0) / past.length)
     : null;
-  const dir =
-    prev === null ? undefined : score > prev ? "up" : score < prev ? "down" : "flat";
+  // A leitura sai da prontidão SALVA — a mesma que gerou o 84. Enquanto uma escala nova
+  // não voltou da API, a frase não fala por ela.
+  const reading = data ? readingOf(data.readiness) : null;
 
   return (
     <Phone tab>
@@ -237,9 +246,12 @@ export function Hoje({ token, studio, needsCommitment }: Props) {
             inteira é o botão daqui — e a única outra tinta de acento fica na mesma faixa,
             para o vermelho ler como UM lugar e não como três magnitudes. */}
         <Band>
-          <Txt role="label" color={A.text}>
-            Hoje
-          </Txt>
+          <View style={styles.anchorRow}>
+            <IconFicha color={T.muted} size={14} />
+            <Txt role="label" color={A.text}>
+              Hoje
+            </Txt>
+          </View>
           <Txt role="title" style={styles.title}>
             {prescription ? prescription.name : "Ainda não tem nada para hoje."}
           </Txt>
@@ -269,18 +281,44 @@ export function Hoje({ token, studio, needsCommitment }: Props) {
         {answered ? (
           <>
             <Band rule="none">
-              {/* hero, e não value: a MetricGrid abaixo desenha as três causas em `value`,
-                  e número explicado empatado com as causas é empate de hierarquia. */}
-              <Figure
-                value={score}
-                label="Prontidão"
-                role="hero"
-                dir={dir}
-                note={prev === null ? undefined : `${prev} no dia anterior`}
-              />
-              {mean === null ? null : (
-                <Baseline value={mean} label="média da semana" />
-              )}
+              {/* Âncora de varredura: a seção se acha pelo ícone, antes de ler a palavra. */}
+              <View style={styles.anchored}>
+                <View style={styles.anchorIcon}>
+                  <IconPulse color={T.muted} size={14} />
+                </View>
+                <View style={styles.grow}>
+                  {/* hero, e não value: a MetricGrid abaixo desenha as três causas em
+                      `value`, e número explicado empatado com as causas é empate de
+                      hierarquia. */}
+                  <Figure value={score} label="Prontidão" role="hero" />
+                  {/* A direção NÃO mora mais colada no 84: dois juízes viram a seta e não
+                      acharam o contra quê. Ela desce para a linha do referente, encostada
+                      no número contra o qual ela aponta, e o salto vira dígito. */}
+                  {prev === null ? null : (
+                    <View style={styles.delta}>
+                      <TrendMark
+                        dir={score > prev ? "up" : score < prev ? "down" : "flat"}
+                        color={T.muted}
+                        size={11}
+                      />
+                      <Txt role="note" tone="dim">
+                        {deltaLine(score, prev)}
+                      </Txt>
+                    </View>
+                  )}
+                  {mean === null ? null : (
+                    <Baseline value={mean} label="média da semana" />
+                  )}
+                  {/* A frase é DERIVADA dos três valores do dia e cita cada número. Se
+                      nenhum dos três se destaca, `readingOf` devolve null e a tela cala —
+                      frase genérica de ânimo é o que este produto não faz. */}
+                  {reading ? (
+                    <Txt role="body" tone="muted" style={styles.reading}>
+                      {reading}
+                    </Txt>
+                  ) : null}
+                </View>
+              </View>
             </Band>
             {/* A causa do 84 com VALOR, na tela e não atrás de um toque. */}
             <MetricGrid
@@ -294,32 +332,25 @@ export function Hoje({ token, studio, needsCommitment }: Props) {
           </>
         ) : null}
 
-        {data?.coach_line ? (
-          <Band rule="hair">
-            <View style={styles.row}>
-              <Initials name={studio.name} size={34} />
-              <View style={styles.grow}>
-                <Txt role="body">{studio.name} revisou sua semana</Txt>
-                <Txt role="note">hoje</Txt>
-              </View>
-            </View>
-            <Txt role="body" tone="muted" style={styles.coachLine}>
-              {data.coach_line}
-            </Txt>
-          </Band>
-        ) : null}
-
+        {/* O controle que muda os três números mora COLADO neles, e não depois da prosa do
+            personal. De quebra some a caixa raspando a tab bar: a única caixa com borda da
+            rolagem cabe INTEIRA acima da dobra, e o que sobra abaixo dela é só texto —
+            parágrafo cortado se lê como "tem mais", borda cortada se lê como defeito. */}
         <Band>
-          {answered ? (
-            <GhostCTA
-              label={open ? "Fechar" : "Mudou? Ajuste aqui"}
-              onPress={() => setOpen((v) => !v)}
-            />
-          ) : (
+          <View style={styles.anchorRow}>
+            <IconPerson color={T.muted} size={14} />
             <Txt role="label">Como você está hoje?</Txt>
-          )}
+          </View>
+          {answered ? (
+            <View style={styles.ghost}>
+              <GhostCTA
+                label={open ? "Fechar" : "Ajustar"}
+                onPress={() => setOpen((v) => !v)}
+              />
+            </View>
+          ) : null}
           {!answered || open ? (
-            <View style={answered ? styles.scales : undefined}>
+            <View style={styles.scales}>
               <ScaleRow
                 name="Energia"
                 value={energy}
@@ -347,13 +378,31 @@ export function Hoje({ token, studio, needsCommitment }: Props) {
           ) : null}
         </Band>
 
+        {data?.coach_line ? (
+          <Band rule="hair">
+            <View style={styles.row}>
+              <Initials name={studio.name} size={34} />
+              <View style={styles.grow}>
+                <Txt role="body">{studio.name} revisou sua semana</Txt>
+                <Txt role="note">hoje</Txt>
+              </View>
+            </View>
+            <Txt role="body" tone="muted" style={styles.coachLine}>
+              {data.coach_line}
+            </Txt>
+          </Band>
+        ) : null}
+
         {/* Ofensiva zerada não vira "OFENSIVA 0" no rodapé: falha é AUSÊNCIA de marca. */}
         {data && data.streak.current_count > 0 ? (
           <Band rule="none">
-            <Txt role="label" tone="dim">
-              Ofensiva {data.streak.current_count}
-              {data.streak.protector_available ? " · 1 protetor guardado" : ""}
-            </Txt>
+            <View style={styles.anchorRow}>
+              <IconCheck color={T.muted} size={14} />
+              <Txt role="label" tone="dim">
+                Ofensiva {data.streak.current_count}
+                {data.streak.protector_available ? " · 1 protetor guardado" : ""}
+              </Txt>
+            </View>
           </Band>
         ) : null}
       </ScrollView>
@@ -376,6 +425,66 @@ function inScale(n: number): boolean {
   return n >= 1 && n <= 5;
 }
 
+/** O salto DITO em dígito, na mesma linha da marca de direção e do número comparado. A
+ *  seta sozinha ao lado do 84 não dizia contra o quê; aqui direção, tamanho do salto e
+ *  referente são uma coisa só. */
+function deltaLine(score: number, prev: number): string {
+  const d = Math.abs(score - prev);
+  if (d === 0) return `igual a ${prev} no dia anterior`;
+  return `${d} ${score > prev ? "acima" : "abaixo"} de ${prev} no dia anterior`;
+}
+
+/** A LEITURA DOS TRÊS NÚMEROS, derivada — nunca um texto fixo.
+ *
+ *  ENERGIA 4 · DOR 2 · SONO 4 são três fatos soltos; o que faltava era dizer o que eles
+ *  formam JUNTOS. A frase só usa o que os valores do dia sustentam: cada pedaço entra
+ *  citando o próprio número, e o 84 aparece porque é dos três que ele sai (/v1/today
+ *  calcula `score` a partir de energia, dor e sono — a frase não inventa causa nenhuma).
+ *
+ *  Se nenhum dos três se destaca (tudo em 3), não há afirmação honesta a fazer e a função
+ *  devolve null: a tela cala. Uma frase de ânimo genérica seria pior que o silêncio. */
+function readingOf(r: Readiness): string | null {
+  if (!inScale(r.energy) || !inScale(r.soreness) || !inScale(r.sleep)) return null;
+  if (!r.score) return null;
+
+  const puxam: string[] = [];
+  const seguram: string[] = [];
+  if (r.energy >= 4) puxam.push(`energia ${r.energy}`);
+  else if (r.energy <= 2) seguram.push(`energia ${r.energy}`);
+  if (r.sleep >= 4) puxam.push(`sono ${r.sleep}`);
+  else if (r.sleep <= 2) seguram.push(`sono ${r.sleep}`);
+  // dor é a escala invertida: pouca dor puxa para cima, muita segura.
+  if (r.soreness <= 2) puxam.push(`dor ${r.soreness}`);
+  else if (r.soreness >= 4) seguram.push(`dor ${r.soreness}`);
+
+  if (!puxam.length && !seguram.length) return null;
+  if (!seguram.length) {
+    return cap(`${lista(puxam)} ${verbo(puxam, "põe", "põem")} a prontidão em ${r.score}.`);
+  }
+  if (!puxam.length) {
+    return cap(
+      `${lista(seguram)} ${verbo(seguram, "segura", "seguram")} a prontidão em ${r.score}.`,
+    );
+  }
+  return cap(
+    `${lista(puxam)} ${verbo(puxam, "puxa", "puxam")} para cima, ` +
+      `${lista(seguram)} ${verbo(seguram, "segura", "seguram")}: a prontidão fecha em ${r.score}.`,
+  );
+}
+
+function lista(parts: string[]): string {
+  if (parts.length <= 1) return parts[0] ?? "";
+  return `${parts.slice(0, -1).join(", ")} e ${parts[parts.length - 1]}`;
+}
+
+function verbo(parts: string[], um: string, muitos: string): string {
+  return parts.length > 1 ? muitos : um;
+}
+
+function cap(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
 function isoDay(d: Date): string {
   const p = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
@@ -390,7 +499,8 @@ function ctaLabel(label: string): string {
 
 const styles = StyleSheet.create({
   scroll: { flex: 1 },
-  content: { flexGrow: 1, paddingBottom: 8 },
+  // O fim da rolagem não encosta na tab bar: a última faixa termina e sobra chão.
+  content: { flexGrow: 1, paddingBottom: 28 },
   row: { flexDirection: "row", alignItems: "center", gap: 12 },
   grow: { flex: 1, minWidth: 0 },
   title: { marginTop: 5 },
@@ -399,6 +509,14 @@ const styles = StyleSheet.create({
   cta: { marginTop: 18 },
   scales: { marginTop: 14 },
   saving: { marginTop: 10 },
+  // Âncoras de varredura: ícone mudo à esquerda do rótulo da seção. Monocromático de
+  // propósito — matiz aqui é do personal e nunca significa nada.
+  anchorRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  anchored: { flexDirection: "row", gap: 8 },
+  anchorIcon: { paddingTop: 1 },
+  delta: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 6 },
+  reading: { marginTop: 10 },
+  ghost: { marginTop: 12 },
   coachLine: {
     marginTop: 14,
     paddingTop: 14,

@@ -116,11 +116,18 @@ export function AccessScreen({ onEntered }: Props) {
           showsVerticalScrollIndicator={false}
         >
           <Band>
+            {/* NOME ACESSÍVEL, e não o placeholder. Sem convite não nasce aluno: esta é a
+                ÚNICA porta do app, e para quem usa leitor de tela ela era três campos sem
+                nome. O placeholder some assim que a pessoa digita — nome que evapora não é
+                nome. `accessibilityLabel` é o rótulo; `accessibilityHint` diz o que o campo
+                faz com o que foi digitado. */}
             {step === "phone" ? (
               <>
                 <TextInput
                   value={phone}
                   onChangeText={setPhone}
+                  accessibilityLabel="Telefone com DDD"
+                  accessibilityHint="É para onde vai o código de 4 dígitos"
                   placeholder="11 90000 0000"
                   placeholderTextColor={T.muted}
                   keyboardType="phone-pad"
@@ -130,6 +137,8 @@ export function AccessScreen({ onEntered }: Props) {
                 <TextInput
                   value={invite}
                   onChangeText={setInvite}
+                  accessibilityLabel="Convite do personal"
+                  accessibilityHint="Só na primeira vez. Quem já entrou uma vez deixa em branco"
                   placeholder="Convite (só na primeira vez)"
                   placeholderTextColor={T.muted}
                   autoCapitalize="characters"
@@ -140,14 +149,31 @@ export function AccessScreen({ onEntered }: Props) {
               <TextInput
                 value={otp}
                 onChangeText={setOtp}
+                accessibilityLabel="Código de 4 dígitos"
+                accessibilityHint="O código que chegou por mensagem"
                 placeholder="0000"
                 placeholderTextColor={T.muted}
                 keyboardType="number-pad"
+                textContentType="oneTimeCode"
+                autoComplete="sms-otp"
                 maxLength={4}
+                // A ORDEM DE FOCO segue o passo: o campo que acabou de aparecer é o
+                // próximo destino, e não o fim de uma varredura pela tela inteira.
+                autoFocus
                 style={styles.input}
               />
             )}
-            {error ? <Text style={styles.error}>{error}</Text> : null}
+            {/* O ERRO É ANUNCIADO: `alert` faz o leitor de tela falar a mensagem quando ela
+                aparece, em vez de ela existir só para quem enxerga a linha vermelha. */}
+            {error ? (
+              <Text
+                style={styles.error}
+                accessibilityRole="alert"
+                accessibilityLiveRegion="assertive"
+              >
+                {error}
+              </Text>
+            ) : null}
           </Band>
 
           {studio ? (
@@ -166,6 +192,8 @@ export function AccessScreen({ onEntered }: Props) {
                   <Pressable
                     key={p.phone}
                     onPress={() => void enterAs(p.phone)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Entrar como ${p.name}`}
                     style={styles.chip}
                   >
                     <Text style={styles.chipText}>{p.name}</Text>
