@@ -150,8 +150,11 @@ export function Serie({ navigation, route }: Props) {
         onPress={() =>
           navigation.navigate("ComoFazer", {
             item,
+            items,
             studioName,
             accent,
+            token,
+            prescriptionId: route.params.prescriptionId,
           })
         }
         style={styles.how}

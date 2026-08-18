@@ -226,3 +226,44 @@ export function finishSession(
     body: JSON.stringify({ effort }),
   });
 }
+
+export function swapExercise(
+  token: string,
+  sessionId: string,
+  fromExerciseId: string,
+  toExerciseId: string,
+) {
+  return request<{ ok: boolean }>(`/v1/sessions/${sessionId}/swap`, {
+    method: "POST",
+    token,
+    body: JSON.stringify({
+      from_exercise_id: fromExerciseId,
+      to_exercise_id: toExerciseId,
+    }),
+  });
+}
+
+export type OwnerReturn = {
+  alert_id: string;
+  person_id: string;
+  name: string;
+  effort: number;
+  records: FinishRecord[];
+  created_at: string;
+};
+
+export function ownerReturns(token: string) {
+  return request<{ items: OwnerReturn[] }>("/v1/owner/returns", { token });
+}
+
+export function applyOwnerReturn(
+  token: string,
+  alertId: string,
+  bumpKg: 2.5 | 0 | -2.5,
+) {
+  return request<{ ok: boolean }>(`/v1/owner/returns/${alertId}/apply`, {
+    method: "POST",
+    token,
+    body: JSON.stringify({ bump_kg: bumpKg }),
+  });
+}

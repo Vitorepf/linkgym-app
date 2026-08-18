@@ -15,16 +15,26 @@ export type SessionRoute = {
 
 export type RootStackParamList = {
   Painel: undefined;
+  Retorno: {
+    token: string;
+    studioName: string;
+    accent: string;
+  };
   Hoje: undefined;
   Ficha: {
+    token: string;
     studioName: string;
     accent: string;
     items: TodayItem[];
+    prescriptionId: string;
   };
   ComoFazer: {
+    token: string;
     studioName: string;
     accent: string;
     item: TodayItem;
+    items: TodayItem[];
+    prescriptionId: string;
   };
   Serie: SessionRoute;
   Descanso: SessionRoute & { restSeconds: number; last: boolean };

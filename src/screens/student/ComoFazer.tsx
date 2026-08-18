@@ -4,11 +4,12 @@ import { cuesFor } from "../../exerciseCues";
 import type { RootStackParamList } from "../../nav/types";
 import { productTheme } from "../../theme";
 import { Screen } from "../../ui/Screen";
+import { MaquinaOcupada } from "./MaquinaOcupada";
 
 type Props = NativeStackScreenProps<RootStackParamList, "ComoFazer">;
 
 export function ComoFazer({ navigation, route }: Props) {
-  const { item, studioName, accent } = route.params;
+  const { item, items, studioName, accent, token, prescriptionId } = route.params;
   const { cues, error } = cuesFor(item.name);
   const shown = cues.filter((cue) => cue.length > 0);
   const place = item.notes?.trim()
@@ -48,6 +49,15 @@ export function ComoFazer({ navigation, route }: Props) {
             <Text style={styles.body}>{error}</Text>
           </>
         ) : null}
+
+        <MaquinaOcupada
+          token={token}
+          studioName={studioName}
+          accent={accent}
+          prescriptionId={prescriptionId}
+          from={item}
+          items={items}
+        />
 
         <Pressable
           onPress={() => navigation.goBack()}

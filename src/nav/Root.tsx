@@ -1,6 +1,7 @@
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import type { Person, Studio } from "../api";
 import { Painel } from "../screens/owner/Painel";
+import { Retorno } from "../screens/owner/Retorno";
 import { ComoFazer } from "../screens/student/ComoFazer";
 import { Descanso } from "../screens/student/Descanso";
 import { Feito } from "../screens/student/Feito";
@@ -34,16 +35,23 @@ export function Root({ token, person, studio, onLeave }: RootProps) {
       }}
     >
       {owner ? (
-        <Stack.Screen name="Painel">
-          {() => (
-            <Painel
-              token={token}
-              person={person}
-              studio={studio}
-              onLeave={onLeave}
-            />
-          )}
-        </Stack.Screen>
+        <>
+          <Stack.Screen name="Painel">
+            {() => (
+              <Painel
+                token={token}
+                person={person}
+                studio={studio}
+                onLeave={onLeave}
+              />
+            )}
+          </Stack.Screen>
+          <Stack.Screen
+            name="Retorno"
+            component={Retorno}
+            options={{ animation: "slide_from_right" }}
+          />
+        </>
       ) : (
         <>
           <Stack.Screen name="Hoje">

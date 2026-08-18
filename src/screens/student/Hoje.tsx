@@ -228,9 +228,11 @@ export function Hoje({ token, studio, onLeave }: Props) {
               <Pressable
                 onPress={() =>
                   navigation.navigate("Ficha", {
+                    token,
                     studioName: studio.name,
                     accent,
                     items: prescription.items,
+                    prescriptionId: prescription.id,
                   })
                 }
                 style={styles.ficha}

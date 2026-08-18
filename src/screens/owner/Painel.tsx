@@ -1,11 +1,14 @@
 import { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import {
   ownerHome,
   type OwnerHome,
   type Person,
   type Studio,
 } from "../../api";
+import type { RootStackParamList } from "../../nav/types";
 import { productTheme } from "../../theme";
 import { Screen } from "../../ui/Screen";
 
@@ -27,6 +30,8 @@ const WEEKDAYS = [
 ];
 
 export function Painel({ token, person, studio, onLeave }: Props) {
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList, "Painel">>();
   const accent = studio.accent_color || productTheme.accentFallback;
   const [data, setData] = useState<OwnerHome | null>(null);
   const [error, setError] = useState("");
@@ -117,6 +122,22 @@ export function Painel({ token, person, studio, onLeave }: Props) {
         ) : null}
 
         <View style={styles.footer}>
+          <Pressable
+            onPress={() =>
+              navigation.navigate("Retorno", {
+                token,
+                studioName: studio.name,
+                accent,
+              })
+            }
+            hitSlop={8}
+          >
+            <Text style={styles.footerLink}>
+              {data && data.unread_returns > 0
+                ? `Retornos · ${data.unread_returns}`
+                : "Retornos"}
+            </Text>
+          </Pressable>
           <Text style={styles.footerLink}>Atenção do dia</Text>
           <Text style={styles.footerLink}>Revisão da semana</Text>
           <Text style={styles.footerLink}>Nova ficha</Text>

@@ -4,11 +4,12 @@ import type { TodayItem } from "../../api";
 import type { RootStackParamList } from "../../nav/types";
 import { productTheme } from "../../theme";
 import { Screen } from "../../ui/Screen";
+import { MaquinaOcupada } from "./MaquinaOcupada";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Ficha">;
 
 export function Ficha({ navigation, route }: Props) {
-  const { items, studioName, accent } = route.params;
+  const { items, studioName, accent, token, prescriptionId } = route.params;
   const rows = [...items].sort((a, b) => a.position - b.position);
 
   return (
@@ -19,29 +20,41 @@ export function Ficha({ navigation, route }: Props) {
         showsVerticalScrollIndicator={false}
       >
         {rows.map((item) => (
-          <Pressable
-            key={item.id}
-            onPress={() =>
-              navigation.navigate("ComoFazer", {
-                item,
-                studioName,
-                accent,
-              })
-            }
-            accessibilityRole="button"
-            accessibilityLabel={`${item.name}, ${item.planned_sets} vezes ${item.planned_reps}, ${item.load_kg} kg`}
-            style={styles.row}
-          >
-            <Text style={[styles.position, { color: accent }]}>
-              {item.position}
-            </Text>
-            <View style={styles.rowBody}>
-              <Text style={styles.name}>{item.name}</Text>
-              <Text style={styles.meta}>
-                {item.planned_sets} × {item.planned_reps} · {formatLoad(item)}
+          <View key={item.id} style={styles.row}>
+            <Pressable
+              onPress={() =>
+                navigation.navigate("ComoFazer", {
+                  item,
+                  items,
+                  studioName,
+                  accent,
+                  token,
+                  prescriptionId,
+                })
+              }
+              accessibilityRole="button"
+              accessibilityLabel={`${item.name}, ${item.planned_sets} vezes ${item.planned_reps}, ${item.load_kg} kg`}
+              style={styles.rowHit}
+            >
+              <Text style={[styles.position, { color: accent }]}>
+                {item.position}
               </Text>
-            </View>
-          </Pressable>
+              <View style={styles.rowBody}>
+                <Text style={styles.name}>{item.name}</Text>
+                <Text style={styles.meta}>
+                  {item.planned_sets} × {item.planned_reps} · {formatLoad(item)}
+                </Text>
+              </View>
+            </Pressable>
+            <MaquinaOcupada
+              token={token}
+              studioName={studioName}
+              accent={accent}
+              prescriptionId={prescriptionId}
+              from={item}
+              items={items}
+            />
+          </View>
         ))}
 
         <Pressable
@@ -64,14 +77,16 @@ const styles = StyleSheet.create({
   scroll: { flex: 1 },
   content: { paddingBottom: 32, flexGrow: 1 },
   row: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 16,
     marginTop: 8,
     paddingVertical: 16,
     borderBottomWidth: 2,
     borderBottomColor: productTheme.divider,
     borderRadius: productTheme.radius,
+  },
+  rowHit: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 16,
   },
   position: {
     fontFamily: "Archivo_800ExtraBold",

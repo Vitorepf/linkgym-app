@@ -25,6 +25,7 @@ export type LocalSession = {
   prescription_id: string;
   sets: QueuedSet[];
   finished?: { effort: 1 | 2 | 3 };
+  swaps?: Record<string, string>;
 };
 
 const CURRENT_KEY = "linkgym.session.current";
@@ -87,6 +88,34 @@ export async function createSession(
   return session;
 }
 
+export async function ensureServerSession(
+  token: string,
+  prescriptionId: string,
+): Promise<string> {
+  let session = await loadCurrent();
+  if (!session || session.prescription_id !== prescriptionId || session.finished) {
+    session = await createSession(prescriptionId, newClientId());
+  }
+  const started = await startSession(token, {
+    client_id: session.client_id,
+    prescription_id: prescriptionId,
+  });
+  session.server_id = started.id;
+  await saveSession(session);
+  return started.id;
+}
+
+export async function rememberSwap(
+  clientId: string,
+  fromExerciseId: string,
+  toExerciseId: string,
+): Promise<void> {
+  const session = await loadSession(clientId);
+  if (!session) return;
+  session.swaps = { ...session.swaps, [fromExerciseId]: toExerciseId };
+  await saveSession(session);
+}
+
 export async function enqueueSet(
   clientId: string,
   set: QueuedSet,
@@ -95,11 +124,16 @@ export async function enqueueSet(
   if (!session) {
     throw new Error("sessao_ausente");
   }
-  const i = session.sets.findIndex((s) => s.client_set_id === set.client_set_id);
+  const to = session.swaps?.[set.exercise_id];
+  const queued: QueuedSet =
+    to && to !== set.exercise_id
+      ? { ...set, exercise_id: to, swapped_from_exercise_id: set.exercise_id }
+      : set;
+  const i = session.sets.findIndex((s) => s.client_set_id === queued.client_set_id);
   if (i >= 0) {
-    session.sets[i] = set;
+    session.sets[i] = queued;
   } else {
-    session.sets.push(set);
+    session.sets.push(queued);
   }
   await saveSession(session);
   return session;
