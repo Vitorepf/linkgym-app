@@ -1,4 +1,4 @@
-# Tokens Modernist (produto). A cor de acento do personal sobrescreve `accent` depois do login.
+// Tokens Modernist. After login, the trainer accent replaces `accentFallback`.
 export const productTheme = {
   bg: "#0b0a0a",
   ink: "#f3f2f2",
