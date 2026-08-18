@@ -10,7 +10,7 @@ import { Screen } from "../../ui/Screen";
 type Props = NativeStackScreenProps<RootStackParamList, "Recorde">;
 
 export function Recorde({ navigation, route }: Props) {
-  const { accent, records } = route.params;
+  const { accent, records, needsCommitment } = route.params;
   const row = records[0];
   const previous = olderLoad(row);
 
@@ -40,9 +40,13 @@ export function Recorde({ navigation, route }: Props) {
 
         <PrimaryButton
           label="Seguir"
-          onPress={() =>
-            navigation.reset({ index: 0, routes: [{ name: "Hoje" }] })
-          }
+          onPress={() => {
+            if (needsCommitment) {
+              navigation.navigate("Compromisso");
+              return;
+            }
+            navigation.reset({ index: 0, routes: [{ name: "Hoje" }] });
+          }}
         />
       </ScrollView>
     </Screen>

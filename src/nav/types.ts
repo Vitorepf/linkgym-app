@@ -11,6 +11,7 @@ export type SessionRoute = {
   setIndex: number;
   streakCount: number;
   xpTotal: number;
+  needsCommitment: boolean;
 };
 
 export type RootStackParamList = {
@@ -22,6 +23,8 @@ export type RootStackParamList = {
   };
   SobreVoce: undefined;
   Pronto: undefined;
+  Estreia: undefined;
+  Compromisso: undefined;
   Hoje: undefined;
   Ficha: {
     token: string;
@@ -48,10 +51,12 @@ export type RootStackParamList = {
     xpTotal: number;
     records: FinishRecord[];
     pending?: boolean;
+    needsCommitment?: boolean;
   };
   Recorde: {
     accent: string;
     records: FinishRecord[];
+    needsCommitment?: boolean;
   };
   Progresso: undefined;
   Perfil: undefined;

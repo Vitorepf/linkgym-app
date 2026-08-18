@@ -322,3 +322,11 @@ export function putOnboarding(token: string, body: OnboardingBody) {
     body: JSON.stringify(body),
   });
 }
+
+export function putCommitment(token: string, daysPerWeek: 2 | 3 | 4 | 5 | 6) {
+  return request<{ ok: boolean }>("/v1/commitment", {
+    method: "PUT",
+    token,
+    body: JSON.stringify({ days_per_week: daysPerWeek }),
+  });
+}

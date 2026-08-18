@@ -17,6 +17,7 @@ export function Feito({ navigation, route }: Props) {
     xpTotal,
     records,
     pending,
+    needsCommitment,
   } = route.params;
 
   return (
@@ -63,7 +64,13 @@ export function Feito({ navigation, route }: Props) {
               </View>
             ))}
             <Pressable
-              onPress={() => navigation.navigate("Recorde", { accent, records })}
+              onPress={() =>
+                navigation.navigate("Recorde", {
+                  accent,
+                  records,
+                  needsCommitment,
+                })
+              }
               style={styles.recordeLink}
               hitSlop={8}
             >
@@ -76,7 +83,15 @@ export function Feito({ navigation, route }: Props) {
           label="Seguir"
           onPress={() => {
             if (records.length > 0) {
-              navigation.navigate("Recorde", { accent, records });
+              navigation.navigate("Recorde", {
+                accent,
+                records,
+                needsCommitment,
+              });
+              return;
+            }
+            if (needsCommitment) {
+              navigation.navigate("Compromisso");
               return;
             }
             navigation.reset({ index: 0, routes: [{ name: "Hoje" }] });

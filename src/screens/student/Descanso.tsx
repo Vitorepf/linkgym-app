@@ -77,6 +77,7 @@ export function Descanso({ navigation, route }: Props) {
               xpTotal: finish?.xp_total ?? xpTotal + 10,
               records: finish?.records ?? [],
               pending: !result.ok,
+              needsCommitment: route.params.needsCommitment,
             },
           },
         ],

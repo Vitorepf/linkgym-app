@@ -70,6 +70,8 @@ export default function App() {
               person={session.person}
               studio={session.studio}
               onboardingComplete={session.onboarding_complete}
+              commitmentComplete={session.commitment_complete}
+              debut={session.debut}
               onLeave={async () => {
                 try {
                   await logout(session.token);

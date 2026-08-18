@@ -1,10 +1,14 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { ActivityIndicator, StyleSheet, View } from "react-native";
 import type { Person, Studio } from "../api";
 import { Painel } from "../screens/owner/Painel";
 import { Retorno } from "../screens/owner/Retorno";
 import { ComoFazer } from "../screens/student/ComoFazer";
+import { Compromisso } from "../screens/student/Compromisso";
 import { Descanso } from "../screens/student/Descanso";
+import { Estreia, estreiaSeenKey } from "../screens/student/Estreia";
 import { Feito } from "../screens/student/Feito";
 import { Ficha } from "../screens/student/Ficha";
 import { Hoje } from "../screens/student/Hoje";
@@ -24,6 +28,8 @@ export type RootProps = {
   person: Person;
   studio: Studio;
   onboardingComplete: boolean;
+  commitmentComplete: boolean;
+  debut: boolean;
   onLeave: () => void;
 };
 
@@ -34,12 +40,49 @@ export function Root({
   person,
   studio,
   onboardingComplete,
+  commitmentComplete,
+  debut,
   onLeave,
 }: RootProps) {
   const owner = person.role === "owner";
   const [needsOnboarding, setNeedsOnboarding] = useState(
     () => !owner && !onboardingComplete,
   );
+  const [needsCommitment, setNeedsCommitment] = useState(
+    () => !owner && !commitmentComplete,
+  );
+  const [showEstreia, setShowEstreia] = useState<boolean | null>(
+    owner ? false : null,
+  );
+
+  useEffect(() => {
+    if (owner) {
+      setShowEstreia(false);
+      return;
+    }
+    if (needsOnboarding) {
+      setShowEstreia(null);
+      return;
+    }
+    let alive = true;
+    (async () => {
+      const seen = await AsyncStorage.getItem(estreiaSeenKey(studio.id));
+      if (alive) setShowEstreia(Boolean(debut && !seen));
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [debut, studio.id, owner, needsOnboarding]);
+
+  if (!owner && !needsOnboarding && showEstreia === null) {
+    return (
+      <View style={styles.boot}>
+        <ActivityIndicator
+          color={studio.accent_color || productTheme.accentFallback}
+        />
+      </View>
+    );
+  }
 
   return (
     <Stack.Navigator
@@ -92,9 +135,25 @@ export function Root({
         </>
       ) : (
         <>
+          {showEstreia ? (
+            <Stack.Screen name="Estreia">
+              {() => (
+                <Estreia
+                  token={token}
+                  studio={studio}
+                  needsCommitment={needsCommitment}
+                />
+              )}
+            </Stack.Screen>
+          ) : null}
           <Stack.Screen name="Hoje">
             {() => (
-              <Hoje token={token} person={person} studio={studio} />
+              <Hoje
+                token={token}
+                person={person}
+                studio={studio}
+                needsCommitment={needsCommitment}
+              />
             )}
           </Stack.Screen>
           <Stack.Screen
@@ -127,6 +186,18 @@ export function Root({
             component={Recorde}
             options={{ animation: "slide_from_right" }}
           />
+          <Stack.Screen name="Compromisso">
+            {({ navigation }) => (
+              <Compromisso
+                token={token}
+                studio={studio}
+                onDone={() => {
+                  setNeedsCommitment(false);
+                  navigation.reset({ index: 0, routes: [{ name: "Hoje" }] });
+                }}
+              />
+            )}
+          </Stack.Screen>
           <Stack.Screen name="Progresso">
             {() => (
               <Progresso token={token} person={person} studio={studio} />
@@ -147,3 +218,12 @@ export function Root({
     </Stack.Navigator>
   );
 }
+
+const styles = StyleSheet.create({
+  boot: {
+    flex: 1,
+    backgroundColor: productTheme.bg,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+});

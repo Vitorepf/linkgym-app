@@ -25,9 +25,10 @@ type Props = {
   token: string;
   person: Person;
   studio: Studio;
+  needsCommitment: boolean;
 };
 
-export function Hoje({ token, studio }: Props) {
+export function Hoje({ token, studio, needsCommitment }: Props) {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList, "Hoje">>();
   const accent = studio.accent_color || productTheme.accentFallback;
@@ -87,6 +88,7 @@ export function Hoje({ token, studio }: Props) {
       items: prescription.items,
       streakCount: data.streak.current_count,
       xpTotal: data.xp_total,
+      needsCommitment,
     };
     const existing = await loadCurrent();
     if (existing && existing.prescription_id === prescription.id) {
@@ -101,6 +103,7 @@ export function Hoje({ token, studio }: Props) {
           xpTotal: finish?.xp_total ?? data.xp_total + 10,
           records: finish?.records ?? [],
           pending: !result.ok,
+          needsCommitment,
         });
         return;
       }
