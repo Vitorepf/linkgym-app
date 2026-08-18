@@ -42,7 +42,7 @@ export function Perfil({ token, person, studio, onLeave }: Props) {
   const place = data ? data.league.findIndex((row) => row.me) + 1 : 0;
 
   return (
-    <Screen kicker="Perfil" title={person.name} accent={accent}>
+    <Screen kicker="Perfil" title={person.name} accent={accent} tab>
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}

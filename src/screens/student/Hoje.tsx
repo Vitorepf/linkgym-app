@@ -152,7 +152,7 @@ export function Hoje({ token, studio, needsCommitment }: Props) {
   }
 
   return (
-    <Screen kicker={kicker} accent={accent} title={studio.name}>
+    <Screen kicker={kicker} accent={accent} title={studio.name} tab>
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}

@@ -30,6 +30,7 @@ export function Atencao({ route }: Props) {
   const [items, setItems] = useState<OwnerAttention[]>([]);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
+  const [loaded, setLoaded] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -38,6 +39,8 @@ export function Atencao({ route }: Props) {
       setError("");
     } catch {
       setError("Não deu para abrir a atenção.");
+    } finally {
+      setLoaded(true);
     }
   }, [token]);
 
@@ -64,12 +67,15 @@ export function Atencao({ route }: Props) {
   const remaining = items.length;
   const weekday = WEEKDAYS[new Date().getDay()];
   const resolved = 3 - remaining;
+  const title = loaded
+    ? `${remaining} alunos precisam de você`
+    : undefined;
 
   return (
     <Screen
       kicker={`${weekday} · entre uma aula e outra`}
-      title={`${remaining} alunos precisam de você`}
-      body="Os outros estão no automático."
+      title={title}
+      body={loaded ? "Os outros estão no automático." : undefined}
       accent={accent}
     >
       <ScrollView
@@ -120,7 +126,9 @@ export function Atencao({ route }: Props) {
           </View>
         ))}
 
-        <Text style={styles.footer}>{resolved} de 3 resolvidos</Text>
+        {loaded ? (
+          <Text style={styles.footer}>{resolved} de 3 resolvidos</Text>
+        ) : null}
       </ScrollView>
     </Screen>
   );

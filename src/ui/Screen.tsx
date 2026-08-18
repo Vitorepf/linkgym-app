@@ -1,6 +1,6 @@
 import { type ReactNode } from "react";
 import { StyleSheet, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, type Edge } from "react-native-safe-area-context";
 import { productTheme } from "../theme";
 
 type Props = {
@@ -9,12 +9,27 @@ type Props = {
   body?: string;
   accent?: string;
   children?: ReactNode;
+  /** Tab screens sit above the bar — omit the home-indicator inset. */
+  tab?: boolean;
 };
 
-export function Screen({ kicker, title, body, accent, children }: Props) {
+const TAB_EDGES: readonly Edge[] = ["top"];
+const STACK_EDGES: readonly Edge[] = ["top", "bottom"];
+
+export function Screen({
+  kicker,
+  title,
+  body,
+  accent,
+  children,
+  tab,
+}: Props) {
   const ac = accent || productTheme.accentFallback;
   return (
-    <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
+    <SafeAreaView
+      style={styles.safe}
+      edges={tab ? TAB_EDGES : STACK_EDGES}
+    >
       <View style={styles.pad}>
         {kicker ? <Text style={[styles.kicker, { color: ac }]}>{kicker}</Text> : null}
         {title ? <Text style={styles.title}>{title}</Text> : null}

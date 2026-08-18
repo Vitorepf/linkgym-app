@@ -51,7 +51,7 @@ export function Progresso({ token, studio }: Props) {
   const earned = new Set((data?.badges ?? []).map((b) => b.badge_key));
 
   return (
-    <Screen kicker="Progresso" title={studio.name} accent={accent}>
+    <Screen kicker="Progresso" title={studio.name} accent={accent} tab>
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}

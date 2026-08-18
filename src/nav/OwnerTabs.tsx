@@ -58,6 +58,7 @@ export function OwnerTabs({ token, person, studio, onLeave }: Props) {
             token={token}
             studioName={studio.name}
             accent={accent}
+            tab
           />
         )}
       </Tab.Screen>
@@ -75,6 +76,7 @@ export function OwnerTabs({ token, person, studio, onLeave }: Props) {
             token={token}
             studioName={studio.name}
             accent={accent}
+            tab
           />
         )}
       </Tab.Screen>

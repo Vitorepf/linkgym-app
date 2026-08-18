@@ -13,6 +13,7 @@ type Props = {
   accent: string;
   personId?: string;
   personName?: string;
+  tab?: boolean;
 };
 
 export function Base({
@@ -21,6 +22,7 @@ export function Base({
   accent,
   personId: initialPersonId,
   personName: initialPersonName,
+  tab,
 }: Props) {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -86,7 +88,7 @@ export function Base({
   const name = personName || "aluno";
 
   return (
-    <Screen kicker="Nova ficha" title="De onde partir" accent={accent}>
+    <Screen kicker="Nova ficha" title="De onde partir" accent={accent} tab={tab}>
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}

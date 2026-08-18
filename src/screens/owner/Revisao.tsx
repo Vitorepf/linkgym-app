@@ -14,9 +14,10 @@ type Props = {
   token: string;
   studioName: string;
   accent: string;
+  tab?: boolean;
 };
 
-export function Revisao({ token, studioName, accent }: Props) {
+export function Revisao({ token, studioName, accent, tab }: Props) {
   const startedAt = useRef(Date.now());
   const [items, setItems] = useState<OwnerWeekItem[]>([]);
   const [picked, setPicked] = useState<Record<string, boolean>>({});
@@ -74,16 +75,18 @@ export function Revisao({ token, studioName, accent }: Props) {
 
   const n = items.length;
   const done = doneSeconds !== null;
+  const title = n > 0 ? `A semana dos ${n}` : "A semana";
 
   return (
     <Screen
-      title={`A semana dos ${n}`}
+      title={title}
       body={
         done
           ? undefined
           : "O app já calculou o ajuste. Desmarque o que discordar."
       }
       accent={accent}
+      tab={tab}
     >
       <ScrollView
         style={styles.scroll}

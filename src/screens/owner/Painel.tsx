@@ -73,15 +73,16 @@ export function Painel({ token, person, studio, onLeave }: Props) {
     }
   }
 
-  const count = data?.student_count ?? 0;
   const weekday = WEEKDAYS[new Date().getDay()];
-  const kicker = `${weekday} · ${count} alunos`;
+  const kicker = data
+    ? `${weekday} · ${data.student_count} alunos`
+    : weekday;
   const title = data?.greeting ?? `Bom dia, ${person.name}`;
   const attention = data?.attention ?? [];
   const empty = data !== null && attention.length === 0;
 
   return (
-    <Screen kicker={kicker} title={title} accent={accent}>
+    <Screen kicker={kicker} title={title} accent={accent} tab>
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}
