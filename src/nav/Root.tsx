@@ -2,8 +2,11 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import type { Person, Studio } from "../api";
 import { Painel } from "../screens/owner/Painel";
 import { ComoFazer } from "../screens/student/ComoFazer";
+import { Descanso } from "../screens/student/Descanso";
+import { Feito } from "../screens/student/Feito";
 import { Ficha } from "../screens/student/Ficha";
 import { Hoje } from "../screens/student/Hoje";
+import { Serie } from "../screens/student/Serie";
 import { productTheme } from "../theme";
 import type { RootStackParamList } from "./types";
 
@@ -62,6 +65,21 @@ export function Root({ token, person, studio, onLeave }: RootProps) {
             name="ComoFazer"
             component={ComoFazer}
             options={{ animation: "slide_from_right" }}
+          />
+          <Stack.Screen
+            name="Serie"
+            component={Serie}
+            options={{ animation: "slide_from_right", gestureEnabled: false }}
+          />
+          <Stack.Screen
+            name="Descanso"
+            component={Descanso}
+            options={{ animation: "slide_from_right" }}
+          />
+          <Stack.Screen
+            name="Feito"
+            component={Feito}
+            options={{ animation: "slide_from_right", gestureEnabled: false }}
           />
         </>
       )}

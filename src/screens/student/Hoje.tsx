@@ -10,6 +10,13 @@ import {
   type TodayPayload,
 } from "../../api";
 import type { RootStackParamList } from "../../nav/types";
+import {
+  createSession,
+  flush,
+  loadCurrent,
+  newClientId,
+  resumeCursor,
+} from "../../offline/sessionQueue";
 import { productTheme } from "../../theme";
 import { PrimaryButton } from "../../ui/PrimaryButton";
 import { Screen } from "../../ui/Screen";
@@ -31,8 +38,8 @@ export function Hoje({ token, studio, onLeave }: Props) {
   const [soreness, setSoreness] = useState(0);
   const [sleep, setSleep] = useState(0);
   const [saving, setSaving] = useState(false);
-  // Task 5 persists client_id; Começar must not POST /v1/sessions.
-  const [clientId, setClientId] = useState("");
+  const [pendingLocal, setPendingLocal] = useState(false);
+  const [resume, setResume] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -49,6 +56,11 @@ export function Hoje({ token, studio, onLeave }: Props) {
       } catch {
         if (alive) setError("Não deu para abrir o hoje.");
       }
+      const result = await flush(token);
+      if (!alive) return;
+      const leftover = await loadCurrent();
+      setPendingLocal(!result.ok);
+      setResume(leftover !== null && leftover.finished === undefined);
     })();
     return () => {
       alive = false;
@@ -65,8 +77,64 @@ export function Hoje({ token, studio, onLeave }: Props) {
     soreness !== (data?.readiness.soreness ?? 0) ||
     sleep !== (data?.readiness.sleep ?? 0);
 
-  function startLocal() {
-    if (!clientId) setClientId(newClientId());
+  async function startLocal() {
+    if (!prescription || !data) return;
+    const accentColor = accent;
+    const base = {
+      token,
+      studioName: studio.name,
+      accent: accentColor,
+      prescriptionId: prescription.id,
+      items: prescription.items,
+      streakCount: data.streak.current_count,
+      xpTotal: data.xp_total,
+    };
+    const existing = await loadCurrent();
+    if (existing && existing.prescription_id === prescription.id) {
+      if (existing.finished) {
+        const result = await flush(token, existing.client_id);
+        const finish = result.ok ? result.finish : undefined;
+        navigation.navigate("Feito", {
+          studioName: studio.name,
+          accent: accentColor,
+          streakCount: finish?.streak.current_count ?? data.streak.current_count + 1,
+          xpGained: finish?.xp_gained ?? 10,
+          xpTotal: finish?.xp_total ?? data.xp_total + 10,
+          records: finish?.records ?? [],
+          pending: !result.ok,
+        });
+        return;
+      }
+      const cursor = resumeCursor(prescription.items, existing.sets);
+      if (cursor === "done") {
+        navigation.navigate("Descanso", {
+          ...base,
+          clientId: existing.client_id,
+          itemIndex: Math.max(0, prescription.items.length - 1),
+          setIndex:
+            prescription.items[prescription.items.length - 1]?.planned_sets ?? 1,
+          restSeconds:
+            prescription.items[prescription.items.length - 1]?.rest_seconds ??
+            90,
+          last: true,
+        });
+        return;
+      }
+      navigation.navigate("Serie", {
+        ...base,
+        clientId: existing.client_id,
+        itemIndex: cursor.itemIndex,
+        setIndex: cursor.setIndex,
+      });
+      return;
+    }
+    const session = await createSession(prescription.id, newClientId());
+    navigation.navigate("Serie", {
+      ...base,
+      clientId: session.client_id,
+      itemIndex: 0,
+      setIndex: 1,
+    });
   }
 
   async function saveReadiness() {
@@ -140,6 +208,12 @@ export function Hoje({ token, studio, onLeave }: Props) {
               <Text style={styles.empty}>Ainda não tem ficha hoje.</Text>
             ) : null}
 
+            {pendingLocal ? (
+              <Text style={[styles.banner, { borderLeftColor: accent }]}>
+                Sessão neste celular. Sobe quando tiver rede.
+              </Text>
+            ) : null}
+
             {prescription && data.coach_line ? (
               <Text style={styles.coach}>{data.coach_line}</Text>
             ) : null}
@@ -168,8 +242,10 @@ export function Hoje({ token, studio, onLeave }: Props) {
 
             {prescription ? (
               <PrimaryButton
-                label={ctaLabel(data.readiness.label)}
-                onPress={startLocal}
+                label={resume ? "Continuar" : ctaLabel(data.readiness.label)}
+                onPress={() => {
+                  void startLocal();
+                }}
               />
             ) : null}
           </>
@@ -230,18 +306,6 @@ function Scale({
       </View>
     </View>
   );
-}
-
-function newClientId(): string {
-  const c = globalThis.crypto;
-  if (c && typeof c.randomUUID === "function") {
-    return c.randomUUID();
-  }
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (ch) => {
-    const n = (Math.random() * 16) | 0;
-    const v = ch === "x" ? n : (n & 0x3) | 0x8;
-    return v.toString(16);
-  });
 }
 
 const styles = StyleSheet.create({

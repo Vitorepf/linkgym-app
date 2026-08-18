@@ -158,3 +158,71 @@ export function putReadiness(
 export function ownerHome(token: string) {
   return request<OwnerHome>("/v1/owner/home", { token });
 }
+
+export type SessionStart = {
+  id: string;
+  client_id: string;
+  started_at: string;
+};
+
+export type FinishRecord = {
+  exercise_name: string;
+  load_kg: number;
+  previous_kg: number;
+};
+
+export type FinishPayload = {
+  streak: { current_count: number; protector_available: boolean };
+  xp_gained: number;
+  xp_total: number;
+  records: FinishRecord[];
+  badge_keys: string[];
+};
+
+export type SessionSetBody = {
+  client_set_id: string;
+  prescription_item_id: string;
+  exercise_id: string;
+  swapped_from_exercise_id: string | null;
+  set_index: number;
+  reps: number;
+  load_kg: number;
+  rest_seconds: number;
+  effort?: 1 | 2 | 3;
+  performed_at: string;
+};
+
+export function startSession(
+  token: string,
+  body: { client_id: string; prescription_id: string },
+) {
+  return request<SessionStart>("/v1/sessions", {
+    method: "POST",
+    token,
+    body: JSON.stringify(body),
+  });
+}
+
+export function addSessionSet(
+  token: string,
+  sessionId: string,
+  body: SessionSetBody,
+) {
+  return request<SessionSetBody>(`/v1/sessions/${sessionId}/sets`, {
+    method: "POST",
+    token,
+    body: JSON.stringify(body),
+  });
+}
+
+export function finishSession(
+  token: string,
+  sessionId: string,
+  effort: 1 | 2 | 3,
+) {
+  return request<FinishPayload>(`/v1/sessions/${sessionId}/finish`, {
+    method: "POST",
+    token,
+    body: JSON.stringify({ effort }),
+  });
+}
