@@ -3,6 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import {
+  applyOwnerAttention,
   ownerHome,
   type OwnerHome,
   type Person,
@@ -35,6 +36,13 @@ export function Painel({ token, person, studio, onLeave }: Props) {
   const accent = studio.accent_color || productTheme.accentFallback;
   const [data, setData] = useState<OwnerHome | null>(null);
   const [error, setError] = useState("");
+  const [busy, setBusy] = useState<string | null>(null);
+
+  async function refresh() {
+    const payload = await ownerHome(token);
+    setData(payload);
+    setError("");
+  }
 
   useEffect(() => {
     let alive = true;
@@ -53,6 +61,19 @@ export function Painel({ token, person, studio, onLeave }: Props) {
       alive = false;
     };
   }, [token]);
+
+  async function apply(id: string) {
+    if (busy) return;
+    setBusy(id);
+    try {
+      await applyOwnerAttention(token, id);
+      await refresh();
+    } catch {
+      setError("Não deu para aplicar.");
+    } finally {
+      setBusy(null);
+    }
+  }
 
   const count = data?.student_count ?? 0;
   const weekday = WEEKDAYS[new Date().getDay()];
@@ -86,7 +107,11 @@ export function Painel({ token, person, studio, onLeave }: Props) {
               <Text style={styles.why}>{whyFor(row.reason)}</Text>
               <Text style={styles.decision}>{row.decision}</Text>
             </View>
-            <Pressable style={styles.apply} onPress={() => {}}>
+            <Pressable
+              style={styles.apply}
+              onPress={() => void apply(row.id)}
+              disabled={busy === row.id}
+            >
               <Text style={styles.applyText}>Aplicar</Text>
             </Pressable>
           </View>
@@ -138,7 +163,18 @@ export function Painel({ token, person, studio, onLeave }: Props) {
                 : "Retornos"}
             </Text>
           </Pressable>
-          <Text style={styles.footerLink}>Atenção do dia</Text>
+          <Pressable
+            onPress={() =>
+              navigation.navigate("Atencao", {
+                token,
+                studioName: studio.name,
+                accent,
+              })
+            }
+            hitSlop={8}
+          >
+            <Text style={styles.footerLink}>Atenção do dia</Text>
+          </Pressable>
           <Text style={styles.footerLink}>Revisão da semana</Text>
           <Text style={styles.footerLink}>Nova ficha</Text>
         </View>

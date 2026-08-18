@@ -2,8 +2,10 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
-import type { Person, Studio } from "../api";
+import type { Person, Studio, TodayPayload } from "../api";
+import { today } from "../api";
 import { Painel } from "../screens/owner/Painel";
+import { Atencao } from "../screens/owner/Atencao";
 import { Retorno } from "../screens/owner/Retorno";
 import { ComoFazer } from "../screens/student/ComoFazer";
 import { Compromisso } from "../screens/student/Compromisso";
@@ -16,6 +18,7 @@ import { Perfil } from "../screens/student/Perfil";
 import { Progresso } from "../screens/student/Progresso";
 import { Pronto } from "../screens/student/Pronto";
 import { Recorde } from "../screens/student/Recorde";
+import { Retomada } from "../screens/student/Retomada";
 import { Serie } from "../screens/student/Serie";
 import { SobreVoce } from "../screens/student/SobreVoce";
 import { productTheme } from "../theme";
@@ -54,14 +57,19 @@ export function Root({
   const [showEstreia, setShowEstreia] = useState<boolean | null>(
     owner ? false : null,
   );
+  const [comeback, setComeback] = useState<
+    TodayPayload["comeback"] | undefined
+  >(owner ? null : undefined);
 
   useEffect(() => {
     if (owner) {
       setShowEstreia(false);
+      setComeback(null);
       return;
     }
     if (needsOnboarding) {
       setShowEstreia(null);
+      setComeback(undefined);
       return;
     }
     let alive = true;
@@ -69,12 +77,24 @@ export function Root({
       const seen = await AsyncStorage.getItem(estreiaSeenKey(studio.id));
       if (alive) setShowEstreia(Boolean(debut && !seen));
     })();
+    (async () => {
+      try {
+        const payload = await today(token);
+        if (alive) setComeback(payload.comeback);
+      } catch {
+        if (alive) setComeback(null);
+      }
+    })();
     return () => {
       alive = false;
     };
-  }, [debut, studio.id, owner, needsOnboarding]);
+  }, [debut, studio.id, owner, needsOnboarding, token]);
 
-  if (!owner && !needsOnboarding && showEstreia === null) {
+  if (
+    !owner &&
+    !needsOnboarding &&
+    (showEstreia === null || comeback === undefined)
+  ) {
     return (
       <View style={styles.boot}>
         <ActivityIndicator
@@ -132,10 +152,27 @@ export function Root({
             component={Retorno}
             options={{ animation: "slide_from_right" }}
           />
+          <Stack.Screen
+            name="Atencao"
+            component={Atencao}
+            options={{ animation: "slide_from_right" }}
+          />
         </>
       ) : (
         <>
-          {showEstreia ? (
+          {comeback ? (
+            <Stack.Screen name="Retomada">
+              {() => (
+                <Retomada
+                  token={token}
+                  person={person}
+                  studio={studio}
+                  needsCommitment={needsCommitment}
+                  comeback={comeback}
+                />
+              )}
+            </Stack.Screen>
+          ) : showEstreia ? (
             <Stack.Screen name="Estreia">
               {() => (
                 <Estreia

@@ -21,9 +21,15 @@ export type RootStackParamList = {
     studioName: string;
     accent: string;
   };
+  Atencao: {
+    token: string;
+    studioName: string;
+    accent: string;
+  };
   SobreVoce: undefined;
   Pronto: undefined;
   Estreia: undefined;
+  Retomada: undefined;
   Compromisso: undefined;
   Hoje: undefined;
   Ficha: {

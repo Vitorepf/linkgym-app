@@ -147,6 +147,8 @@ export type OwnerHome = {
     reason: string;
     decision: string;
     rank: number;
+    applied?: boolean;
+    days?: number;
   }[];
   unread_returns: number;
 };
@@ -168,6 +170,26 @@ export function putReadiness(
 
 export function ownerHome(token: string) {
   return request<OwnerHome>("/v1/owner/home", { token });
+}
+
+export type OwnerAttention = OwnerHome["attention"][number];
+
+export function ownerAttention(token: string) {
+  return request<{ items: OwnerAttention[] }>("/v1/owner/attention", { token });
+}
+
+export function applyOwnerAttention(token: string, id: string) {
+  return request<{ ok: boolean }>(`/v1/owner/attention/${id}/apply`, {
+    method: "POST",
+    token,
+  });
+}
+
+export function completeComeback(token: string, id: string) {
+  return request<{ ok: boolean }>(`/v1/comebacks/${id}/complete`, {
+    method: "POST",
+    token,
+  });
 }
 
 export type SessionStart = {
