@@ -5,13 +5,13 @@ import { useEffect, useState } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { logout, me, type Person, type Studio } from "./src/api";
+import { logout, me, type MePayload } from "./src/api";
 import { Root } from "./src/nav/Root";
 import { AccessScreen } from "./src/screens/Access";
 import { clearToken, loadToken, saveToken } from "./src/session";
 import { productTheme } from "./src/theme";
 
-type Session = { token: string; person: Person; studio: Studio };
+type Session = { token: string } & MePayload;
 
 const navTheme = {
   ...DarkTheme,
@@ -69,6 +69,7 @@ export default function App() {
               token={session.token}
               person={session.person}
               studio={session.studio}
+              onboardingComplete={session.onboarding_complete}
               onLeave={async () => {
                 try {
                   await logout(session.token);
@@ -83,7 +84,8 @@ export default function App() {
             <AccessScreen
               onEntered={async (next) => {
                 await saveToken(next.token);
-                setSession(next);
+                const mine = await me(next.token);
+                setSession({ token: next.token, ...mine });
               }}
             />
           )}

@@ -20,6 +20,8 @@ export type RootStackParamList = {
     studioName: string;
     accent: string;
   };
+  SobreVoce: undefined;
+  Pronto: undefined;
   Hoje: undefined;
   Ficha: {
     token: string;

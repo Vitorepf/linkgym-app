@@ -57,10 +57,13 @@ export type Studio = {
 };
 
 export function requestCode(phone: string, inviteCode?: string) {
-  return request<{ ok: boolean; dev_code?: string }>("/v1/auth/code", {
-    method: "POST",
-    body: JSON.stringify({ phone, invite_code: inviteCode ?? "" }),
-  });
+  return request<{ ok: boolean; dev_code?: string; studio?: Studio }>(
+    "/v1/auth/code",
+    {
+      method: "POST",
+      body: JSON.stringify({ phone, invite_code: inviteCode ?? "" }),
+    },
+  );
 }
 
 export function verify(phone: string, code: string, inviteCode?: string) {
@@ -73,8 +76,16 @@ export function verify(phone: string, code: string, inviteCode?: string) {
   );
 }
 
+export type MePayload = {
+  person: Person;
+  studio: Studio;
+  onboarding_complete: boolean;
+  commitment_complete: boolean;
+  debut: boolean;
+};
+
 export function me(token: string) {
-  return request<{ person: Person; studio: Studio }>("/v1/me", { token });
+  return request<MePayload>("/v1/me", { token });
 }
 
 export function logout(token: string) {
@@ -296,4 +307,18 @@ export function progress(token: string) {
 
 export function records(token: string) {
   return request<{ items: RecordItem[] }>("/v1/records", { token });
+}
+
+export type OnboardingBody = {
+  experience: "never" | "before" | "training";
+  days_per_week: 2 | 3 | 4 | 5 | 6;
+  pain: boolean;
+};
+
+export function putOnboarding(token: string, body: OnboardingBody) {
+  return request<{ ok: boolean }>("/v1/onboarding", {
+    method: "PUT",
+    token,
+    body: JSON.stringify(body),
+  });
 }

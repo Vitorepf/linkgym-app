@@ -30,6 +30,7 @@ export function AccessScreen({ onEntered }: Props) {
   const [step, setStep] = useState<"phone" | "otp">("phone");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [studio, setStudio] = useState<Studio | null>(null);
 
   async function sendCode(nextPhone = phone) {
     setBusy(true);
@@ -39,6 +40,7 @@ export function AccessScreen({ onEntered }: Props) {
       if (res.dev_code) {
         setOtp(res.dev_code);
       }
+      setStudio(res.studio ?? null);
       setStep("otp");
     } catch (e) {
       setError(messageFor(e));
@@ -82,15 +84,18 @@ export function AccessScreen({ onEntered }: Props) {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <View style={styles.container}>
-        <Text style={styles.kicker}>Acesso</Text>
+        <Text style={styles.kicker}>{studio ? "Convite" : "Acesso"}</Text>
         <Text style={styles.title}>
-          {step === "phone"
-            ? "Seu telefone."
-            : "Os 4 dígitos que chegaram."}
+          {studio
+            ? `${studio.name} te chamou.`
+            : step === "phone"
+              ? "Seu telefone."
+              : "Os 4 dígitos que chegaram."}
         </Text>
         <Text style={styles.body}>
-          Sem convite não nasce aluno. Trocar de iPhone: o mesmo número, um
-          código novo.
+          {studio
+            ? "Ele já montou a sua ficha. Aqui você marca o que fez e ele acompanha."
+            : "Sem convite não nasce aluno. Trocar de iPhone: o mesmo número, um código novo."}
         </Text>
 
         {step === "phone" ? (
@@ -146,13 +151,25 @@ export function AccessScreen({ onEntered }: Props) {
                 <Text style={styles.btnText}>Entrar</Text>
               )}
             </Pressable>
-            <Pressable onPress={() => setStep("phone")} style={styles.linkWrap}>
+            <Pressable
+              onPress={() => {
+                setStudio(null);
+                setStep("phone");
+              }}
+              style={styles.linkWrap}
+            >
               <Text style={styles.link}>Trocar número</Text>
             </Pressable>
           </>
         )}
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
+
+        {studio ? (
+          <Text style={styles.footer}>
+            A cara é do seu personal. O app por dentro é o mesmo.
+          </Text>
+        ) : null}
 
         {__DEV__ ? (
           <View style={styles.dev}>
@@ -246,6 +263,12 @@ const styles = StyleSheet.create({
   linkWrap: { marginTop: 16 },
   link: { color: productTheme.muted, fontSize: 14 },
   error: { color: productTheme.accentFallback, marginTop: 16, fontSize: 14 },
+  footer: {
+    color: productTheme.muted,
+    fontSize: 13,
+    marginTop: 24,
+    lineHeight: 20,
+  },
   dev: {
     marginTop: 40,
     paddingTop: 16,
