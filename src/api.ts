@@ -185,11 +185,18 @@ export function applyOwnerAttention(token: string, id: string) {
   });
 }
 
-export function completeComeback(token: string, id: string) {
-  return request<{ ok: boolean }>(`/v1/comebacks/${id}/complete`, {
-    method: "POST",
-    token,
-  });
+export async function completeComeback(token: string, id: string) {
+  try {
+    return await request<{ ok: boolean }>(`/v1/comebacks/${id}/complete`, {
+      method: "POST",
+      token,
+    });
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 404) {
+      return { ok: true };
+    }
+    throw err;
+  }
 }
 
 export type SessionStart = {
@@ -329,6 +336,7 @@ export type OwnerStudent = {
   last_loads: { exercise_name: string; load_kg: number }[];
   streak: { current_count: number };
   suggested: string;
+  commitment_text: string | null;
 };
 
 export function ownerStudent(token: string, id: string) {

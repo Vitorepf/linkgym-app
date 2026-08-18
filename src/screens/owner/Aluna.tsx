@@ -70,6 +70,10 @@ export function Aluna({ navigation, route }: Props) {
               </Text>
             ))}
 
+            {card.commitment_text ? (
+              <Text style={styles.muted}>{card.commitment_text}</Text>
+            ) : null}
+
             <Text style={styles.section}>Ofensiva</Text>
             <Text style={[styles.streak, { color: accent }]}>
               {card.streak.current_count}
@@ -146,6 +150,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginTop: 8,
     lineHeight: 22,
+  },
+  muted: {
+    color: productTheme.muted,
+    fontSize: 14,
+    marginTop: 8,
   },
   streak: {
     fontFamily: "Archivo_800ExtraBold",
