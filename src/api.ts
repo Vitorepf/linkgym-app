@@ -301,6 +301,40 @@ export function applyOwnerReturn(
   });
 }
 
+export type OwnerWeekItem = {
+  person_id: string;
+  name: string;
+  adherence: string;
+  suggested: string;
+  selected: boolean;
+};
+
+export function ownerWeek(token: string, from?: string) {
+  const q = from ? `?from=${encodeURIComponent(from)}` : "";
+  return request<{ items: OwnerWeekItem[] }>(`/v1/owner/week${q}`, { token });
+}
+
+export function approveOwnerWeek(token: string, personIds: string[]) {
+  return request<{ count: number }>("/v1/owner/week/approve", {
+    method: "POST",
+    token,
+    body: JSON.stringify({ person_ids: personIds }),
+  });
+}
+
+export type OwnerStudent = {
+  person_id: string;
+  name: string;
+  last_effort: number | null;
+  last_loads: { exercise_name: string; load_kg: number }[];
+  streak: { current_count: number };
+  suggested: string;
+};
+
+export function ownerStudent(token: string, id: string) {
+  return request<OwnerStudent>(`/v1/owner/students/${id}`, { token });
+}
+
 export type LeagueRow = {
   name: string;
   xp_total: number;

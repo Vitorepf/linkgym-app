@@ -6,6 +6,8 @@ import type { Person, Studio, TodayPayload } from "../api";
 import { today } from "../api";
 import { Painel } from "../screens/owner/Painel";
 import { Atencao } from "../screens/owner/Atencao";
+import { Aluna } from "../screens/owner/Aluna";
+import { Revisao } from "../screens/owner/Revisao";
 import { Retorno } from "../screens/owner/Retorno";
 import { ComoFazer } from "../screens/student/ComoFazer";
 import { Compromisso } from "../screens/student/Compromisso";
@@ -155,6 +157,16 @@ export function Root({
           <Stack.Screen
             name="Atencao"
             component={Atencao}
+            options={{ animation: "slide_from_right" }}
+          />
+          <Stack.Screen
+            name="Revisao"
+            component={Revisao}
+            options={{ animation: "slide_from_right" }}
+          />
+          <Stack.Screen
+            name="Aluna"
+            component={Aluna}
             options={{ animation: "slide_from_right" }}
           />
         </>

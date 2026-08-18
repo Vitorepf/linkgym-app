@@ -1,7 +1,7 @@
 import { useCallback, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { useFocusEffect } from "@react-navigation/native";
-import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp, NativeStackScreenProps } from "@react-navigation/native-stack";
 import {
   applyOwnerAttention,
   ownerAttention,
@@ -25,6 +25,8 @@ const WEEKDAYS = [
 
 export function Atencao({ route }: Props) {
   const { token, accent } = route.params;
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList, "Atencao">>();
   const [items, setItems] = useState<OwnerAttention[]>([]);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
@@ -100,7 +102,18 @@ export function Atencao({ route }: Props) {
               >
                 <Text style={styles.applyText}>Aplicar</Text>
               </Pressable>
-              <Pressable style={styles.ficha} hitSlop={8}>
+              <Pressable
+                style={styles.ficha}
+                hitSlop={8}
+                onPress={() =>
+                  navigation.navigate("Aluna", {
+                    token,
+                    personId: row.person_id,
+                    studioName: route.params.studioName,
+                    accent,
+                  })
+                }
+              >
                 <Text style={styles.fichaText}>Ver ficha</Text>
               </Pressable>
             </View>

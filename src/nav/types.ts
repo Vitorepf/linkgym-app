@@ -26,6 +26,17 @@ export type RootStackParamList = {
     studioName: string;
     accent: string;
   };
+  Revisao: {
+    token: string;
+    studioName: string;
+    accent: string;
+  };
+  Aluna: {
+    token: string;
+    personId: string;
+    studioName: string;
+    accent: string;
+  };
   SobreVoce: undefined;
   Pronto: undefined;
   Estreia: undefined;

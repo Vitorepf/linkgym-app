@@ -175,7 +175,18 @@ export function Painel({ token, person, studio, onLeave }: Props) {
           >
             <Text style={styles.footerLink}>Atenção do dia</Text>
           </Pressable>
-          <Text style={styles.footerLink}>Revisão da semana</Text>
+          <Pressable
+            onPress={() =>
+              navigation.navigate("Revisao", {
+                token,
+                studioName: studio.name,
+                accent,
+              })
+            }
+            hitSlop={8}
+          >
+            <Text style={styles.footerLink}>Revisão da semana</Text>
+          </Pressable>
           <Text style={styles.footerLink}>Nova ficha</Text>
         </View>
 
