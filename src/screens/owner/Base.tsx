@@ -1,18 +1,31 @@
 import { useCallback, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text } from "react-native";
-import { useFocusEffect } from "@react-navigation/native";
-import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { draftFromLast, listModels, ownerWeek } from "../../api";
 import type { RootStackParamList } from "../../nav/types";
 import { productTheme } from "../../theme";
 import { Screen } from "../../ui/Screen";
 
-type Props = NativeStackScreenProps<RootStackParamList, "Base">;
+type Props = {
+  token: string;
+  studioName: string;
+  accent: string;
+  personId?: string;
+  personName?: string;
+};
 
-export function Base({ navigation, route }: Props) {
-  const { token, studioName, accent } = route.params;
-  const [personId, setPersonId] = useState(route.params.personId ?? "");
-  const [personName, setPersonName] = useState(route.params.personName ?? "");
+export function Base({
+  token,
+  studioName,
+  accent,
+  personId: initialPersonId,
+  personName: initialPersonName,
+}: Props) {
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const [personId, setPersonId] = useState(initialPersonId ?? "");
+  const [personName, setPersonName] = useState(initialPersonName ?? "");
   const [modelId, setModelId] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -29,18 +42,18 @@ export function Base({ navigation, route }: Props) {
         return;
       }
       setModelId(treino.id);
-      if (!route.params.personId || !route.params.personName) {
+      if (!initialPersonId || !initialPersonName) {
         const first = week.items[0];
         if (first) {
-          setPersonId((prev) => route.params.personId || prev || first.person_id);
-          setPersonName((prev) => route.params.personName || prev || first.name);
+          setPersonId((prev) => initialPersonId || prev || first.person_id);
+          setPersonName((prev) => initialPersonName || prev || first.name);
         }
       }
       setError("");
     } catch {
       setError("Não deu para abrir a ficha.");
     }
-  }, [token, route.params.personId, route.params.personName]);
+  }, [token, initialPersonId, initialPersonName]);
 
   useFocusEffect(
     useCallback(() => {

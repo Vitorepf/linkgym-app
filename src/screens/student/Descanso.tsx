@@ -7,6 +7,7 @@ import {
   nextAfter,
   patchLastSetEffort,
 } from "../../offline/sessionQueue";
+import { studentHomeTarget } from "../../nav/StudentTabs";
 import type { RootStackParamList } from "../../nav/types";
 import { productTheme } from "../../theme";
 import { PrimaryButton } from "../../ui/PrimaryButton";
@@ -66,7 +67,7 @@ export function Descanso({ navigation, route }: Props) {
       navigation.reset({
         index: 1,
         routes: [
-          { name: "Hoje" },
+          studentHomeTarget,
           {
             name: "Feito",
             params: {

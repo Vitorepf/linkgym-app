@@ -1,6 +1,7 @@
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { FinishRecord } from "../../api";
+import { studentHomeTarget } from "../../nav/StudentTabs";
 import type { RootStackParamList } from "../../nav/types";
 import { formatKg } from "../../offline/sessionQueue";
 import { productTheme } from "../../theme";
@@ -45,7 +46,10 @@ export function Recorde({ navigation, route }: Props) {
               navigation.navigate("Compromisso");
               return;
             }
-            navigation.reset({ index: 0, routes: [{ name: "Hoje" }] });
+            navigation.reset({
+              index: 0,
+              routes: [studentHomeTarget],
+            });
           }}
         />
       </ScrollView>

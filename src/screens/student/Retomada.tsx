@@ -9,6 +9,7 @@ import {
   type Studio,
   type TodayPayload,
 } from "../../api";
+import { studentHomeTarget, STUDENT_HOME_ROUTE } from "../../nav/StudentTabs";
 import type { RootStackParamList } from "../../nav/types";
 import { createSession, newClientId } from "../../offline/sessionQueue";
 import { productTheme } from "../../theme";
@@ -44,14 +45,17 @@ export function Retomada({
       const payload = await today(token);
       const prescription = payload.prescription;
       if (!prescription) {
-        navigation.reset({ index: 0, routes: [{ name: "Hoje" }] });
+        navigation.reset({
+          index: 0,
+          routes: [studentHomeTarget],
+        });
         return;
       }
       const session = await createSession(prescription.id, newClientId());
       navigation.reset({
         index: 1,
         routes: [
-          { name: "Hoje" },
+          studentHomeTarget,
           {
             name: "Serie",
             params: {
@@ -92,7 +96,7 @@ export function Retomada({
         busy={busy}
       />
       <Pressable
-        onPress={() => navigation.navigate("Hoje")}
+        onPress={() => navigation.navigate(STUDENT_HOME_ROUTE)}
         hitSlop={8}
         style={styles.skip}
       >

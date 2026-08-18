@@ -4,6 +4,7 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { today, type Studio } from "../../api";
+import { studentHomeTarget } from "../../nav/StudentTabs";
 import type { RootStackParamList } from "../../nav/types";
 import { createSession, newClientId } from "../../offline/sessionQueue";
 import { productTheme } from "../../theme";
@@ -36,14 +37,17 @@ export function Estreia({ token, studio, needsCommitment }: Props) {
       await AsyncStorage.setItem(estreiaSeenKey(studio.id), "1");
       const prescription = payload.prescription;
       if (!prescription) {
-        navigation.reset({ index: 0, routes: [{ name: "Hoje" }] });
+        navigation.reset({
+          index: 0,
+          routes: [studentHomeTarget],
+        });
         return;
       }
       const session = await createSession(prescription.id, newClientId());
       navigation.reset({
         index: 1,
         routes: [
-          { name: "Hoje" },
+          studentHomeTarget,
           {
             name: "Serie",
             params: {

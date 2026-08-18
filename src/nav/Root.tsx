@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 import type { Person, Studio, TodayPayload } from "../api";
 import { today } from "../api";
-import { Painel } from "../screens/owner/Painel";
 import { Atencao } from "../screens/owner/Atencao";
 import { Aluna } from "../screens/owner/Aluna";
 import { Ajustar } from "../screens/owner/Ajustar";
@@ -18,15 +17,14 @@ import { Descanso } from "../screens/student/Descanso";
 import { Estreia, estreiaSeenKey } from "../screens/student/Estreia";
 import { Feito } from "../screens/student/Feito";
 import { Ficha } from "../screens/student/Ficha";
-import { Hoje } from "../screens/student/Hoje";
-import { Perfil } from "../screens/student/Perfil";
-import { Progresso } from "../screens/student/Progresso";
 import { Pronto } from "../screens/student/Pronto";
 import { Recorde } from "../screens/student/Recorde";
 import { Retomada } from "../screens/student/Retomada";
 import { Serie } from "../screens/student/Serie";
 import { SobreVoce } from "../screens/student/SobreVoce";
 import { productTheme } from "../theme";
+import { OWNER_HOME_ROUTE, OwnerTabs } from "./OwnerTabs";
+import { studentHomeTarget, STUDENT_HOME_ROUTE, StudentTabs } from "./StudentTabs";
 import type { RootStackParamList } from "./types";
 
 export type { RootStackParamList } from "./types";
@@ -142,9 +140,9 @@ export function Root({
         </>
       ) : owner ? (
         <>
-          <Stack.Screen name="Painel">
+          <Stack.Screen name={OWNER_HOME_ROUTE}>
             {() => (
-              <Painel
+              <OwnerTabs
                 token={token}
                 person={person}
                 studio={studio}
@@ -162,21 +160,17 @@ export function Root({
             component={Atencao}
             options={{ animation: "slide_from_right" }}
           />
-          <Stack.Screen
-            name="Revisao"
-            component={Revisao}
-            options={{ animation: "slide_from_right" }}
-          />
+          <Stack.Screen name="Revisao" options={{ animation: "slide_from_right" }}>
+            {({ route }) => <Revisao {...route.params} />}
+          </Stack.Screen>
           <Stack.Screen
             name="Aluna"
             component={Aluna}
             options={{ animation: "slide_from_right" }}
           />
-          <Stack.Screen
-            name="Base"
-            component={Base}
-            options={{ animation: "slide_from_right" }}
-          />
+          <Stack.Screen name="Base" options={{ animation: "slide_from_right" }}>
+            {({ route }) => <Base {...route.params} />}
+          </Stack.Screen>
           <Stack.Screen
             name="Ajustar"
             component={Ajustar}
@@ -213,13 +207,14 @@ export function Root({
               )}
             </Stack.Screen>
           ) : null}
-          <Stack.Screen name="Hoje">
+          <Stack.Screen name={STUDENT_HOME_ROUTE}>
             {() => (
-              <Hoje
+              <StudentTabs
                 token={token}
                 person={person}
                 studio={studio}
                 needsCommitment={needsCommitment}
+                onLeave={onLeave}
               />
             )}
           </Stack.Screen>
@@ -260,23 +255,11 @@ export function Root({
                 studio={studio}
                 onDone={() => {
                   setNeedsCommitment(false);
-                  navigation.reset({ index: 0, routes: [{ name: "Hoje" }] });
+                  navigation.reset({
+                    index: 0,
+                    routes: [studentHomeTarget],
+                  });
                 }}
-              />
-            )}
-          </Stack.Screen>
-          <Stack.Screen name="Progresso">
-            {() => (
-              <Progresso token={token} person={person} studio={studio} />
-            )}
-          </Stack.Screen>
-          <Stack.Screen name="Perfil">
-            {() => (
-              <Perfil
-                token={token}
-                person={person}
-                studio={studio}
-                onLeave={onLeave}
               />
             )}
           </Stack.Screen>

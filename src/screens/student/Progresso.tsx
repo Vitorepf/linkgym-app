@@ -1,14 +1,13 @@
 import { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useNavigation } from "@react-navigation/native";
-import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import {
   progress,
   type Person,
   type ProgressPayload,
   type Studio,
 } from "../../api";
-import type { RootStackParamList } from "../../nav/types";
+import type { StudentTabNavigation } from "../../nav/types";
 import { productTheme } from "../../theme";
 import { Screen } from "../../ui/Screen";
 
@@ -26,8 +25,7 @@ const BADGES = [
 ] as const;
 
 export function Progresso({ token, studio }: Props) {
-  const navigation =
-    useNavigation<NativeStackNavigationProp<RootStackParamList, "Progresso">>();
+  const navigation = useNavigation<StudentTabNavigation>();
   const accent = studio.accent_color || productTheme.accentFallback;
   const [data, setData] = useState<ProgressPayload | null>(null);
   const [error, setError] = useState("");
@@ -127,7 +125,7 @@ export function Progresso({ token, studio }: Props) {
         ) : null}
 
         <Pressable
-          onPress={() => navigation.goBack()}
+          onPress={() => navigation.navigate("Hoje")}
           style={styles.back}
           hitSlop={8}
         >

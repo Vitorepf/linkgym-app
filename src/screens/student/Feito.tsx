@@ -1,6 +1,7 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { formatKg } from "../../offline/sessionQueue";
+import { studentHomeTarget } from "../../nav/StudentTabs";
 import type { RootStackParamList } from "../../nav/types";
 import { productTheme } from "../../theme";
 import { PrimaryButton } from "../../ui/PrimaryButton";
@@ -94,7 +95,10 @@ export function Feito({ navigation, route }: Props) {
               navigation.navigate("Compromisso");
               return;
             }
-            navigation.reset({ index: 0, routes: [{ name: "Hoje" }] });
+            navigation.reset({
+              index: 0,
+              routes: [studentHomeTarget],
+            });
           }}
         />
       </ScrollView>

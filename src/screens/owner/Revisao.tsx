@@ -1,21 +1,22 @@
 import { useCallback, useRef, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
-import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import {
   approveOwnerWeek,
   ownerWeek,
   type OwnerWeekItem,
 } from "../../api";
-import type { RootStackParamList } from "../../nav/types";
 import { productTheme } from "../../theme";
 import { PrimaryButton } from "../../ui/PrimaryButton";
 import { Screen } from "../../ui/Screen";
 
-type Props = NativeStackScreenProps<RootStackParamList, "Revisao">;
+type Props = {
+  token: string;
+  studioName: string;
+  accent: string;
+};
 
-export function Revisao({ route }: Props) {
-  const { token, studioName, accent } = route.params;
+export function Revisao({ token, studioName, accent }: Props) {
   const startedAt = useRef(Date.now());
   const [items, setItems] = useState<OwnerWeekItem[]>([]);
   const [picked, setPicked] = useState<Record<string, boolean>>({});

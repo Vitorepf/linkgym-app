@@ -1,3 +1,9 @@
+import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
+import type {
+  CompositeNavigationProp,
+  NavigatorScreenParams,
+} from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { DraftItem, FinishRecord, TodayItem } from "../api";
 
 export type SessionRoute = {
@@ -14,8 +20,20 @@ export type SessionRoute = {
   needsCommitment: boolean;
 };
 
-export type RootStackParamList = {
+export type OwnerTabParamList = {
   Painel: undefined;
+  Semana: undefined;
+  Fichas: undefined;
+};
+
+export type StudentTabParamList = {
+  Hoje: undefined;
+  Progresso: undefined;
+  Perfil: undefined;
+};
+
+export type RootStackParamList = {
+  Painel: NavigatorScreenParams<OwnerTabParamList> | undefined;
   Retorno: {
     token: string;
     studioName: string;
@@ -66,7 +84,7 @@ export type RootStackParamList = {
   Estreia: undefined;
   Retomada: undefined;
   Compromisso: undefined;
-  Hoje: undefined;
+  Hoje: NavigatorScreenParams<StudentTabParamList> | undefined;
   Ficha: {
     token: string;
     studioName: string;
@@ -88,8 +106,8 @@ export type RootStackParamList = {
     studioName: string;
     accent: string;
     streakCount: number;
-    xpGained: number;
     xpTotal: number;
+    xpGained: number;
     records: FinishRecord[];
     pending?: boolean;
     needsCommitment?: boolean;
@@ -99,6 +117,14 @@ export type RootStackParamList = {
     records: FinishRecord[];
     needsCommitment?: boolean;
   };
-  Progresso: undefined;
-  Perfil: undefined;
 };
+
+export type OwnerTabNavigation = CompositeNavigationProp<
+  BottomTabNavigationProp<OwnerTabParamList>,
+  NativeStackNavigationProp<RootStackParamList>
+>;
+
+export type StudentTabNavigation = CompositeNavigationProp<
+  BottomTabNavigationProp<StudentTabParamList>,
+  NativeStackNavigationProp<RootStackParamList>
+>;

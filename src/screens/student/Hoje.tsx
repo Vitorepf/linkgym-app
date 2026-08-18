@@ -1,5 +1,4 @@
 import { useNavigation } from "@react-navigation/native";
-import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import {
@@ -9,7 +8,7 @@ import {
   type Studio,
   type TodayPayload,
 } from "../../api";
-import type { RootStackParamList } from "../../nav/types";
+import type { StudentTabNavigation } from "../../nav/types";
 import {
   createSession,
   flush,
@@ -29,8 +28,7 @@ type Props = {
 };
 
 export function Hoje({ token, studio, needsCommitment }: Props) {
-  const navigation =
-    useNavigation<NativeStackNavigationProp<RootStackParamList, "Hoje">>();
+  const navigation = useNavigation<StudentTabNavigation>();
   const accent = studio.accent_color || productTheme.accentFallback;
   const [data, setData] = useState<TodayPayload | null>(null);
   const [error, setError] = useState("");

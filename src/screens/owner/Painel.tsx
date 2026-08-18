@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useNavigation } from "@react-navigation/native";
-import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import {
   applyOwnerAttention,
   ownerHome,
@@ -9,7 +8,7 @@ import {
   type Person,
   type Studio,
 } from "../../api";
-import type { RootStackParamList } from "../../nav/types";
+import type { OwnerTabNavigation } from "../../nav/types";
 import { productTheme } from "../../theme";
 import { Screen } from "../../ui/Screen";
 
@@ -31,8 +30,7 @@ const WEEKDAYS = [
 ];
 
 export function Painel({ token, person, studio, onLeave }: Props) {
-  const navigation =
-    useNavigation<NativeStackNavigationProp<RootStackParamList, "Painel">>();
+  const navigation = useNavigation<OwnerTabNavigation>();
   const accent = studio.accent_color || productTheme.accentFallback;
   const [data, setData] = useState<OwnerHome | null>(null);
   const [error, setError] = useState("");
@@ -176,25 +174,13 @@ export function Painel({ token, person, studio, onLeave }: Props) {
             <Text style={styles.footerLink}>Atenção do dia</Text>
           </Pressable>
           <Pressable
-            onPress={() =>
-              navigation.navigate("Revisao", {
-                token,
-                studioName: studio.name,
-                accent,
-              })
-            }
+            onPress={() => navigation.navigate("Semana")}
             hitSlop={8}
           >
             <Text style={styles.footerLink}>Revisão da semana</Text>
           </Pressable>
           <Pressable
-            onPress={() =>
-              navigation.navigate("Base", {
-                token,
-                studioName: studio.name,
-                accent,
-              })
-            }
+            onPress={() => navigation.navigate("Fichas")}
             hitSlop={8}
           >
             <Text style={styles.footerLink}>Nova ficha</Text>
