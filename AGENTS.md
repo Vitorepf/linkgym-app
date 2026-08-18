@@ -6,4 +6,4 @@ This app stays on **SDK 54** — the same major as `atlas-app` (`~54.0.33`) and 
 
 Language: **TypeScript**. UI: React Native `StyleSheet` + `src/theme.ts`. Motion: Reanimated 4 + Gesture Handler. Do not add Tamagui, NativeWind, or styled-components.
 
-Setup for humans is in `README.md`. Partner path: `make setup` then `make start`. `make setup` copies `.env`, runs `npm ci`, typecheck and `expo-doctor`. New Expo modules: `npx expo install <pkg>`, never a raw npm install for Expo packages.
+Setup for humans is in `README.md`. Partner path: `make setup` then `make start` (`--go`). Celular no 5G: `make tunnel`. Never open localhost in the phone browser.

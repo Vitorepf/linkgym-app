@@ -21,9 +21,13 @@ make start
 
 Sem `make`: `npm run setup && npm start`
 
-O QR abre a tela **Convite** (fundo preto). Isto prova o front. A API **não** precisa estar no ar para esta tela.
+O QR abre no app **Expo Go** (SDK 54), não no Chrome. No terminal tem que aparecer `Using Expo Go`, não `Using development build`.
 
-No simulador iOS: `i` no terminal (precisa [Xcode](https://developer.apple.com/xcode/)).
+- Mesmo Wi-Fi do Mac: `make start`, câmera / Expo Go no QR.
+- Celular no 5G: `make tunnel` (localhost no iPhone é o próprio telefone — por isso o Chrome deu `ERR_CONNECTION_FAILED`).
+- Simulador: `i` no terminal.
+
+A API **não** precisa estar no ar para a tela Convite.
 
 ## Depois, com a API
 

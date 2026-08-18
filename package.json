@@ -5,7 +5,8 @@
   "private": true,
   "scripts": {
     "setup": "node scripts/setup.cjs && npm ci && npx tsc --noEmit && npx expo-doctor",
-    "start": "expo start",
+    "start": "expo start --go",
+    "start:tunnel": "expo start --go --tunnel",
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",

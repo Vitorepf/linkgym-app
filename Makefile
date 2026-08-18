@@ -1,13 +1,13 @@
 .DEFAULT_GOAL := help
 
-.PHONY: help setup start ios android doctor typecheck
+.PHONY: help setup start tunnel ios android doctor typecheck
 
 help:
 	@echo "LinkGym app"
-	@echo "  make setup  Node + .env + deps + doctor (sócio: rode isto primeiro)"
-	@echo "  make start  Expo Go / QR (SDK 54)"
-	@echo "  make ios    simulador iOS (precisa Xcode)"
-	@echo "  make doctor confere versões do Expo"
+	@echo "  make setup   Node + .env + deps + doctor"
+	@echo "  make start   Expo Go + QR (mesmo Wi-Fi do Mac)"
+	@echo "  make tunnel  Expo Go + QR (celular no 4G/5G)"
+	@echo "  make ios     simulador iOS (precisa Xcode)"
 
 setup:
 	node scripts/setup.cjs
@@ -16,9 +16,13 @@ setup:
 	npx expo-doctor
 	@echo ""
 	@echo "Ambiente pronto. Próximo: make start"
+	@echo "Celular fora do Wi-Fi do Mac: make tunnel"
 
 start:
-	npx expo start
+	npx expo start --go
+
+tunnel:
+	npx expo start --go --tunnel
 
 ios:
 	npx expo start --ios
