@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import { useCallback, useState } from "react";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import {
   applyOwnerAttention,
   ownerHome,
@@ -9,10 +9,15 @@ import {
   type Studio,
 } from "../../api";
 import type { OwnerTabNavigation } from "../../nav/types";
-import { FONT, productTheme as T } from "../../theme";
+import { errorInk, productTheme as T } from "../../theme";
+import { AccentCTA } from "../../ui/AccentCTA";
+import { Figure } from "../../ui/Figure";
+import { GhostCTA } from "../../ui/GhostCTA";
+import { IconChevron } from "../../ui/Icons";
 import { Initials } from "../../ui/Initials";
 import { Band, Head, Phone } from "../../ui/Screen";
-import { weekdayLong } from "../../ui/format";
+import { Txt } from "../../ui/Txt";
+import { weekdayLong, weekdayShort } from "../../ui/format";
 
 type Props = {
   token: string;
@@ -21,43 +26,53 @@ type Props = {
   onLeave: () => void;
 };
 
-export function Painel({ token, person, studio, onLeave }: Props) {
+type Row = OwnerHome["attention"][number];
+type Day = OwnerHome["fio"]["week"][number];
+
+/** A tela que o personal abre todo dia.
+ *
+ *  A referência do eixo 2 gasta o maior texto da tela numa saudação com o nome do
+ *  PROFISSIONAL, põe dois atalhos comerciais acima do trabalho e dá a cada linha de aluno
+ *  uma única ação: sair do app. A nota do eixo diz o remédio literalmente — a primeira
+ *  coisa abaixo do nome do personal é a fila curta de quem precisa de um toque hoje, com
+ *  a ação DENTRO da linha. É isso e nada além disso.
+ *
+ *  Saíram daqui: a saudação de 27px, o painel de três números soltos (ALUNOS/PENDÊNCIAS/
+ *  RETORNOS — trivia sem baseline), a barra de progresso da semana acima do trabalho, e o
+ *  atalho "Atenção do dia" que apontava para a fila que agora está NESTA tela.
+ *
+ *  Acento: UM só elemento pinta área — o botão do primeiro da fila. Os outros dois são
+ *  `quiet`. O fio é tinta neutra: a semana não pode competir com a ação de hoje. */
+export function Painel({ token, studio, onLeave }: Props) {
   const navigation = useNavigation<OwnerTabNavigation>();
   const accent = studio.accent_color || T.accentFallback;
   const [data, setData] = useState<OwnerHome | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
 
-  async function refresh() {
-    const payload = await ownerHome(token);
-    setData(payload);
-    setError("");
-  }
-
-  useEffect(() => {
-    let alive = true;
-    (async () => {
-      try {
-        const payload = await ownerHome(token);
-        if (alive) {
-          setData(payload);
-          setError("");
-        }
-      } catch {
-        if (alive) setError("Não deu para abrir o painel.");
-      }
-    })();
-    return () => {
-      alive = false;
-    };
+  const load = useCallback(async () => {
+    try {
+      setData(await ownerHome(token));
+      setError("");
+    } catch {
+      setError("Não deu para abrir o dia.");
+    }
   }, [token]);
+
+  // Aplicar em Atenção do dia esvazia a fila daqui. Recarregar no foco em vez de no
+  // monte é o que mantém as duas telas contando a mesma coisa.
+  useFocusEffect(
+    useCallback(() => {
+      void load();
+    }, [load]),
+  );
 
   async function apply(id: string) {
     if (busy) return;
     setBusy(id);
     try {
       await applyOwnerAttention(token, id);
-      await refresh();
+      await load();
     } catch {
       setError("Não deu para aplicar.");
     } finally {
@@ -65,384 +80,357 @@ export function Painel({ token, person, studio, onLeave }: Props) {
     }
   }
 
-  const attention = data?.attention ?? [];
-  const ratio =
-    data && data.fio.prescribed > 0
-      ? Math.min(1, data.fio.done / data.fio.prescribed)
-      : 0;
+  // O rank é do domínio; a ordem da tela é a dele, não a ordem em que a API respondeu.
+  const queue = data ? [...data.attention].sort((a, b) => a.rank - b.rank) : [];
+  const fio = data ? readFio(data.fio.week) : null;
 
   return (
     <Phone tab>
-      <Head
-        kicker={`${weekdayLong()} · ${data?.student_count ?? 0} alunos`}
-        title={data?.greeting ?? `Bom dia, ${person.name}`}
-        kickerMuted
-        right={<Initials name={person.name} size={38} />}
-      />
+      {/* Sem retrato e sem saudação: a referência gasta o maior texto da tela no nome
+          do PROFISSIONAL, que é a única pessoa que já sabe quem é. Aqui o cabeçalho diz
+          de quem é a casa e que dia é hoje, em uma linha. */}
+      <Head kicker={`${studio.name} · ${weekdayLong()}`} accent={accent} />
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        {error ? <Text style={styles.error}>{error}</Text> : null}
+        {error ? (
+          <Band rule="hair">
+            <Txt role="body" color={errorInk}>
+              {error}
+            </Txt>
+            <View style={styles.retry}>
+              <GhostCTA label="Tentar de novo" onPress={() => void load()} />
+            </View>
+          </Band>
+        ) : null}
+
+        {!data && !error ? (
+          <Band rule="none">
+            <Txt role="body" tone="muted">
+              Abrindo o dia…
+            </Txt>
+          </Band>
+        ) : null}
 
         {data ? (
-          <Band>
-            <Text style={[styles.kicker, { color: accent }]}>
-              Treinos da semana
-            </Text>
-            <View style={styles.heroRow}>
-              <Text style={styles.heroNum}>{data.fio.done}</Text>
-              <Text style={styles.heroOf}>/ {data.fio.prescribed}</Text>
+          <View style={styles.queueHead}>
+            <Txt role="label">
+              {queue.length === 0
+                ? "Ninguém precisa de um toque"
+                : `${queue.length} ${queue.length === 1 ? "precisa" : "precisam"} de um toque hoje`}
+            </Txt>
+            <View style={styles.queueSub}>
+              <Txt role="note" tone="dim" style={styles.queueNote}>
+                {data.student_count} alunos com você
+              </Txt>
+              {/* A mesma fila em modo foco, que conta quantas já saíram. Mora aqui, no
+                  cabeçalho dela, e não numa linha solta no rodapé. */}
+              <Pressable
+                onPress={() =>
+                  navigation.navigate("Atencao", {
+                    token,
+                    studioName: studio.name,
+                    accent,
+                  })
+                }
+                accessibilityRole="button"
+                hitSlop={12}
+                style={styles.queueLink}
+              >
+                <Txt role="label" tone="dim">
+                  Uma por uma
+                </Txt>
+                <IconChevron color={T.muted2} size={14} />
+              </Pressable>
             </View>
-            <View style={styles.track}>
-              <View
-                style={[
-                  styles.trackFill,
-                  { width: `${ratio * 100}%`, backgroundColor: accent },
-                ]}
+          </View>
+        ) : null}
+
+        {data && queue.length === 0 ? (
+          <Band>
+            <Txt role="body" tone="muted">
+              Ninguém sumiu, ninguém marcou dor, ninguém está sem ficha. Pode voltar
+              para a aula.
+            </Txt>
+          </Band>
+        ) : null}
+
+        {queue.map((row, i) => (
+          <View key={row.id} style={[styles.row, i === 0 && styles.rowFirst]}>
+            <Pressable
+              onPress={() =>
+                navigation.navigate("Aluna", {
+                  token,
+                  personId: row.person_id,
+                  studioName: studio.name,
+                  accent,
+                })
+              }
+              accessibilityRole="button"
+              style={styles.who}
+            >
+              <Initials name={row.name} size={i === 0 ? 44 : 34} />
+              <View style={styles.whoCopy}>
+                <Txt role={i === 0 ? "title" : "body"} numberOfLines={2}>
+                  {row.name}
+                </Txt>
+                <Txt role="note" style={styles.why}>
+                  {whyFor(row)}
+                </Txt>
+              </View>
+              <IconChevron color={T.muted2} size={16} />
+            </Pressable>
+            {/* A ação É a decisão: nenhum rótulo genérico cobrindo uma frase repetida
+                logo acima, e nenhum destino fora do app. */}
+            <View style={styles.act}>
+              <AccentCTA
+                label={row.decision || "Aplicar a sugestão"}
+                onPress={() => void apply(row.id)}
+                accent={accent}
+                busy={busy === row.id}
+                disabled={busy !== null && busy !== row.id}
+                check
+                quiet={i !== 0}
               />
-              <View style={styles.trackMark} />
             </View>
-            <View style={styles.metaRow}>
-              <Text style={styles.metaK}>{Math.round(ratio * 100)}% FEITO</Text>
-              <Text style={styles.metaK}>
-                META {data.fio.prescribed}
-              </Text>
-            </View>
-            <View style={styles.stats}>
-              <View>
-                <Text style={styles.statN}>{data.student_count}</Text>
-                <Text style={styles.statL}>ALUNOS</Text>
+          </View>
+        ))}
+
+        {fio ? (
+          <Band pad={false}>
+            <View style={styles.fio}>
+              {/* Número e causa lado a lado: a barra do dia é a decomposição do número,
+                  então ela não pode custar mais uma dobra de rolagem. */}
+              <View style={styles.fioRow}>
+                <Figure
+                  value={fio.value}
+                  unit={`de ${fio.total}`}
+                  label={fio.label}
+                  dir={fio.dir}
+                />
+                <View style={styles.week}>
+                  {fio.days.map((d) => (
+                    <View key={d.key} style={styles.day}>
+                      <View
+                        style={[
+                          styles.bar,
+                          { height: d.height, backgroundColor: T.fill },
+                        ]}
+                      >
+                        <View
+                          style={{
+                            height: d.fill,
+                            backgroundColor: d.today ? T.ink : T.muted,
+                          }}
+                        />
+                      </View>
+                      <Txt
+                        role="label"
+                        tone={d.today ? "ink" : "dim"}
+                        style={styles.dayName}
+                      >
+                        {d.letter}
+                      </Txt>
+                    </View>
+                  ))}
+                </View>
               </View>
-              <View>
-                <Text style={styles.statN}>{attention.length}</Text>
-                <Text style={styles.statL}>PENDÊNCIAS</Text>
-              </View>
-              <View>
-                <Text style={[styles.statN, { color: accent }]}>
-                  {data.unread_returns}
-                </Text>
-                <Text style={styles.statL}>RETORNOS</Text>
-              </View>
+              <Txt role="note" tone="dim" style={styles.fioNote}>
+                {fio.note}
+              </Txt>
             </View>
           </Band>
         ) : null}
 
-        <View style={styles.sectionHead}>
-          <Text style={styles.kickerMuted}>
-            {attention.length === 0
-              ? "Nada pendente"
-              : `${attention.length} ações de hoje`}
-          </Text>
-        </View>
-
-        {attention.length === 0 && data ? (
-          <Band>
-            <Text style={styles.empty}>Pode voltar para a aula.</Text>
-          </Band>
-        ) : null}
-
-        {attention.map((row, i) => (
+        {data ? (
           <Pressable
-            key={row.id}
             onPress={() =>
-              navigation.navigate("Aluna", {
+              navigation.navigate("Retorno", {
                 token,
-                personId: row.person_id,
                 studioName: studio.name,
                 accent,
               })
             }
-            style={[
-              styles.action,
-              i === attention.length - 1 && styles.actionLast,
-            ]}
+            accessibilityRole="button"
+            style={styles.linkRow}
           >
-            <Initials name={row.name} size={34} fill={i === 0} accent={accent} />
-            <View style={styles.actionBody}>
-              <Text style={styles.actionName}>
-                {row.name} · {whyFor(row.reason)}
-              </Text>
-              <Text style={styles.actionWhy}>{row.decision}</Text>
-            </View>
-            <Pressable
-              onPress={() => void apply(row.id)}
-              disabled={busy === row.id}
-              hitSlop={8}
-            >
-              <Text style={[styles.verb, { color: accent }]}>
-                {verbFor(row.reason)}
-              </Text>
-            </Pressable>
+            <Txt role="body" style={styles.linkLabel}>
+              Retornos por ler
+            </Txt>
+            <Txt role="body" tone={data.unread_returns > 0 ? "ink" : "dim"}>
+              {data.unread_returns}
+            </Txt>
+            <IconChevron color={T.muted2} size={16} />
           </Pressable>
-        ))}
-
-        {data ? (
-          <Band>
-            <View style={styles.rowBetween}>
-              <Text style={styles.kickerMuted}>O fio da carteira</Text>
-              <Text style={styles.metaK}>SEG A DOM</Text>
-            </View>
-            <View style={styles.fio}>
-              {data.fio.week.map((d) => {
-                const pct =
-                  d.prescribed === 0 ? 0 : Math.min(1, d.done / d.prescribed);
-                return (
-                  <View key={d.for_date} style={styles.fioCol}>
-                    <View style={styles.fioTrack}>
-                      <View
-                        style={[
-                          styles.fioFill,
-                          {
-                            height: pct === 0 ? 0 : Math.max(4, pct * 76),
-                            backgroundColor: accent,
-                          },
-                        ]}
-                      />
-                    </View>
-                  </View>
-                );
-              })}
-            </View>
-            <Text style={styles.caption}>
-              {data.fio.prescribed} prescritos · {data.fio.done} feitos
-            </Text>
-          </Band>
         ) : null}
 
-        <Pressable
-          onPress={() =>
-            navigation.navigate("Retorno", {
-              token,
-              studioName: studio.name,
-              accent,
-            })
-          }
-          style={styles.linkRow}
-        >
-          <Text style={styles.link}>
-            {data && data.unread_returns > 0
-              ? `Retornos · ${data.unread_returns}`
-              : "Retornos"}
-          </Text>
-          <Text style={styles.chev}>›</Text>
-        </Pressable>
-        <Pressable
-          onPress={() =>
-            navigation.navigate("Atencao", {
-              token,
-              studioName: studio.name,
-              accent,
-            })
-          }
-          style={styles.linkRow}
-        >
-          <Text style={styles.link}>Atenção do dia</Text>
-          <Text style={styles.chev}>›</Text>
-        </Pressable>
-        <Pressable onPress={onLeave} style={styles.linkRow}>
-          <Text style={styles.leave}>Sair</Text>
+        <Pressable onPress={onLeave} accessibilityRole="button" style={styles.leaveRow}>
+          <Txt role="label" tone="dim">
+            Sair
+          </Txt>
         </Pressable>
       </ScrollView>
     </Phone>
   );
 }
 
-function whyFor(reason: string): string {
-  switch (reason) {
-    case "student_stopped":
-      return "parou de treinar";
+/** O motivo em palavra de personal. A API manda o enum; o fixture do gate manda a prosa
+ *  já pronta — o default deixa as duas passarem sem um segundo mapa. */
+function whyFor(row: Row): string {
+  switch (row.reason) {
+    case "student_stopped": {
+      const n = row.days ?? 0;
+      return `${n} ${n === 1 ? "dia" : "dias"} sem treinar`;
+    }
     case "pain_flag":
-      return "marcou dor";
+      return "Marcou dor";
     case "debut":
-      return "estreia pendente";
+      return "Estreia sem ficha";
     case "high_effort":
-      return "última sessão difícil";
+      return "Última sessão difícil";
     default:
-      return reason;
+      return row.reason;
   }
 }
 
-function verbFor(reason: string): string {
-  switch (reason) {
-    case "student_stopped":
-      return "CHAMAR";
-    case "debut":
-      return "MONTAR";
-    case "pain_flag":
-      return "VER";
-    default:
-      return "APLICAR";
+const BAR = 46;
+
+/** Prescrito × feito lido SÓ da série por dia: `fio.prescribed`/`fio.done` do topo são o
+ *  dia de hoje na API e a semana no fixture, e somar a série concorda com os dois.
+ *
+ *  A direção compara hoje contra os outros dias da MESMA semana, e a legenda diz os dois
+ *  números — a marca é conferível na tela, não é enfeite. Sem dia de hoje prescrito não
+ *  há comparação, e aí não se desenha marca nenhuma. */
+function readFio(week: Day[]) {
+  const key = dayKey();
+  const total = week.reduce(
+    (a, d) => ({ p: a.p + d.prescribed, d: a.d + d.done }),
+    { p: 0, d: 0 },
+  );
+  const today = week.find((d) => d.for_date === key);
+  const rest = today
+    ? { p: total.p - today.prescribed, d: total.d - today.done }
+    : { p: 0, d: 0 };
+  const max = Math.max(1, ...week.map((d) => d.prescribed));
+
+  const days = week.map((d) => {
+    const height = Math.round((d.prescribed / max) * BAR);
+    return {
+      key: d.for_date,
+      letter: letterOf(d.for_date),
+      today: d.for_date === key,
+      height,
+      fill: d.prescribed === 0 ? 0 : Math.round((d.done / d.prescribed) * height),
+    };
+  });
+
+  if (today && today.prescribed > 0) {
+    return {
+      value: today.done,
+      total: today.prescribed,
+      label: "Feitos hoje",
+      note:
+        rest.p > 0
+          ? `nos outros dias da semana, ${rest.d} de ${rest.p}`
+          : `primeiro dia prescrito da semana`,
+      dir:
+        rest.p > 0
+          ? dirOf(today.done / today.prescribed, rest.d / rest.p)
+          : undefined,
+      days,
+    };
   }
+  return {
+    value: total.d,
+    total: total.p,
+    label: "Feitos nesta semana",
+    note: "hoje não tem ninguém prescrito",
+    dir: undefined,
+    days,
+  };
+}
+
+function dirOf(a: number, b: number): "up" | "down" | "flat" {
+  const gap = a - b;
+  return Math.abs(gap) < 0.05 ? "flat" : gap > 0 ? "up" : "down";
+}
+
+// ponytail: chave local à mão. `toISOString()` é UTC e viraria o dia às 21h de Brasília,
+// que é exatamente a hora em que o personal ainda está dando aula.
+function dayKey(d = new Date()): string {
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  return `${d.getFullYear()}-${m}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+// D S T Q Q S S é o cabeçalho de calendário que o Brasil inteiro lê. Três letras não
+// cabem na coluna e quebravam em "QU/A".
+function letterOf(iso: string): string {
+  return weekdayShort(new Date(`${iso}T00:00:00`)).slice(0, 1);
 }
 
 const styles = StyleSheet.create({
   scroll: { flex: 1 },
-  content: { flexGrow: 1, paddingBottom: 24 },
-  error: {
-    color: T.accentFallback,
-    fontSize: 14,
+  content: { flexGrow: 1, paddingBottom: 8 },
+  retry: { marginTop: 14, alignSelf: "flex-start" },
+  queueHead: {
     paddingHorizontal: T.pad,
-    paddingTop: 12,
+    paddingTop: 14,
+    paddingBottom: 6,
   },
-  kicker: {
-    fontFamily: FONT,
-    fontSize: 11,
-    letterSpacing: 1.43,
-    textTransform: "uppercase",
-  },
-  kickerMuted: {
-    color: T.muted,
-    fontFamily: FONT,
-    fontSize: 11,
-    letterSpacing: 1.43,
-    textTransform: "uppercase",
-  },
-  heroRow: {
-    flexDirection: "row",
-    alignItems: "baseline",
-    gap: 9,
-    marginTop: 8,
-  },
-  heroNum: {
-    color: T.ink,
-    fontFamily: FONT,
-    fontSize: 52,
-    letterSpacing: -2.4,
-    lineHeight: 52,
-    fontVariant: ["tabular-nums"],
-  },
-  heroOf: {
-    color: T.muted,
-    fontFamily: FONT,
-    fontSize: 22,
-  },
-  track: {
-    height: 8,
-    backgroundColor: T.fill,
-    marginTop: 14,
-    position: "relative",
-  },
-  trackFill: { height: 8 },
-  trackMark: {
-    position: "absolute",
-    right: 0,
-    top: -4,
-    bottom: -4,
-    width: 2,
-    backgroundColor: T.ink,
-  },
-  metaRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 6,
-  },
-  metaK: {
-    color: T.muted,
-    fontFamily: FONT,
-    fontSize: 11,
-    letterSpacing: 1.2,
-  },
-  stats: {
-    flexDirection: "row",
-    gap: 18,
-    marginTop: 16,
-  },
-  statN: {
-    color: T.ink,
-    fontFamily: FONT,
-    fontSize: 17,
-    fontVariant: ["tabular-nums"],
-  },
-  statL: {
-    color: T.muted,
-    fontFamily: FONT,
-    fontSize: 11,
-    letterSpacing: 0.9,
-    marginTop: 2,
-  },
-  sectionHead: {
-    paddingHorizontal: T.pad,
-    paddingTop: 18,
-    paddingBottom: 10,
-  },
-  empty: { color: T.muted, fontSize: 15, lineHeight: 22 },
-  action: {
+  queueSub: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 14,
-    paddingHorizontal: T.pad,
-    paddingVertical: 22,
-    borderTopWidth: 1,
-    borderTopColor: T.hairline,
-  },
-  actionLast: {
-    borderBottomWidth: 2,
-    borderBottomColor: T.divider,
-  },
-  actionBody: { flex: 1, minWidth: 0 },
-  actionName: {
-    color: T.ink,
-    fontFamily: FONT,
-    fontSize: 14,
-  },
-  actionWhy: {
-    color: T.muted,
-    fontSize: 13,
-    marginTop: 2,
-  },
-  verb: {
-    fontFamily: FONT,
-    fontSize: 11,
-    letterSpacing: 1,
-  },
-  rowBetween: {
-    flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "baseline",
     gap: 12,
+    marginTop: 2,
   },
-  fio: {
-    flexDirection: "row",
-    gap: 6,
-    height: 80,
-    alignItems: "flex-end",
-    marginTop: 12,
-  },
-  fioCol: { flex: 1, height: 80, justifyContent: "flex-end" },
-  fioTrack: {
-    height: 80,
-    borderWidth: 1,
-    borderColor: "#4a4645",
-    justifyContent: "flex-end",
-  },
-  fioFill: { width: "100%" },
-  caption: {
-    color: T.muted,
-    fontSize: 13,
-    marginTop: 10,
-  },
-  linkRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+  queueNote: { flexShrink: 1 },
+  queueLink: { flexDirection: "row", alignItems: "center", gap: 6 },
+  row: {
     paddingHorizontal: T.pad,
-    paddingVertical: 22,
+    paddingVertical: 14,
     borderBottomWidth: 1,
     borderBottomColor: T.hairline,
   },
-  link: {
-    color: T.ink,
-    fontFamily: FONT,
-    fontSize: 14,
+  // O primeiro da fila é o único com traço forte em cima: rank por posição e por peso
+  // de traço, nunca por matiz.
+  rowFirst: { borderTopWidth: 2, borderTopColor: T.divider },
+  who: { flexDirection: "row", alignItems: "center", gap: 12 },
+  whoCopy: { flex: 1, minWidth: 0 },
+  why: { marginTop: 2 },
+  act: { marginTop: 10 },
+  fio: { paddingHorizontal: T.pad, paddingVertical: 12 },
+  fioRow: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    justifyContent: "space-between",
+    gap: 18,
   },
-  chev: { color: T.muted2, fontSize: 18 },
-  leave: {
-    color: T.muted,
-    fontFamily: FONT,
-    fontSize: 13,
-    letterSpacing: 1.1,
-    textTransform: "uppercase",
+  fioNote: { marginTop: 10 },
+  week: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: 5,
+    flex: 1,
+    maxWidth: 230,
+  },
+  day: { flex: 1, alignItems: "stretch" },
+  bar: { justifyContent: "flex-end" },
+  dayName: { marginTop: 6, textAlign: "center", letterSpacing: 0.4 },
+  linkRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingHorizontal: T.pad,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: T.hairline,
+  },
+  linkLabel: { flex: 1 },
+  leaveRow: {
+    paddingHorizontal: T.pad,
+    paddingVertical: 14,
   },
 });

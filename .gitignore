@@ -42,3 +42,6 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# gate de UI (tools/*.mjs)
+tools/out/

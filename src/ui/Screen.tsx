@@ -1,7 +1,9 @@
 import { type ReactNode } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-import { FONT, productTheme as T } from "../theme";
+import { accentOn, productTheme as T } from "../theme";
+import { AccentBudget } from "./accent";
+import { Txt } from "./Txt";
 
 type PhoneProps = {
   children?: ReactNode;
@@ -9,10 +11,12 @@ type PhoneProps = {
   tab?: boolean;
 };
 
+/** Toda tela passa por aqui, então o orçamento de acento é montado aqui — nenhuma tela
+ *  precisa lembrar de abrir escopo, e não existe tela fora do orçamento. */
 export function Phone({ children, tab }: PhoneProps) {
   return (
     <SafeAreaView style={styles.phone} edges={tab ? ["top"] : ["top"]}>
-      {children}
+      <AccentBudget>{children}</AccentBudget>
     </SafeAreaView>
   );
 }
@@ -36,18 +40,27 @@ export function Head({
   right,
   children,
 }: HeadProps) {
-  const ac = accent || T.accentFallback;
+  // kicker é TEXTO, não enfeite: 4,5:1 contra o chão, com o matiz do personal preservado.
+  const ac = accentOn(accent || T.accentFallback, T.bg, 4.5);
   return (
     <View style={styles.head}>
       <View style={styles.headRow}>
         <View style={styles.headMain}>
           {kicker ? (
-            <Text style={[styles.kicker, { color: kickerMuted ? T.muted : ac }]}>
+            <Txt role="label" color={kickerMuted ? T.muted : ac}>
               {kicker}
-            </Text>
+            </Txt>
           ) : null}
-          {title ? <Text style={styles.title}>{title}</Text> : null}
-          {body ? <Text style={styles.lede}>{body}</Text> : null}
+          {title ? (
+            <Txt role="title" style={styles.title}>
+              {title}
+            </Txt>
+          ) : null}
+          {body ? (
+            <Txt role="body" tone="muted" style={styles.lede}>
+              {body}
+            </Txt>
+          ) : null}
         </View>
         {right}
       </View>
@@ -73,7 +86,8 @@ export function Band({
   accent,
   pad = true,
 }: BandProps) {
-  const ac = accent || T.accentFallback;
+  const ground = raised ? T.raised : T.bg;
+  const ac = accentOn(accent || T.accentFallback, ground, 3);
   return (
     <View
       style={[
@@ -92,12 +106,7 @@ export function Band({
 export function DockFooter({ children }: { children: ReactNode }) {
   const inset = useSafeAreaInsets();
   return (
-    <View
-      style={[
-        styles.dock,
-        { paddingBottom: Math.max(inset.bottom, 12) + 10 },
-      ]}
-    >
+    <View style={[styles.dock, { paddingBottom: Math.max(inset.bottom, 12) + 10 }]}>
       {children}
     </View>
   );
@@ -113,14 +122,7 @@ type ScreenProps = {
   tab?: boolean;
 };
 
-export function Screen({
-  kicker,
-  title,
-  body,
-  accent,
-  children,
-  tab,
-}: ScreenProps) {
+export function Screen({ kicker, title, body, accent, children, tab }: ScreenProps) {
   return (
     <Phone tab={tab}>
       {kicker || title || body ? (
@@ -132,9 +134,10 @@ export function Screen({
 }
 
 const styles = StyleSheet.create({
+  // O chão é bg — o mesmo de app.json. Antes era surface, e o token bg quase não existia.
   phone: {
     flex: 1,
-    backgroundColor: T.surface,
+    backgroundColor: T.bg,
   },
   head: {
     paddingHorizontal: T.pad,
@@ -150,25 +153,8 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   headMain: { flex: 1, minWidth: 0 },
-  kicker: {
-    fontFamily: FONT,
-    fontSize: 11,
-    letterSpacing: 1.43,
-    textTransform: "uppercase",
-  },
-  title: {
-    color: T.ink,
-    fontFamily: FONT,
-    fontSize: 26,
-    letterSpacing: -0.65,
-    marginTop: 5,
-  },
-  lede: {
-    color: T.muted,
-    fontSize: 13,
-    lineHeight: 20,
-    marginTop: 8,
-  },
+  title: { marginTop: 5 },
+  lede: { marginTop: 8 },
   bandPad: {
     paddingHorizontal: T.pad,
     paddingVertical: 22,

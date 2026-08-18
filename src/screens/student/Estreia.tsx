@@ -7,7 +7,7 @@ import { today, type Person, type Studio, type TodayPayload } from "../../api";
 import { studentHomeTarget } from "../../nav/StudentTabs";
 import type { RootStackParamList } from "../../nav/types";
 import { createSession, newClientId } from "../../offline/sessionQueue";
-import { FONT, productTheme as T } from "../../theme";
+import { accentSet, errorInk, FONT, productTheme as T } from "../../theme";
 import { AccentCTA } from "../../ui/AccentCTA";
 import { plannedSets } from "../../ui/format";
 import { Band, DockFooter, Head, Phone } from "../../ui/Screen";
@@ -27,6 +27,7 @@ export function Estreia({ token, studio, needsCommitment, person }: Props) {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList, "Estreia">>();
   const accent = studio.accent_color || T.accentFallback;
+  const A = accentSet(accent);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [payload, setPayload] = useState<TodayPayload | null>(null);
@@ -130,7 +131,7 @@ export function Estreia({ token, studio, needsCommitment, person }: Props) {
 
         <Band>
           <View style={styles.callout}>
-            <Text style={[styles.callKicker, { color: accent }]}>Estreia</Text>
+            <Text style={[styles.callKicker, { color: A.text }]}>Estreia</Text>
             <Text style={styles.callBody}>Curto de propósito.</Text>
             <Text style={styles.callMuted}>
               A barra já anda quando você começa.
@@ -200,7 +201,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   error: {
-    color: T.accentFallback,
+    color: errorInk,
     fontSize: 14,
     paddingHorizontal: T.pad,
     paddingTop: 16,

@@ -6,7 +6,7 @@ import {
   type ProgressPayload,
   type Studio,
 } from "../../api";
-import { FONT, productTheme as T } from "../../theme";
+import { accentSet, errorInk, FONT, productTheme as T } from "../../theme";
 import { Initials } from "../../ui/Initials";
 import { MetricGrid } from "../../ui/Metric";
 import { Band, Phone } from "../../ui/Screen";
@@ -27,6 +27,7 @@ const BADGES = [
 
 export function Perfil({ token, person, studio, onLeave }: Props) {
   const accent = studio.accent_color || T.accentFallback;
+  const A = accentSet(accent);
   const [data, setData] = useState<ProgressPayload | null>(null);
   const [error, setError] = useState("");
 
@@ -81,12 +82,12 @@ export function Perfil({ token, person, studio, onLeave }: Props) {
                 {
                   label: "Ofensiva atual",
                   value: data.streak.current_count,
-                  hint: "sequência",
+                  note: "sequência",
                 },
                 {
                   label: "Recorde",
                   value: data.streak.current_count,
-                  hint: "você está nele agora",
+                  note: "você está nele agora",
                 },
                 {
                   label: "XP total",
@@ -95,13 +96,13 @@ export function Perfil({ token, person, studio, onLeave }: Props) {
                 {
                   label: "Liga",
                   value: place > 0 ? `${place}º` : "—",
-                  hint: studio.name,
+                  note: studio.name,
                 },
               ]}
             />
 
             <Band>
-              <Text style={[styles.kicker, { color: accent }]}>Quanto falta</Text>
+              <Text style={[styles.kicker, { color: A.text }]}>Quanto falta</Text>
               <View style={styles.goal}>
                 <View style={styles.goalRow}>
                   <Text style={styles.goalName}>Selo · 4 semanas</Text>
@@ -113,7 +114,7 @@ export function Perfil({ token, person, studio, onLeave }: Props) {
                   <View
                     style={[
                       styles.barFill,
-                      { width: `${weekPct * 100}%`, backgroundColor: accent },
+                      { width: `${weekPct * 100}%`, backgroundColor: T.muted },
                     ]}
                   />
                 </View>
@@ -135,13 +136,13 @@ export function Perfil({ token, person, studio, onLeave }: Props) {
                       <View
                         style={[
                           styles.badge,
-                          on ? { backgroundColor: accent } : styles.badgeOff,
+                          on ? styles.badgeOn : styles.badgeOff,
                         ]}
                       >
                         <Text
                           style={[
                             styles.badgeMark,
-                            { color: on ? T.bg : T.muted2 },
+                            { color: on ? T.ink : T.muted2 },
                           ]}
                         >
                           {badge.mark}
@@ -197,7 +198,7 @@ const styles = StyleSheet.create({
   scroll: { flex: 1 },
   content: { flexGrow: 1, paddingBottom: 24 },
   error: {
-    color: T.accentFallback,
+    color: errorInk,
     fontSize: 14,
     paddingHorizontal: T.pad,
     paddingTop: 12,
@@ -254,6 +255,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  badgeOn: { backgroundColor: T.fill },
   badgeOff: {
     borderWidth: 2,
     borderColor: T.fill,

@@ -1,6 +1,7 @@
-import { StyleSheet, Text, View } from "react-native";
-import { FONT, productTheme as T } from "../theme";
+import { StyleSheet, View } from "react-native";
+import { accentFill, productTheme as T } from "../theme";
 import { initials } from "./format";
+import { Txt } from "./Txt";
 
 type Props = {
   name: string;
@@ -10,23 +11,17 @@ type Props = {
 };
 
 export function Initials({ name, accent, fill, size = 34 }: Props) {
-  const ac = accent || T.accentFallback;
+  const ac = accentFill(accent || T.accentFallback);
   return (
     <View
       style={[
         styles.box,
-        { width: size, height: size },
-        fill ? { backgroundColor: ac } : { backgroundColor: T.fill },
+        { width: size, height: size, backgroundColor: fill ? ac.fill : T.fill },
       ]}
     >
-      <Text
-        style={[
-          styles.letters,
-          { fontSize: size < 40 ? 11 : 15, color: fill ? T.bg : T.ink },
-        ]}
-      >
+      <Txt role="label" color={fill ? ac.ink : T.ink} style={styles.letters}>
         {initials(name)}
-      </Text>
+      </Txt>
     </View>
   );
 }
@@ -37,7 +32,5 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     flexShrink: 0,
   },
-  letters: {
-    fontFamily: FONT,
-  },
+  letters: { letterSpacing: 0 },
 });

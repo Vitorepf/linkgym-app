@@ -1,7 +1,8 @@
 import { useNavigation } from "@react-navigation/native";
 import { useEffect, useRef, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, View } from "react-native";
 import {
+  progress,
   putReadiness,
   today,
   type Person,
@@ -16,13 +17,17 @@ import {
   newClientId,
   resumeCursor,
 } from "../../offline/sessionQueue";
-import { FONT, productTheme as T } from "../../theme";
+import { accentSet, errorInk, productTheme as T } from "../../theme";
 import { AccentCTA } from "../../ui/AccentCTA";
-import { ArcGauge } from "../../ui/ArcGauge";
+import { Baseline } from "../../ui/Baseline";
+import { Figure } from "../../ui/Figure";
+import { GhostCTA } from "../../ui/GhostCTA";
 import { IconMark } from "../../ui/Icons";
 import { Initials } from "../../ui/Initials";
+import { MetricGrid } from "../../ui/Metric";
 import { ScaleRow } from "../../ui/ScaleRow";
-import { Band, Phone } from "../../ui/Screen";
+import { Band, Head, Phone } from "../../ui/Screen";
+import { Txt } from "../../ui/Txt";
 import { dateShort, plannedSets, weekdayLong } from "../../ui/format";
 
 type Props = {
@@ -32,10 +37,12 @@ type Props = {
   needsCommitment: boolean;
 };
 
-export function Hoje({ token, person, studio, needsCommitment }: Props) {
+export function Hoje({ token, studio, needsCommitment }: Props) {
   const navigation = useNavigation<StudentTabNavigation>();
   const accent = studio.accent_color || T.accentFallback;
+  const A = accentSet(accent);
   const [data, setData] = useState<TodayPayload | null>(null);
+  const [week, setWeek] = useState<{ for_date: string; score: number }[]>([]);
   const [error, setError] = useState("");
   const [energy, setEnergy] = useState(0);
   const [soreness, setSoreness] = useState(0);
@@ -61,6 +68,14 @@ export function Hoje({ token, person, studio, needsCommitment }: Props) {
       } catch {
         if (alive) setError("Não deu para abrir o hoje.");
       }
+      try {
+        // A série de prontidão da semana já é servida para a Progresso. É dela que saem o
+        // delta e a baseline daqui — números reais, do mesmo corpo. Sem ela, os dois somem.
+        const p = await progress(token);
+        if (alive) setWeek(p.readiness_week);
+      } catch {
+        /* sem histórico: o 84 fica sem delta e sem baseline, e é só isso. */
+      }
       const result = await flush(token);
       if (!alive) return;
       const leftover = await loadCurrent();
@@ -73,14 +88,14 @@ export function Hoje({ token, person, studio, needsCommitment }: Props) {
   }, [token]);
 
   const prescription = data?.prescription ?? null;
-  const ready = inScale(energy) && inScale(soreness) && inScale(sleep);
+  const answered = inScale(energy) && inScale(soreness) && inScale(sleep);
   const dirty =
     energy !== (data?.readiness.energy ?? 0) ||
     soreness !== (data?.readiness.soreness ?? 0) ||
     sleep !== (data?.readiness.sleep ?? 0);
 
   useEffect(() => {
-    if (!ready || !dirty || savingRef.current) return;
+    if (!answered || !dirty || savingRef.current) return;
     savingRef.current = true;
     setSaving(true);
     void (async () => {
@@ -99,7 +114,7 @@ export function Hoje({ token, person, studio, needsCommitment }: Props) {
         setSaving(false);
       }
     })();
-  }, [dirty, energy, ready, sleep, soreness, token]);
+  }, [answered, dirty, energy, sleep, soreness, token]);
 
   async function startLocal() {
     if (!prescription || !data) return;
@@ -163,147 +178,182 @@ export function Hoje({ token, person, studio, needsCommitment }: Props) {
     });
   }
 
+  const now = new Date();
   const score = data?.readiness.score ?? 0;
   const sets = prescription ? plannedSets(prescription.items) : 0;
-  const cta = resume
-    ? "Continuar"
-    : ctaLabel(data?.readiness.label ?? "");
-  const now = new Date();
+  const cta = resume ? "Continuar" : ctaLabel(data?.readiness.label ?? "");
+
+  // Dias ANTERIORES: o de hoje é o próprio 84, e comparar um número consigo mesmo é o
+  // empate que não diz nada.
+  const past = week.filter((d) => d.for_date < isoDay(now));
+  const prev = past.length ? past[past.length - 1].score : null;
+  const mean = past.length
+    ? Math.round(past.reduce((s, d) => s + d.score, 0) / past.length)
+    : null;
+  const dir =
+    prev === null ? undefined : score > prev ? "up" : score < prev ? "down" : "flat";
 
   return (
     <Phone tab>
-      <View style={styles.head}>
-        <View style={styles.headLeft}>
-          <IconMark color={accent} />
-          <Text style={styles.headDate}>
-            {weekdayLong(now)} · {dateShort(now)}
-          </Text>
-        </View>
-        {data ? (
-          <View style={styles.xpRow}>
-            <Text style={styles.xpNum}>{data.streak.current_count}</Text>
-            <Text style={[styles.xpUnit, { color: accent }]}>OFENSIVA</Text>
-            <View style={styles.xpRule} />
-            <Text style={styles.xpNum}>{data.xp_total}</Text>
-            <Text style={styles.xpUnitMuted}>XP</Text>
-          </View>
-        ) : null}
-      </View>
+      <Head
+        kicker={`${weekdayLong(now)} · ${dateShort(now)}`}
+        kickerMuted
+        right={<IconMark color={A.mark} />}
+      />
 
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        {error ? <Text style={styles.error}>{error}</Text> : null}
+        {error ? (
+          <Band rule="none">
+            <Txt role="body" color={errorInk}>
+              {error}
+            </Txt>
+          </Band>
+        ) : null}
 
-        <Band>
-          <Text style={[styles.kicker, { color: accent }]}>
-            Prontidão de hoje
-          </Text>
-          <ArcGauge
-            value={score}
-            label={data?.readiness.label || "Como você está?"}
-            accent={accent}
-          />
-          <View style={styles.gaugeFoot}>
-            <Text style={styles.dim}>0</Text>
-            <Text style={styles.muted}>MÉDIA</Text>
-            <Text style={styles.dim}>100</Text>
-          </View>
-          {saving ? <Text style={styles.saving}>Registrando</Text> : null}
-          <Pressable onPress={() => setOpen((v) => !v)} style={styles.expand}>
-            <Text style={styles.expandLabel}>Sono, carga e dor da semana</Text>
-            <Text style={styles.expandAction}>{open ? "FECHAR" : "ABRIR"}</Text>
-          </Pressable>
-          {open ? (
-            <View style={styles.scales}>
-              <ScaleRow name="Energia" value={energy} onChange={setEnergy} />
-              <ScaleRow name="Dor" value={soreness} onChange={setSoreness} />
-              <ScaleRow name="Sono" value={sleep} onChange={setSleep} />
+        {pendingLocal ? (
+          <Band raised rule="none">
+            <Txt role="body">Sessão neste celular. Sobe quando tiver rede.</Txt>
+          </Band>
+        ) : null}
+
+        {data?.banner ? (
+          <Band raised rule="none">
+            <View style={styles.row}>
+              <Txt role="body" style={styles.grow}>
+                {data.banner.text}
+              </Txt>
+              <Txt role="label" color={A.text}>
+                Agora
+              </Txt>
             </View>
+          </Band>
+        ) : null}
+
+        {/* O primeiro fato da tela é o que o corpo vai fazer hoje. O acento em ÁREA da tela
+            inteira é o botão daqui — e a única outra tinta de acento fica na mesma faixa,
+            para o vermelho ler como UM lugar e não como três magnitudes. */}
+        <Band>
+          <Txt role="label" color={A.text}>
+            Hoje
+          </Txt>
+          <Txt role="title" style={styles.title}>
+            {prescription ? prescription.name : "Ainda não tem nada para hoje."}
+          </Txt>
+          {prescription ? (
+            <>
+              <View style={styles.stats}>
+                <Stat n={prescription.items.length} unit="exercícios" />
+                <Stat n={sets} unit="séries" />
+                <Stat n={prescription.minutes} unit="min" />
+              </View>
+              <View style={styles.cta}>
+                <AccentCTA
+                  label={cta}
+                  meta={
+                    prescription.minutes ? `${prescription.minutes} MIN` : undefined
+                  }
+                  onPress={() => {
+                    void startLocal();
+                  }}
+                  accent={accent}
+                />
+              </View>
+            </>
           ) : null}
         </Band>
 
-        {pendingLocal ? (
-          <View style={[styles.banner, { backgroundColor: accent }]}>
-            <Text style={styles.bannerText}>
-              Sessão neste celular. Sobe quando tiver rede.
-            </Text>
-          </View>
+        {answered ? (
+          <>
+            <Band rule="none">
+              {/* hero, e não value: a MetricGrid abaixo desenha as três causas em `value`,
+                  e número explicado empatado com as causas é empate de hierarquia. */}
+              <Figure
+                value={score}
+                label="Prontidão"
+                role="hero"
+                dir={dir}
+                note={prev === null ? undefined : `${prev} no dia anterior`}
+              />
+              {mean === null ? null : (
+                <Baseline value={mean} label="média da semana" />
+              )}
+            </Band>
+            {/* A causa do 84 com VALOR, na tela e não atrás de um toque. */}
+            <MetricGrid
+              columns={3}
+              cells={[
+                { label: "Energia", value: energy, unit: "/5" },
+                { label: "Dor", value: soreness, unit: "/5" },
+                { label: "Sono", value: sleep, unit: "/5" },
+              ]}
+            />
+          </>
         ) : null}
 
-        {prescription && data?.banner ? (
-          <View style={[styles.banner, { backgroundColor: accent }]}>
-            <Text style={styles.bannerText}>{data.banner.text}</Text>
-            <Text style={styles.bannerMeta}>AGORA</Text>
-          </View>
+        {data?.coach_line ? (
+          <Band rule="hair">
+            <View style={styles.row}>
+              <Initials name={studio.name} size={34} />
+              <View style={styles.grow}>
+                <Txt role="body">{studio.name} revisou sua semana</Txt>
+                <Txt role="note">hoje</Txt>
+              </View>
+            </View>
+            <Txt role="body" tone="muted" style={styles.coachLine}>
+              {data.coach_line}
+            </Txt>
+          </Band>
         ) : null}
 
         <Band>
-          <Text style={styles.kickerMuted}>
-            {prescription
-              ? `Hoje · ${prescription.name}`
-              : "Hoje"}
-          </Text>
-          <Text style={styles.heroTitle}>
-            {prescription
-              ? prescription.name
-              : "Ainda não tem ficha hoje."}
-          </Text>
-          {prescription ? (
-            <View style={styles.stats}>
-              <Text style={styles.stat}>
-                <Text style={styles.statN}>{prescription.items.length}</Text>
-                {"  "}exercícios
-              </Text>
-              <Text style={styles.stat}>
-                <Text style={styles.statN}>{sets}</Text>
-                {"  "}séries
-              </Text>
-              <Text style={styles.stat}>
-                <Text style={styles.statN}>{prescription.minutes}</Text>
-                {"  "}min
-              </Text>
-            </View>
-          ) : null}
-          {prescription ? (
-            <View style={styles.cta}>
-              <AccentCTA
-                label={cta}
-                meta={prescription.minutes ? `${prescription.minutes} MIN` : undefined}
-                onPress={() => {
-                  void startLocal();
-                }}
+          {answered ? (
+            <GhostCTA
+              label={open ? "Fechar" : "Mudou? Ajuste aqui"}
+              onPress={() => setOpen((v) => !v)}
+            />
+          ) : (
+            <Txt role="label">Como você está hoje?</Txt>
+          )}
+          {!answered || open ? (
+            <View style={answered ? styles.scales : undefined}>
+              <ScaleRow
+                name="Energia"
+                value={energy}
+                onChange={setEnergy}
+                accent={accent}
+              />
+              <ScaleRow
+                name="Dor"
+                value={soreness}
+                onChange={setSoreness}
+                accent={accent}
+              />
+              <ScaleRow
+                name="Sono"
+                value={sleep}
+                onChange={setSleep}
                 accent={accent}
               />
             </View>
           ) : null}
+          {saving ? (
+            <Txt role="note" style={styles.saving}>
+              Registrando
+            </Txt>
+          ) : null}
         </Band>
 
-        {prescription && data?.coach_line ? (
-          <Band rule="hair">
-            <View style={styles.coachHead}>
-              <Initials name={studio.name} size={34} />
-              <View style={styles.coachCopy}>
-                <Text style={styles.coachName}>
-                  {studio.name} revisou sua semana
-                </Text>
-                <Text style={styles.muted}>hoje</Text>
-              </View>
-            </View>
-            <Text style={styles.coachLine}>{data.coach_line}</Text>
-          </Band>
-        ) : null}
-
-        {data?.streak.protector_available ? (
+        {/* Ofensiva zerada não vira "OFENSIVA 0" no rodapé: falha é AUSÊNCIA de marca. */}
+        {data && data.streak.current_count > 0 ? (
           <Band rule="none">
-            <View style={styles.prot}>
-              <View style={styles.protMark}>
-                <Text style={styles.protN}>1</Text>
-              </View>
-              <Text style={styles.muted}>Protetor disponível esta semana</Text>
-            </View>
+            <Txt role="label" tone="dim">
+              Ofensiva {data.streak.current_count}
+              {data.streak.protector_available ? " · 1 protetor guardado" : ""}
+            </Txt>
           </Band>
         ) : null}
       </ScrollView>
@@ -311,8 +361,24 @@ export function Hoje({ token, person, studio, needsCommitment }: Props) {
   );
 }
 
+/** O ritmo do dia: numeral com tinta, unidade cinza um corpo abaixo. Não é Figure — a
+ *  Figure começa em 41px e este par mora na linha de apoio, não no topo da hierarquia. */
+function Stat({ n, unit }: { n: number; unit: string }) {
+  return (
+    <View style={styles.stat}>
+      <Txt role="body">{n}</Txt>
+      <Txt role="note">{unit}</Txt>
+    </View>
+  );
+}
+
 function inScale(n: number): boolean {
   return n >= 1 && n <= 5;
+}
+
+function isoDay(d: Date): string {
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }
 
 function ctaLabel(label: string): string {
@@ -323,181 +389,20 @@ function ctaLabel(label: string): string {
 }
 
 const styles = StyleSheet.create({
-  head: {
-    paddingHorizontal: T.pad,
-    paddingTop: 8,
-    paddingBottom: 14,
-    borderBottomWidth: 2,
-    borderBottomColor: T.divider,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 12,
-  },
-  headLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 9,
-    flexShrink: 1,
-  },
-  headDate: {
-    color: T.muted,
-    fontFamily: FONT,
-    fontSize: 11,
-    letterSpacing: 1.43,
-    textTransform: "uppercase",
-  },
   scroll: { flex: 1 },
   content: { flexGrow: 1, paddingBottom: 8 },
-  xpRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    marginTop: 4,
-  },
-  xpNum: {
-    color: T.ink,
-    fontFamily: FONT,
-    fontSize: 15,
-    fontVariant: ["tabular-nums"],
-  },
-  xpUnit: {
-    fontFamily: FONT,
-    fontSize: 11,
-    letterSpacing: 0.9,
-  },
-  xpUnitMuted: {
-    color: T.muted,
-    fontFamily: FONT,
-    fontSize: 11,
-    letterSpacing: 0.9,
-  },
-  xpRule: {
-    width: 2,
-    height: 14,
-    backgroundColor: T.divider,
-  },
-  kicker: {
-    fontFamily: FONT,
-    fontSize: 11,
-    letterSpacing: 1.43,
-    textTransform: "uppercase",
-  },
-  kickerMuted: {
-    color: T.muted,
-    fontFamily: FONT,
-    fontSize: 11,
-    letterSpacing: 1.43,
-    textTransform: "uppercase",
-  },
-  gaugeFoot: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 14,
-    paddingTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: T.hairline,
-  },
-  dim: { color: T.muted2, fontSize: 11, letterSpacing: 1 },
-  muted: { color: T.muted, fontSize: 13 },
-  saving: { color: T.muted, fontSize: 13, marginTop: 8 },
-  expand: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    paddingTop: 15,
-    marginTop: 4,
-    borderTopWidth: 1,
-    borderTopColor: T.hairline,
-  },
-  expandLabel: { flex: 1, color: T.muted, fontSize: 12 },
-  expandAction: {
-    color: T.muted,
-    fontFamily: FONT,
-    fontSize: 11,
-    letterSpacing: 0.8,
-  },
-  scales: { marginTop: 10 },
-  banner: {
-    paddingHorizontal: T.pad,
-    paddingVertical: 22,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  bannerText: {
-    flex: 1,
-    color: T.bg,
-    fontFamily: FONT,
-    fontSize: 13,
-  },
-  bannerMeta: {
-    color: T.bg,
-    fontFamily: FONT,
-    fontSize: 11,
-  },
-  heroTitle: {
-    color: T.ink,
-    fontFamily: FONT,
-    fontSize: 32,
-    letterSpacing: -1.1,
-    lineHeight: 34,
-    marginTop: 6,
-  },
-  stats: {
-    flexDirection: "row",
-    gap: 18,
-    marginTop: 12,
-  },
-  stat: { color: T.muted, fontSize: 13 },
-  statN: {
-    color: T.ink,
-    fontFamily: FONT,
-    fontSize: 15,
-  },
+  row: { flexDirection: "row", alignItems: "center", gap: 12 },
+  grow: { flex: 1, minWidth: 0 },
+  title: { marginTop: 5 },
+  stats: { flexDirection: "row", gap: 20, marginTop: 12 },
+  stat: { flexDirection: "row", alignItems: "flex-end", gap: 6 },
   cta: { marginTop: 18 },
-  coachHead: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  coachCopy: { flex: 1 },
-  coachName: {
-    color: T.ink,
-    fontFamily: FONT,
-    fontSize: 14,
-  },
+  scales: { marginTop: 14 },
+  saving: { marginTop: 10 },
   coachLine: {
-    color: "#d7d3d3",
-    fontSize: 14,
-    lineHeight: 22,
     marginTop: 14,
     paddingTop: 14,
     borderTopWidth: 1,
     borderTopColor: T.hairline,
-  },
-  prot: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
-  protMark: {
-    width: 22,
-    height: 22,
-    borderWidth: 2,
-    borderColor: T.divider,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  protN: {
-    color: "#d7d3d3",
-    fontFamily: FONT,
-    fontSize: 11,
-  },
-  error: {
-    color: T.accentFallback,
-    fontSize: 14,
-    paddingHorizontal: T.pad,
-    paddingTop: 12,
   },
 });

@@ -22,7 +22,7 @@ import { Recorde } from "../screens/student/Recorde";
 import { Retomada } from "../screens/student/Retomada";
 import { Serie } from "../screens/student/Serie";
 import { SobreVoce } from "../screens/student/SobreVoce";
-import { productTheme } from "../theme";
+import { accentOn, productTheme } from "../theme";
 import { OWNER_HOME_ROUTE, OwnerTabs } from "./OwnerTabs";
 import { studentHomeTarget, STUDENT_HOME_ROUTE, StudentTabs } from "./StudentTabs";
 import type { RootStackParamList } from "./types";
@@ -101,7 +101,7 @@ export function Root({
     return (
       <View style={styles.boot}>
         <ActivityIndicator
-          color={studio.accent_color || productTheme.accentFallback}
+          color={accentOn(studio.accent_color || productTheme.accentFallback)}
         />
       </View>
     );

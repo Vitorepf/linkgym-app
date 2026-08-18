@@ -13,7 +13,7 @@ import { productTheme } from "./src/theme";
 
 type Session = { token: string } & MePayload;
 
-const navTheme = {
+export const navTheme = {
   ...DarkTheme,
   colors: {
     ...DarkTheme.colors,
@@ -33,16 +33,17 @@ export default function App() {
   useEffect(() => {
     let alive = true;
     (async () => {
-      const token = await loadToken();
-      if (!token) {
-        if (alive) setBoot(false);
-        return;
-      }
+      // Um único finally por cima de TUDO: nenhum caminho — nem o do cofre — deixa o
+      // app parado no spinner.
       try {
-        const mine = await me(token);
-        if (alive) setSession({ token, ...mine });
-      } catch {
-        await clearToken();
+        const token = await loadToken();
+        if (!token) return;
+        try {
+          const mine = await me(token);
+          if (alive) setSession({ token, ...mine });
+        } catch {
+          await clearToken();
+        }
       } finally {
         if (alive) setBoot(false);
       }

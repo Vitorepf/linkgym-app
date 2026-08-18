@@ -4,7 +4,7 @@ import { Base } from "../screens/owner/Base";
 import { Painel } from "../screens/owner/Painel";
 import { Revisao } from "../screens/owner/Revisao";
 import { productTheme } from "../theme";
-import { RoleTabLabel, roleTabScreenOptions } from "./tabChrome";
+import { dockTabs } from "./tabChrome";
 import type { OwnerTabParamList } from "./types";
 
 export const OWNER_HOME_ROUTE = "Painel" as const;
@@ -22,19 +22,8 @@ export function OwnerTabs({ token, person, studio, onLeave }: Props) {
   const accent = studio.accent_color || productTheme.accentFallback;
 
   return (
-    <Tab.Navigator
-      initialRouteName="Painel"
-      screenOptions={roleTabScreenOptions(accent)}
-    >
-      <Tab.Screen
-        name="Painel"
-        options={{
-          tabBarLabel: ({ color }) => (
-            <RoleTabLabel label="PAINEL" color={color} />
-          ),
-          tabBarAccessibilityLabel: "Painel",
-        }}
-      >
+    <Tab.Navigator initialRouteName="Painel" {...dockTabs(accent)}>
+      <Tab.Screen name="Painel">
         {() => (
           <Painel
             token={token}
@@ -44,15 +33,7 @@ export function OwnerTabs({ token, person, studio, onLeave }: Props) {
           />
         )}
       </Tab.Screen>
-      <Tab.Screen
-        name="Semana"
-        options={{
-          tabBarLabel: ({ color }) => (
-            <RoleTabLabel label="SEMANA" color={color} />
-          ),
-          tabBarAccessibilityLabel: "Semana",
-        }}
-      >
+      <Tab.Screen name="Semana">
         {() => (
           <Revisao
             token={token}
@@ -62,15 +43,7 @@ export function OwnerTabs({ token, person, studio, onLeave }: Props) {
           />
         )}
       </Tab.Screen>
-      <Tab.Screen
-        name="Fichas"
-        options={{
-          tabBarLabel: ({ color }) => (
-            <RoleTabLabel label="FICHAS" color={color} />
-          ),
-          tabBarAccessibilityLabel: "Fichas",
-        }}
-      >
+      <Tab.Screen name="Fichas">
         {() => (
           <Base
             token={token}

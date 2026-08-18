@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { putCommitment, type Studio } from "../../api";
-import { FONT, productTheme as T } from "../../theme";
+import { accentSet, errorInk, FONT, productTheme as T } from "../../theme";
 import { AccentCTA } from "../../ui/AccentCTA";
 import { Choice } from "../../ui/Choice";
 import { Initials } from "../../ui/Initials";
@@ -19,6 +19,7 @@ const DAYS: Days[] = [2, 3, 4, 5, 6];
 
 export function Compromisso({ token, studio, onDone }: Props) {
   const accent = studio.accent_color || T.accentFallback;
+  const A = accentSet(accent, T.raised);
   const [days, setDays] = useState<Days | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -84,7 +85,7 @@ export function Compromisso({ token, studio, onDone }: Props) {
           <View style={styles.cardHead}>
             <Initials name={studio.name} accent={accent} fill size={34} />
             <View style={styles.cardCopy}>
-              <Text style={[styles.cardKicker, { color: accent }]}>
+              <Text style={[styles.cardKicker, { color: A.text }]}>
                 Quem vai saber
               </Text>
               <Text style={styles.cardName}>{studio.name}</Text>
@@ -158,7 +159,7 @@ const styles = StyleSheet.create({
     textAlign: "left",
   },
   error: {
-    color: T.accentFallback,
+    color: errorInk,
     fontSize: 14,
     paddingHorizontal: T.pad,
     paddingTop: 8,

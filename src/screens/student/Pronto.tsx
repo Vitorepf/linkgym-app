@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { ScrollView, StyleSheet, Text } from "react-native";
 import { today, type Person, type Studio } from "../../api";
-import { FONT, productTheme as T } from "../../theme";
+import { accentSet, FONT, productTheme as T } from "../../theme";
 import { AccentCTA } from "../../ui/AccentCTA";
 import { Band, DockFooter, Head, Phone } from "../../ui/Screen";
 
@@ -20,6 +20,7 @@ const BEATS = [
 
 export function Pronto({ token, person, studio, onContinue }: Props) {
   const accent = studio.accent_color || T.accentFallback;
+  const A = accentSet(accent);
   const name = person.name.trim() || "você";
   const [hasFicha, setHasFicha] = useState(false);
 
@@ -48,7 +49,7 @@ export function Pronto({ token, person, studio, onContinue }: Props) {
       >
         {BEATS.map((beat) => (
           <Band key={beat.kicker}>
-            <Text style={[styles.beatKicker, { color: accent }]}>
+            <Text style={[styles.beatKicker, { color: A.text }]}>
               {beat.kicker}
             </Text>
             <Text style={styles.beatLine}>{beat.line(studio.name)}</Text>

@@ -5,7 +5,7 @@ import { Hoje } from "../screens/student/Hoje";
 import { Perfil } from "../screens/student/Perfil";
 import { Progresso } from "../screens/student/Progresso";
 import { productTheme } from "../theme";
-import { roleTabScreenOptions } from "./tabChrome";
+import { dockTabs } from "./tabChrome";
 import type { StudentTabParamList } from "./types";
 
 export const STUDENT_HOME_ROUTE = "Hoje" as const;
@@ -35,14 +35,8 @@ export function StudentTabs({
   const accent = studio.accent_color || productTheme.accentFallback;
 
   return (
-    <Tab.Navigator
-      initialRouteName="Hoje"
-      screenOptions={roleTabScreenOptions(accent)}
-    >
-      <Tab.Screen
-        name="Hoje"
-        options={{ tabBarAccessibilityLabel: "Hoje" }}
-      >
+    <Tab.Navigator initialRouteName="Hoje" {...dockTabs(accent)}>
+      <Tab.Screen name="Hoje">
         {() => (
           <Hoje
             token={token}
@@ -52,24 +46,15 @@ export function StudentTabs({
           />
         )}
       </Tab.Screen>
-      <Tab.Screen
-        name="MinhaFicha"
-        options={{ tabBarAccessibilityLabel: "Ficha" }}
-      >
+      <Tab.Screen name="MinhaFicha">
         {() => (
           <FichaTab token={token} person={person} studio={studio} />
         )}
       </Tab.Screen>
-      <Tab.Screen
-        name="Progresso"
-        options={{ tabBarAccessibilityLabel: "Progresso" }}
-      >
+      <Tab.Screen name="Progresso">
         {() => <Progresso token={token} person={person} studio={studio} />}
       </Tab.Screen>
-      <Tab.Screen
-        name="Perfil"
-        options={{ tabBarAccessibilityLabel: "Perfil" }}
-      >
+      <Tab.Screen name="Perfil">
         {() => (
           <Perfil
             token={token}

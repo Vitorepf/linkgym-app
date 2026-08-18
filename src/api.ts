@@ -289,6 +289,8 @@ export type OwnerReturn = {
   name: string;
   effort: number;
   records: FinishRecord[];
+  /** Trocas feitas no meio da sessão. Avisam o personal; não quebram a ofensiva. */
+  swaps?: { from: string; to: string }[];
   created_at: string;
 };
 

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { runOnJS, useSharedValue } from "react-native-reanimated";
@@ -16,14 +16,19 @@ import {
   type LocalSession,
 } from "../../offline/sessionQueue";
 import type { RootStackParamList } from "../../nav/types";
-import { FONT, productTheme as T } from "../../theme";
+import { accentSet, productTheme as T } from "../../theme";
 import { AccentCTA } from "../../ui/AccentCTA";
+import { Figure } from "../../ui/Figure";
 import { GhostCTA } from "../../ui/GhostCTA";
 import { HoldTick } from "../../ui/HoldTick";
 import { IconPlay } from "../../ui/Icons";
 import { Band, DockFooter, Phone } from "../../ui/Screen";
+import { Txt } from "../../ui/Txt";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Serie">;
+
+/** formatKg arredonda no meio quilo e devolve ponto; a tela fala português. */
+const kgOf = (n: number) => formatKg(n).replace(".", ",");
 
 export function Serie({ navigation, route }: Props) {
   const {
@@ -35,6 +40,7 @@ export function Serie({ navigation, route }: Props) {
     itemIndex,
     setIndex,
   } = route.params;
+  const A = accentSet(accent, T.raised);
   const item = items[itemIndex];
   const [load, setLoad] = useState(item?.load_kg ?? 0);
   const [reps, setReps] = useState(item ? defaultReps(item.planned_reps) : 10);
@@ -79,7 +85,7 @@ export function Serie({ navigation, route }: Props) {
 
   const rest = item?.rest_seconds ?? 90;
   const last = nextAfter(items, itemIndex, setIndex) === "done";
-  const kg = useMemo(() => formatKg(load).replace(".", ","), [load]);
+  const kg = kgOf(load);
   const [busy, setBusy] = useState(false);
 
   async function onDone() {
@@ -115,7 +121,9 @@ export function Serie({ navigation, route }: Props) {
     return (
       <Phone>
         <Band>
-          <Text style={styles.missing}>Esta série não está na ficha.</Text>
+          <Txt role="body" tone="muted">
+            Esta série não está na ficha.
+          </Txt>
         </Band>
       </Phone>
     );
@@ -123,29 +131,37 @@ export function Serie({ navigation, route }: Props) {
 
   const sets = item.planned_sets;
   const doneSets = session?.sets.filter((s) => s.prescription_item_id === item.id) ?? [];
+  // A baseline desta tela é REAL e vive na prescrição: a carga que o personal pediu.
+  // A direção sai da FORMA (TrendMark), nunca de matiz.
+  // Sem diferença não há direção, e marca sem informação é sujeira: nada é desenhado.
+  const asked = item.load_kg;
+  const dir = load > asked ? "up" : load < asked ? "down" : undefined;
 
   return (
     <Phone>
       <View style={styles.top}>
         <View style={styles.topRow}>
-          <Text style={styles.topKicker}>
+          <Txt role="label">
             Exercício {itemIndex + 1} de {items.length}
-          </Text>
-          <Text style={styles.topKicker}>
+          </Txt>
+          <Txt role="label">
             Série {setIndex} de {sets}
-          </Text>
+          </Txt>
         </View>
         <View style={styles.ticks}>
           {Array.from({ length: sets }, (_, i) => {
             const n = i + 1;
+            // A série de agora é mais ALTA, não só de outra cor: na marca 13 o acento
+            // encosta no traço neutro, e a forma continua dizendo onde o aluno está.
             return (
               <View
                 key={n}
                 style={[
                   styles.tick,
+                  n === setIndex && styles.tickNow,
                   {
                     backgroundColor:
-                      n < setIndex ? T.ink : n === setIndex ? accent : T.divider,
+                      n < setIndex ? T.ink : n === setIndex ? A.mark : T.divider,
                   },
                 ]}
               />
@@ -155,34 +171,38 @@ export function Serie({ navigation, route }: Props) {
       </View>
 
       <View style={styles.ex}>
-        <View style={styles.thumb} />
-        <View style={styles.exCopy}>
-          <Text style={styles.exName} numberOfLines={1}>
-            {item.name}
-          </Text>
-          <Text style={styles.exMeta}>
-            {item.planned_reps} · descanso {rest}s
-          </Text>
-          <Pressable
-            onPress={() =>
-              navigation.navigate("ComoFazer", {
-                item,
-                items,
-                studioName,
-                accent,
-                token,
-                prescriptionId: route.params.prescriptionId,
-              })
-            }
-            style={styles.how}
-            hitSlop={8}
-          >
-            <IconPlay color={accent} />
-            <Text style={[styles.howText, { color: accent }]}>
-              VER COMO FAZER
-            </Text>
-          </Pressable>
-        </View>
+        <Txt role="title" numberOfLines={1}>
+          {item.name}
+        </Txt>
+        <Txt role="body" style={styles.rhythm}>
+          {sets}
+          <Txt role="body" tone="muted">
+            {"  "}séries ·{"  "}
+          </Txt>
+          {item.planned_reps}
+          <Txt role="body" tone="muted">
+            {"  "}reps
+          </Txt>
+        </Txt>
+        <Pressable
+          onPress={() =>
+            navigation.navigate("ComoFazer", {
+              item,
+              items,
+              studioName,
+              accent,
+              token,
+              prescriptionId: route.params.prescriptionId,
+            })
+          }
+          style={styles.how}
+          hitSlop={12}
+        >
+          <IconPlay color={A.mark} />
+          <Txt role="label" color={A.text}>
+            Ver como fazer
+          </Txt>
+        </Pressable>
       </View>
 
       <GestureDetector gesture={pan}>
@@ -190,14 +210,14 @@ export function Serie({ navigation, route }: Props) {
           style={styles.loadBlock}
           accessibilityLabel={`${kg} quilogramas. Arrasta para mudar a carga.`}
         >
-          <Text style={styles.setKicker}>
-            Série {setIndex} de {sets}
-          </Text>
-          <View style={styles.loadRow}>
-            <Text style={styles.load}>{kg}</Text>
-            <Text style={styles.unit}>kg</Text>
-          </View>
-          <Text style={styles.repsLine}>{reps} repetições</Text>
+          <Figure
+            role="mega"
+            value={kg}
+            unit="kg"
+            label="Carga"
+            dir={dir}
+            note={`${studioName} pediu ${kgOf(asked)} kg`}
+          />
           <View style={styles.stepRow}>
             <View style={styles.step}>
               <HoldTick
@@ -217,7 +237,14 @@ export function Serie({ navigation, route }: Props) {
         </View>
       </GestureDetector>
 
-      <ScrollView style={styles.list} showsVerticalScrollIndicator={false}>
+      {/* ponytail: contentContainer com flexGrow + linhas flex — as séries ESTICAM para
+          ocupar o terço de baixo em vez de deixar um vazio que não separa nada, e a
+          rolagem só entra quando não cabem. Teto: acima de ~7 séries a lista rola. */}
+      <ScrollView
+        style={styles.list}
+        contentContainerStyle={styles.listBody}
+        showsVerticalScrollIndicator={false}
+      >
         {Array.from({ length: sets }, (_, i) => {
           const n = i + 1;
           const logged = doneSets.find((s) => s.set_index === n);
@@ -228,33 +255,22 @@ export function Serie({ navigation, route }: Props) {
               key={n}
               style={[
                 styles.setRow,
-                current && { backgroundColor: T.raised, borderLeftColor: accent },
+                current && { backgroundColor: T.raised, borderLeftColor: A.mark },
               ]}
             >
-              <Text
-                style={[
-                  styles.setMark,
-                  { color: done ? T.ok : current ? accent : T.muted },
-                ]}
-              >
-                {done ? "✓" : current ? "·" : ""}
-              </Text>
-              <Text style={styles.setN}>{n}</Text>
-              <Text style={styles.setLabel}>
-                {logged
-                  ? `${formatKg(logged.load_kg).replace(".", ",")} kg × ${logged.reps}`
-                  : current
-                    ? `${kg} kg × ${reps}`
-                    : `${formatKg(item.load_kg).replace(".", ",")} kg`}
-              </Text>
-              <Text
-                style={[
-                  styles.setStatus,
-                  { color: done ? T.ok : current ? accent : T.muted2 },
-                ]}
-              >
-                {done ? "FEITA" : current ? "AGORA" : "—"}
-              </Text>
+              <Txt role="value" tone={done || current ? "ink" : "dim"}>
+                {n}
+              </Txt>
+              {/* Série que ainda não aconteceu é AUSÊNCIA de marca — não marca de falha. */}
+              {logged ? (
+                <Txt role="body" tone="muted">
+                  {kgOf(logged.load_kg)} kg × {logged.reps}
+                </Txt>
+              ) : current ? (
+                <Txt role="body">
+                  {kg} kg × {reps}
+                </Txt>
+              ) : null}
             </View>
           );
         })}
@@ -262,8 +278,10 @@ export function Serie({ navigation, route }: Props) {
 
       {item.notes ? (
         <Band raised rule="none">
-          <Text style={styles.noteKicker}>{studioName} disse</Text>
-          <Text style={styles.note}>{item.notes}</Text>
+          <Txt role="label">{studioName} disse</Txt>
+          <Txt role="body" style={styles.note}>
+            {item.notes}
+          </Txt>
         </Band>
       ) : null}
 
@@ -284,6 +302,7 @@ export function Serie({ navigation, route }: Props) {
           <View style={styles.dockCta}>
             <AccentCTA
               label="Fiz essa série"
+              meta={`${rest} S`}
               onPress={() => {
                 void onDone();
               }}
@@ -309,147 +328,51 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
   },
-  topKicker: {
-    color: T.muted,
-    fontFamily: FONT,
-    fontSize: 11,
-    letterSpacing: 1.43,
-    textTransform: "uppercase",
-  },
-  ticks: { flexDirection: "row", gap: 4, marginTop: 10 },
-  tick: { flex: 1, height: 5 },
+  ticks: { flexDirection: "row", gap: 4, marginTop: 12, alignItems: "flex-end" },
+  tick: { flex: 1, height: 4 },
+  tickNow: { height: 10 },
   ex: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 14,
     paddingHorizontal: T.pad,
-    paddingVertical: 22,
+    paddingTop: 16,
+    paddingBottom: 18,
     borderBottomWidth: 2,
     borderBottomColor: T.divider,
   },
-  thumb: {
-    width: 76,
-    height: 76,
-    backgroundColor: "#201e1d",
-  },
-  exCopy: { flex: 1, minWidth: 0 },
-  exName: {
-    color: T.ink,
-    fontFamily: FONT,
-    fontSize: 22,
-    letterSpacing: -0.5,
-  },
-  exMeta: {
-    color: T.muted,
-    fontSize: 13,
-    marginTop: 4,
-  },
+  rhythm: { marginTop: 4 },
   how: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 7,
-    paddingTop: 8,
-  },
-  howText: {
-    fontFamily: FONT,
-    fontSize: 11,
-    letterSpacing: 1.1,
+    gap: 8,
+    paddingTop: 12,
   },
   loadBlock: {
     paddingHorizontal: T.pad,
-    paddingTop: 22,
-    paddingBottom: 20,
+    paddingTop: 18,
+    paddingBottom: 18,
     borderBottomWidth: 2,
     borderBottomColor: T.divider,
   },
-  setKicker: {
-    color: T.muted,
-    fontFamily: FONT,
-    fontSize: 11,
-    letterSpacing: 1.43,
-    textTransform: "uppercase",
-  },
-  loadRow: {
-    flexDirection: "row",
-    alignItems: "baseline",
-    gap: 16,
-    marginTop: 8,
-  },
-  load: {
-    color: T.ink,
-    fontFamily: FONT,
-    fontSize: 84,
-    letterSpacing: -5,
-    lineHeight: 72,
-    fontVariant: ["tabular-nums"],
-  },
-  unit: {
-    color: T.muted,
-    fontFamily: FONT,
-    fontSize: 20,
-  },
-  repsLine: {
-    color: T.ink,
-    fontFamily: FONT,
-    fontSize: 28,
-    letterSpacing: -0.8,
-    marginTop: 8,
-  },
-  stepRow: { flexDirection: "row", gap: 10, marginTop: 20 },
+  stepRow: { flexDirection: "row", gap: 10, marginTop: 18 },
   step: {
     flex: 1,
     borderWidth: 2,
     borderColor: T.divider,
   },
   list: { flex: 1 },
+  listBody: { flexGrow: 1 },
   setRow: {
+    flex: 1,
+    minHeight: 62,
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    justifyContent: "space-between",
     paddingHorizontal: T.pad,
-    paddingVertical: 13,
     borderBottomWidth: 1,
     borderBottomColor: T.hairline,
     borderLeftWidth: 3,
     borderLeftColor: "transparent",
   },
-  setMark: {
-    width: 18,
-    fontFamily: FONT,
-    fontSize: 13,
-  },
-  setN: {
-    flex: 1,
-    color: T.ink,
-    fontFamily: FONT,
-    fontSize: 14,
-  },
-  setLabel: {
-    color: T.ink,
-    fontSize: 14,
-    fontVariant: ["tabular-nums"],
-  },
-  setStatus: {
-    width: 72,
-    textAlign: "right",
-    fontFamily: FONT,
-    fontSize: 10,
-    letterSpacing: 1,
-  },
-  noteKicker: {
-    color: T.muted,
-    fontFamily: FONT,
-    fontSize: 11,
-    letterSpacing: 1.43,
-    textTransform: "uppercase",
-  },
-  note: {
-    color: "#d7d3d3",
-    fontSize: 14,
-    lineHeight: 21,
-    marginTop: 6,
-  },
+  note: { marginTop: 6 },
   dockRow: { flexDirection: "row", gap: 10, alignItems: "stretch" },
   dockCta: { flex: 1 },
-  missing: { color: T.muted, fontSize: 16 },
 });

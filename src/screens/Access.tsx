@@ -10,7 +10,7 @@ import {
   View,
 } from "react-native";
 import { ApiError, requestCode, verify, type Person, type Studio } from "../api";
-import { FONT, productTheme as T } from "../theme";
+import { errorInk, FONT, productTheme as T } from "../theme";
 import { AccentCTA } from "../ui/AccentCTA";
 import { GhostCTA } from "../ui/GhostCTA";
 import { Initials } from "../ui/Initials";
@@ -242,7 +242,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   error: {
-    color: T.accentFallback,
+    color: errorInk,
     marginTop: 8,
     fontSize: 14,
   },

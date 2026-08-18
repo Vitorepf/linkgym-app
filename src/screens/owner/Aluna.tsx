@@ -4,7 +4,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { ownerStudent, type OwnerStudent } from "../../api";
 import type { RootStackParamList } from "../../nav/types";
-import { FONT, productTheme as T } from "../../theme";
+import { accentSet, errorInk, FONT, productTheme as T } from "../../theme";
 import { AccentCTA } from "../../ui/AccentCTA";
 import { Initials } from "../../ui/Initials";
 import { MetricGrid } from "../../ui/Metric";
@@ -15,6 +15,7 @@ type Props = NativeStackScreenProps<RootStackParamList, "Aluna">;
 
 export function Aluna({ navigation, route }: Props) {
   const { token, personId, accent } = route.params;
+  const A = accentSet(accent, T.raised);
   const [card, setCard] = useState<OwnerStudent | null>(null);
   const [error, setError] = useState("");
 
@@ -54,7 +55,7 @@ export function Aluna({ navigation, route }: Props) {
         {
           label: "Ofensiva",
           value: card.streak.current_count,
-          hint: effort || undefined,
+          note: effort || undefined,
         },
         {
           label: "Cargas",
@@ -64,7 +65,7 @@ export function Aluna({ navigation, route }: Props) {
           ? {
               label: topLoad.exercise_name,
               value: formatKg(topLoad.load_kg),
-              hint: "kg",
+              unit: "kg",
             }
           : { label: "Carga", value: "—" },
       ]
@@ -95,7 +96,7 @@ export function Aluna({ navigation, route }: Props) {
             <MetricGrid cells={metrics} columns={3} />
 
             <Band raised accentTop accent={accent}>
-              <Text style={[styles.kicker, { color: accent }]}>
+              <Text style={[styles.kicker, { color: A.text }]}>
                 Ação sugerida
               </Text>
               <View style={styles.cta}>
@@ -165,7 +166,7 @@ const styles = StyleSheet.create({
   scroll: { flex: 1 },
   content: { flexGrow: 1, paddingBottom: 24 },
   error: {
-    color: T.accentFallback,
+    color: errorInk,
     fontSize: 14,
     paddingHorizontal: T.pad,
     paddingTop: 12,

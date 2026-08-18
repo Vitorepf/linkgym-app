@@ -4,7 +4,7 @@ import type { FinishRecord } from "../../api";
 import { studentHomeTarget } from "../../nav/StudentTabs";
 import type { RootStackParamList } from "../../nav/types";
 import { formatKg } from "../../offline/sessionQueue";
-import { FONT, productTheme as T } from "../../theme";
+import { accentSet, FONT, productTheme as T } from "../../theme";
 import { AccentCTA } from "../../ui/AccentCTA";
 import { DockFooter, Phone } from "../../ui/Screen";
 
@@ -12,14 +12,15 @@ type Props = NativeStackScreenProps<RootStackParamList, "Recorde">;
 
 export function Recorde({ navigation, route }: Props) {
   const { accent, records, needsCommitment } = route.params;
+  const A = accentSet(accent);
   const row = records[0];
   const previous = olderLoad(row);
 
   return (
     <Phone>
       {row ? (
-        <View style={[styles.hero, { backgroundColor: accent }]}>
-          <Text style={styles.kicker}>Recorde</Text>
+        <View style={styles.hero}>
+          <Text style={[styles.kicker, { color: A.text }]}>Recorde</Text>
           <Text
             style={styles.load}
             accessibilityLabel={`${formatKg(row.load_kg)} quilos`}
@@ -70,7 +71,6 @@ const styles = StyleSheet.create({
     paddingBottom: 28,
   },
   kicker: {
-    color: T.bg,
     fontFamily: FONT,
     fontSize: 11,
     letterSpacing: 1.43,
@@ -79,7 +79,7 @@ const styles = StyleSheet.create({
     textAlign: "left",
   },
   load: {
-    color: T.bg,
+    color: T.ink,
     fontFamily: FONT,
     fontSize: 88,
     letterSpacing: -2,
@@ -89,7 +89,7 @@ const styles = StyleSheet.create({
     textAlign: "left",
   },
   unit: {
-    color: T.bg,
+    color: T.muted,
     fontFamily: FONT,
     fontSize: 16,
     letterSpacing: 1.2,
@@ -99,7 +99,7 @@ const styles = StyleSheet.create({
     textAlign: "left",
   },
   previous: {
-    color: T.bg,
+    color: T.muted,
     fontSize: 22,
     marginTop: 12,
     textDecorationLine: "line-through",
@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
     textAlign: "left",
   },
   copy: {
-    color: T.bg,
+    color: T.ink,
     fontSize: 16,
     lineHeight: 22,
     marginTop: 28,

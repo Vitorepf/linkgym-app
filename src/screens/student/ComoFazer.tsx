@@ -2,7 +2,7 @@ import { ScrollView, StyleSheet, Text, View } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { cuesFor } from "../../exerciseCues";
 import type { RootStackParamList } from "../../nav/types";
-import { FONT, productTheme as T } from "../../theme";
+import { accentSet, FONT, productTheme as T } from "../../theme";
 import { AccentCTA } from "../../ui/AccentCTA";
 import { Band, DockFooter, Head, Phone } from "../../ui/Screen";
 import { MaquinaOcupada } from "./MaquinaOcupada";
@@ -11,6 +11,7 @@ type Props = NativeStackScreenProps<RootStackParamList, "ComoFazer">;
 
 export function ComoFazer({ navigation, route }: Props) {
   const { item, items, studioName, accent, token, prescriptionId } = route.params;
+  const A = accentSet(accent);
   const { cues, error } = cuesFor(item.name);
   const shown = cues.filter((cue) => cue.length > 0);
   const place = item.notes?.trim()
@@ -39,7 +40,7 @@ export function ComoFazer({ navigation, route }: Props) {
         {shown.length > 0
           ? shown.map((cue, i) => (
               <View key={cue} style={styles.cueRow}>
-                <Text style={[styles.cueIndex, { color: accent }]}>{i + 1}</Text>
+                <Text style={[styles.cueIndex, { color: A.text }]}>{i + 1}</Text>
                 <Text style={styles.cue}>{cue}</Text>
               </View>
             ))

@@ -1,5 +1,8 @@
-import { Pressable, StyleSheet, Text } from "react-native";
-import { FONT, productTheme as T } from "../theme";
+import { Pressable, StyleSheet } from "react-native";
+import Animated from "react-native-reanimated";
+import { accentFill, productTheme as T, withAlpha } from "../theme";
+import { useTone } from "./motion";
+import { Txt } from "./Txt";
 
 type Props = {
   label: string;
@@ -10,21 +13,30 @@ type Props = {
 };
 
 export function Choice({ label, selected, onPress, flex, accent }: Props) {
-  const ac = accent || T.accentFallback;
+  const { fill, ink } = accentFill(accent || T.accentFallback);
+  // Estado é saturação no mesmo elemento: o fundo vem do nada até o acento, e o rótulo
+  // fica exatamente onde estava. Alfa, e não T.bg, porque a caixa pousa em chão variável.
+  const tone = useTone(selected, withAlpha(fill, 0), fill);
+
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
       accessibilityState={{ selected }}
-      style={[
-        styles.box,
-        flex && styles.flex,
-        selected
-          ? { backgroundColor: ac, borderColor: ac }
-          : styles.off,
-      ]}
+      style={flex && styles.flex}
     >
-      <Text style={[styles.label, selected && styles.labelOn]}>{label}</Text>
+      <Animated.View
+        style={[
+          styles.box,
+          flex && styles.flexBox,
+          tone,
+          { borderColor: selected ? fill : T.divider },
+        ]}
+      >
+        <Txt role="body" color={selected ? ink : T.ink}>
+          {label}
+        </Txt>
+      </Animated.View>
     </Pressable>
   );
 }
@@ -35,22 +47,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     justifyContent: "center",
     borderWidth: 2,
-    borderColor: T.divider,
-    backgroundColor: "transparent",
   },
-  flex: { flex: 1, paddingHorizontal: 0, alignItems: "center" },
-  off: {
-    backgroundColor: "transparent",
-    borderColor: T.divider,
-  },
-  label: {
-    color: T.ink,
-    fontFamily: FONT,
-    fontSize: 15,
-    letterSpacing: -0.2,
-    textAlign: "left",
-  },
-  labelOn: {
-    color: T.bg,
-  },
+  flex: { flex: 1 },
+  flexBox: { paddingHorizontal: 0, alignItems: "center" },
 });

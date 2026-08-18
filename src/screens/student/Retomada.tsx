@@ -12,7 +12,7 @@ import {
 import { studentHomeTarget, STUDENT_HOME_ROUTE } from "../../nav/StudentTabs";
 import type { RootStackParamList } from "../../nav/types";
 import { createSession, newClientId } from "../../offline/sessionQueue";
-import { FONT, productTheme as T } from "../../theme";
+import { errorInk, FONT, productTheme as T } from "../../theme";
 import { AccentCTA } from "../../ui/AccentCTA";
 import { GhostCTA } from "../../ui/GhostCTA";
 import { Initials } from "../../ui/Initials";
@@ -147,7 +147,7 @@ const styles = StyleSheet.create({
     borderTopColor: T.hairline,
   },
   error: {
-    color: T.accentFallback,
+    color: errorInk,
     fontSize: 14,
     paddingHorizontal: T.pad,
     paddingTop: 16,

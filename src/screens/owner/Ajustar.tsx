@@ -1,25 +1,52 @@
 import { useEffect, useRef, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { patchPrescriptionItem, type DraftItem } from "../../api";
 import type { RootStackParamList } from "../../nav/types";
-import { FONT, productTheme as T } from "../../theme";
+import { accentSet, errorInk, productTheme as T } from "../../theme";
 import { AccentCTA } from "../../ui/AccentCTA";
+import { Figure } from "../../ui/Figure";
+import { TrendMark } from "../../ui/Icons";
 import { DockFooter, Head, Phone } from "../../ui/Screen";
+import { Txt } from "../../ui/Txt";
 import { formatKg } from "../../ui/format";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Ajustar">;
 
+/** 2,5 kg é o menor par de anilhas. Um passo, dois botões, zero teclado. */
+const STEP = 2.5;
+
+/** A PROCEDÊNCIA. `load_source` já vinha na resposta e a tela jogava fora — que é o mesmo
+ *  defeito da barra (o histórico existe, o campo abre em branco) com outro rosto. Toda
+ *  carga proposta diz de onde veio, na linha, sem toque nenhum. */
+function fromLabel(src: DraftItem["load_source"], who: string): string {
+  if (src === "history") return `última de ${who}`;
+  if (src === "starter") return "partida do modelo";
+  return "posta à mão";
+}
+
+function fromProse(src: DraftItem["load_source"], who: string): string {
+  if (src === "history") return `É a carga da última série que ${who} fez neste exercício.`;
+  if (src === "starter") return `${who} ainda não levantou isto. Carga de partida do modelo.`;
+  return "Carga posta à mão. O histórico deste corpo não entrou.";
+}
+
 export function Ajustar({ navigation, route }: Props) {
   const { token, studioName, accent, prescriptionId, personId, personName } =
     route.params;
+  const A = accentSet(accent, T.raised);
+  const who = personName.trim().split(/\s+/)[0] || "o aluno";
+
   const [items, setItems] = useState<DraftItem[]>(route.params.items);
-  const [focusedId, setFocusedId] = useState(
-    route.params.items[0]?.id ?? "",
-  );
+  const [focusedId, setFocusedId] = useState(route.params.items[0]?.id ?? "");
   const [error, setError] = useState("");
   const timers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const latest = useRef<DraftItem[]>(route.params.items);
+  /** O que o SISTEMA propôs ao abrir. É a única baseline real desta tela: sem desvio,
+   *  nenhuma marca é desenhada. */
+  const proposed = useRef(
+    new Map(route.params.items.map((it) => [it.id, it.load_kg])),
+  ).current;
 
   useEffect(() => {
     latest.current = items;
@@ -45,27 +72,16 @@ export function Ajustar({ navigation, route }: Props) {
     }, 300);
   }
 
-  function change(
-    id: string,
-    patch: Partial<Pick<DraftItem, "load_kg" | "planned_sets">>,
-  ) {
-    setItems((prev) => {
-      const row = prev.find((it) => it.id === id);
-      if (!row) return prev;
-      const next: DraftItem = {
-        ...row,
-        load_kg:
-          patch.load_kg === undefined
-            ? row.load_kg
-            : Math.max(0, Math.round(patch.load_kg * 10) / 10),
-        planned_sets:
-          patch.planned_sets === undefined
-            ? row.planned_sets
-            : Math.max(1, patch.planned_sets),
-      };
-      schedulePatch(next);
-      return prev.map((it) => (it.id === id ? next : it));
-    });
+  // ponytail: só a CARGA se ajusta aqui. Séries e reps são estrutura, e estrutura é do
+  // modelo — dois steppers por exercício eram quatro alvos de toque para mexer no que
+  // esta tela não decide. `planned_sets` continua indo inteiro no PATCH.
+  function bump(row: DraftItem, delta: number) {
+    const next: DraftItem = {
+      ...row,
+      load_kg: Math.max(0, Math.round((row.load_kg + delta) * 10) / 10),
+    };
+    schedulePatch(next);
+    setItems((prev) => prev.map((it) => (it.id === row.id ? next : it)));
   }
 
   async function flush() {
@@ -89,83 +105,75 @@ export function Ajustar({ navigation, route }: Props) {
   }
 
   const focused = items.find((it) => it.id === focusedId) ?? items[0];
+  const drift = (it: DraftItem) => it.load_kg - (proposed.get(it.id) ?? it.load_kg);
+
+  const tally = { history: 0, starter: 0, manual: 0 };
+  items.forEach((it) => {
+    tally[drift(it) !== 0 ? "manual" : it.load_source] += 1;
+  });
 
   return (
     <Phone>
-      <Head
-        kicker={personName}
-        title="Confere e ajusta"
-        kickerMuted
-        accent={accent}
-      />
+      <Head kicker={personName} title="Confere e ajusta" kickerMuted accent={accent} />
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        {error ? <Text style={styles.error}>{error}</Text> : null}
+        {error ? (
+          <Txt role="note" color={errorInk} style={styles.error}>
+            {error}
+          </Txt>
+        ) : null}
 
         {items.map((row) => {
-          const on = focused?.id === row.id;
-          if (on) {
+          const moved = drift(row);
+          if (focused?.id === row.id) {
             return (
-              <View
-                key={row.id}
-                style={[styles.hero, { borderLeftColor: accent }]}
-              >
-                <Text style={styles.name}>{row.name}</Text>
+              <View key={row.id} style={[styles.hero, { borderLeftColor: A.mark }]}>
+                <Txt role="title" numberOfLines={1}>
+                  {row.name}
+                </Txt>
                 <View style={styles.stepper}>
                   <Pressable
                     accessibilityRole="button"
                     accessibilityLabel="Menos 2,5 kg"
                     style={styles.sq}
-                    onPress={() =>
-                      change(row.id, { load_kg: row.load_kg - 2.5 })
-                    }
+                    onPress={() => bump(row, -STEP)}
                   >
-                    <Text style={styles.sqText}>−</Text>
+                    <Txt role="title">−</Txt>
                   </Pressable>
                   <View style={styles.loadBlock}>
-                    <Text style={styles.load}>
-                      {formatKg(row.load_kg)} kg
-                    </Text>
-                    <Text style={styles.meta}>
-                      {row.planned_sets} × {row.planned_reps}
-                    </Text>
+                    <Figure
+                      value={formatKg(row.load_kg)}
+                      unit="kg"
+                      label={`${row.planned_sets} × ${row.planned_reps}`}
+                      role="hero"
+                      labelBelow
+                      center
+                    />
                   </View>
                   <Pressable
                     accessibilityRole="button"
                     accessibilityLabel="Mais 2,5 kg"
-                    style={[
-                      styles.sq,
-                      { backgroundColor: accent, borderColor: accent },
-                    ]}
-                    onPress={() =>
-                      change(row.id, { load_kg: row.load_kg + 2.5 })
-                    }
+                    style={styles.sq}
+                    onPress={() => bump(row, STEP)}
                   >
-                    <Text style={[styles.sqText, { color: T.bg }]}>+</Text>
+                    <Txt role="title">+</Txt>
                   </Pressable>
                 </View>
-                <View style={styles.setsRow}>
-                  <Pressable
-                    style={styles.setBtn}
-                    onPress={() =>
-                      change(row.id, { planned_sets: row.planned_sets - 1 })
-                    }
-                  >
-                    <Text style={styles.setBtnText}>−</Text>
-                  </Pressable>
-                  <Text style={styles.sets}>{row.planned_sets} séries</Text>
-                  <Pressable
-                    style={styles.setBtn}
-                    onPress={() =>
-                      change(row.id, { planned_sets: row.planned_sets + 1 })
-                    }
-                  >
-                    <Text style={styles.setBtnText}>+</Text>
-                  </Pressable>
-                </View>
+                {moved ? (
+                  <View style={styles.drift}>
+                    <TrendMark dir={moved > 0 ? "up" : "down"} color={T.muted} size={11} />
+                    <Txt role="label">
+                      seu ajuste · o sistema propôs {formatKg(proposed.get(row.id) ?? 0)} kg
+                    </Txt>
+                  </View>
+                ) : (
+                  <Txt role="note" tone="muted" style={styles.prose}>
+                    {fromProse(row.load_source, who)}
+                  </Txt>
+                )}
               </View>
             );
           }
@@ -173,23 +181,52 @@ export function Ajustar({ navigation, route }: Props) {
             <Pressable
               key={row.id}
               accessibilityRole="button"
+              accessibilityLabel={`${row.name}, ${formatKg(row.load_kg)} quilos`}
               onPress={() => setFocusedId(row.id)}
               style={styles.row}
             >
               <View style={styles.rowBody}>
-                <Text style={styles.rowName}>{row.name}</Text>
-                <Text style={styles.rowMeta}>
-                  {row.planned_sets} × {row.planned_reps} ·{" "}
-                  {formatKg(row.load_kg)} kg
-                </Text>
+                <Txt role="body" numberOfLines={1}>
+                  {row.name}
+                </Txt>
+                <View style={styles.rowFrom}>
+                  {moved ? (
+                    <TrendMark dir={moved > 0 ? "up" : "down"} color={T.muted2} size={9} />
+                  ) : null}
+                  <Txt role="label" tone="dim" numberOfLines={1}>
+                    {moved ? "seu ajuste" : fromLabel(row.load_source, who)} ·{" "}
+                    {row.planned_sets} × {row.planned_reps}
+                  </Txt>
+                </View>
               </View>
+              <Txt role="title" style={styles.rowLoad}>
+                {formatKg(row.load_kg)}
+              </Txt>
+              <Txt role="label" tone="muted">
+                kg
+              </Txt>
             </Pressable>
           );
         })}
+
+        {/* O terço de baixo carrega a conta da tela: nenhum campo em branco, e a
+            decomposição de onde saíram as {n} cargas. Tudo em corpo de rótulo — quem
+            domina continua sendo o número da carga em foco. */}
+        <View style={styles.foot}>
+          <Txt role="label">de onde saíram as {items.length} cargas</Txt>
+          <Txt role="body" style={styles.footLine}>
+            {tally.history} da última · {tally.starter} de partida · {tally.manual} à
+            mão
+          </Txt>
+          <Txt role="note" tone="dim" style={styles.footNote}>
+            Nenhum campo abriu em branco. Você confere, não digita.
+          </Txt>
+        </View>
       </ScrollView>
       <DockFooter>
         <AccentCTA
           label="Publicar"
+          meta={`${items.length} exercícios`}
           accent={accent}
           onPress={() => {
             void (async () => {
@@ -217,36 +254,27 @@ export function Ajustar({ navigation, route }: Props) {
 
 const styles = StyleSheet.create({
   scroll: { flex: 1 },
-  content: { flexGrow: 1, paddingBottom: 8 },
-  error: {
-    color: T.accentFallback,
-    fontSize: 14,
-    paddingHorizontal: T.pad,
-    paddingTop: 12,
-  },
+  content: { flexGrow: 1 },
+  error: { paddingHorizontal: T.pad, paddingTop: 12 },
   hero: {
     paddingHorizontal: T.pad,
-    paddingVertical: 24,
+    paddingVertical: 18,
     backgroundColor: T.raised,
     borderLeftWidth: 3,
-    borderBottomWidth: 1,
-    borderBottomColor: T.hairline,
-  },
-  name: {
-    color: T.ink,
-    fontFamily: FONT,
-    fontSize: 15,
-    letterSpacing: -0.2,
+    borderBottomWidth: 2,
+    borderBottomColor: T.divider,
   },
   stepper: {
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    marginTop: 12,
+    marginTop: 6,
   },
+  // O quadrado do ± perdeu o acento de propósito: ele não é o elemento dominante da tela
+  // (o dominante é o número da carga, e a massa do acento é do Publicar).
   sq: {
-    width: 52,
-    height: 52,
+    width: 56,
+    height: 56,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 2,
@@ -254,66 +282,26 @@ const styles = StyleSheet.create({
     backgroundColor: T.fill,
     flexShrink: 0,
   },
-  sqText: {
-    color: T.ink,
-    fontFamily: FONT,
-    fontSize: 22,
-  },
-  loadBlock: { flex: 1, alignItems: "center" },
-  load: {
-    color: T.ink,
-    fontFamily: FONT,
-    fontSize: 28,
-    letterSpacing: -0.8,
-    fontVariant: ["tabular-nums"],
-  },
-  meta: {
-    color: T.muted,
-    fontFamily: FONT,
-    fontSize: 11,
-    letterSpacing: 1.1,
-    marginTop: 2,
-  },
-  setsRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    marginTop: 14,
-  },
-  setBtn: {
-    borderWidth: 2,
-    borderColor: T.ink,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-  },
-  setBtnText: {
-    color: T.ink,
-    fontFamily: FONT,
-    fontSize: 18,
-  },
-  sets: {
-    color: T.ink,
-    fontSize: 16,
-  },
+  loadBlock: { flex: 1 },
+  prose: { marginTop: 10 },
+  drift: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 10 },
   row: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: 6,
     paddingHorizontal: T.pad,
-    paddingVertical: 24,
+    paddingVertical: 18,
     borderBottomWidth: 1,
     borderBottomColor: T.hairline,
   },
-  rowBody: { flex: 1 },
-  rowName: {
-    color: T.ink,
-    fontFamily: FONT,
-    fontSize: 15,
-    letterSpacing: -0.2,
+  rowBody: { flex: 1, minWidth: 0 },
+  rowFrom: { flexDirection: "row", alignItems: "center", gap: 5 },
+  rowLoad: { fontVariant: ["tabular-nums"] },
+  foot: {
+    paddingHorizontal: T.pad,
+    paddingTop: 24,
+    paddingBottom: 22,
   },
-  rowMeta: {
-    color: T.muted,
-    fontSize: 13,
-    marginTop: 3,
-  },
+  footLine: { marginTop: 6 },
+  footNote: { marginTop: 6 },
 });

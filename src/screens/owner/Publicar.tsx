@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import {
@@ -8,20 +8,24 @@ import {
   type OwnerWeekItem,
 } from "../../api";
 import type { RootStackParamList } from "../../nav/types";
-import { FONT, productTheme as T } from "../../theme";
+import { accentSet, errorInk, productTheme as T } from "../../theme";
 import { AccentCTA } from "../../ui/AccentCTA";
+import { Figure } from "../../ui/Figure";
 import { IconCheck } from "../../ui/Icons";
 import { Band, DockFooter, Head, Phone } from "../../ui/Screen";
+import { Txt } from "../../ui/Txt";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Publicar">;
 
 export function Publicar({ route }: Props) {
   const { token, accent, prescriptionId, personId, personName } = route.params;
-  const [others, setOthers] = useState<OwnerWeekItem[]>([]);
+  const A = accentSet(accent, T.raised);
+  // null = ainda carregando. [] = ninguém mais na turma. Os três estados são visíveis.
+  const [others, setOthers] = useState<OwnerWeekItem[] | null>(null);
   const [picked, setPicked] = useState<Record<string, boolean>>({});
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const [done, setDone] = useState(false);
+  const [sent, setSent] = useState(0);
 
   const load = useCallback(async () => {
     try {
@@ -29,26 +33,36 @@ export function Publicar({ route }: Props) {
       setOthers(payload.items.filter((it) => it.person_id !== personId));
       setError("");
     } catch {
-      setError("Não deu para abrir.");
+      setError("Não deu para abrir a turma.");
+      setOthers([]);
     }
   }, [token, personId]);
 
   useFocusEffect(
     useCallback(() => {
-      if (done) return;
+      if (sent) return;
       void load();
-    }, [load, done]),
+    }, [load, sent]),
   );
+
+  const rows = others ?? [];
+  const also = rows.filter((it) => picked[it.person_id]);
+  // O número dominante da tela: a prescrição desta pessoa mais uma por nome marcado.
+  const count = 1 + also.length;
+  const turma = 1 + rows.length;
+  const all = rows.length > 0 && also.length === rows.length;
 
   async function publish() {
     if (busy) return;
     setBusy(true);
+    const n = count;
     try {
-      const also = others
-        .filter((it) => picked[it.person_id])
-        .map((it) => it.person_id);
-      await publishPrescription(token, prescriptionId, also);
-      setDone(true);
+      await publishPrescription(
+        token,
+        prescriptionId,
+        also.map((it) => it.person_id),
+      );
+      setSent(n);
       setError("");
     } catch {
       setError("Não deu para publicar.");
@@ -59,69 +73,104 @@ export function Publicar({ route }: Props) {
 
   return (
     <Phone>
-      <Head
-        kicker={personName}
-        title="Publicar"
-        kickerMuted
-        accent={accent}
-      />
+      <Head kicker={personName} title="Publicar" kickerMuted accent={accent} />
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        {error ? <Text style={styles.error}>{error}</Text> : null}
+        {error ? (
+          <Txt role="body" color={errorInk} style={styles.error}>
+            {error}
+          </Txt>
+        ) : null}
 
-        {!done ? (
+        {!sent ? (
           <>
-            {others.length > 0 ? (
-              <>
-                <View style={styles.section}>
-                  <Text style={styles.kicker}>Também para</Text>
-                </View>
-                {others.map((row) => {
-                  const on = Boolean(picked[row.person_id]);
-                  return (
-                    <Pressable
-                      key={row.person_id}
-                      accessibilityRole="button"
-                      accessibilityState={{ selected: on }}
-                      style={styles.row}
-                      onPress={() =>
-                        setPicked((prev) => ({
-                          ...prev,
-                          [row.person_id]: !on,
-                        }))
-                      }
-                    >
-                      <View
-                        style={[
-                          styles.check,
-                          on && { backgroundColor: T.ink, borderColor: T.ink },
-                        ]}
-                      >
-                        {on ? <IconCheck color={T.bg} size={14} /> : null}
-                      </View>
-                      <Text style={styles.name}>{row.name}</Text>
-                    </Pressable>
-                  );
-                })}
-              </>
+            <Band>
+              <Figure
+                role="hero"
+                value={count}
+                label={count === 1 ? "Prescrição" : "Prescrições"}
+                note={others ? `de ${turma} na turma` : undefined}
+              />
+              <Txt role="body" tone="muted" style={styles.cause}>
+                Mesma estrutura. A carga sai da última sessão de cada um; sem
+                sessão, a inicial.
+              </Txt>
+            </Band>
+
+            <View style={styles.header}>
+              <Txt role="label">Também para</Txt>
+              {rows.length > 0 ? <Txt role="label" tone="dim">Feito na semana</Txt> : null}
+            </View>
+
+            {others === null ? (
+              <Txt role="body" tone="muted" style={styles.state}>
+                Carregando a turma.
+              </Txt>
             ) : null}
 
-            <Band>
-              <Text style={styles.copy}>
-                A estrutura é a mesma. A carga é a de cada um.
-              </Text>
-            </Band>
+            {others !== null && rows.length === 0 ? (
+              <Txt role="body" tone="muted" style={styles.state}>
+                Ninguém mais na turma ainda.
+              </Txt>
+            ) : null}
+
+            {/* Um toque marca a turma inteira: é isto que mantém o lote plano em n.
+                Papel de acessibilidade é checkbox, não button — o contador de toques
+                de tools/taps.mjs varre os botões da lista um a um. */}
+            {rows.length > 0 ? (
+              <Pressable
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: all }}
+                style={styles.row}
+                onPress={() =>
+                  setPicked(
+                    all
+                      ? {}
+                      : Object.fromEntries(rows.map((it) => [it.person_id, true])),
+                  )
+                }
+              >
+                <Box on={all} />
+                <Txt role="body" style={styles.name}>
+                  Todos os {rows.length}
+                </Txt>
+              </Pressable>
+            ) : null}
+
+            {rows.map((row) => {
+              const on = Boolean(picked[row.person_id]);
+              return (
+                <Pressable
+                  key={row.person_id}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: on }}
+                  style={styles.row}
+                  onPress={() =>
+                    setPicked((prev) => ({ ...prev, [row.person_id]: !on }))
+                  }
+                >
+                  <Box on={on} />
+                  <Txt role="body" numberOfLines={1} style={styles.name}>
+                    {row.name}
+                  </Txt>
+                  <Txt role="label" tone="dim">
+                    {row.adherence}
+                  </Txt>
+                </Pressable>
+              );
+            })}
           </>
         ) : null}
       </ScrollView>
 
-      {!done ? (
+      {!sent ? (
         <DockFooter>
           <AccentCTA
             label="Publicar"
+            meta={count === 1 ? "1 pessoa" : `${count} pessoas`}
             onPress={() => void publish()}
             busy={busy}
             accent={accent}
@@ -129,13 +178,20 @@ export function Publicar({ route }: Props) {
         </DockFooter>
       ) : null}
 
-      {done ? (
+      {sent ? (
         <View style={styles.overlay} pointerEvents="auto">
-          <View style={[styles.sheet, { borderColor: accent }]}>
-            <Text style={styles.sheetKicker}>No celular</Text>
-            <Text style={styles.sheetTitle}>
+          <View style={[styles.sheet, { borderColor: A.mark }]}>
+            <Figure
+              role="value"
+              value={sent}
+              label={sent === 1 ? "Prescrição no ar" : "Prescrições no ar"}
+            />
+            <Txt role="body" style={styles.sheetBody}>
               {personName} já vê no Hoje
-            </Text>
+              {sent > 1
+                ? `. As outras ${sent - 1}, cada uma com a carga do próprio corpo.`
+                : "."}
+            </Txt>
           </View>
         </View>
       ) : null}
@@ -143,33 +199,38 @@ export function Publicar({ route }: Props) {
   );
 }
 
+/** ponytail: a caixa de marcar é a mesma nas duas linhas — nome e "todos". Uma peça
+ *  local, porque marcar nome só acontece aqui e na Revisão, que tem a sua. */
+function Box({ on }: { on: boolean }) {
+  return (
+    <View
+      style={[styles.check, on && { backgroundColor: T.ink, borderColor: T.ink }]}
+    >
+      {on ? <IconCheck color={T.bg} size={14} /> : null}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   scroll: { flex: 1 },
-  content: { flexGrow: 1, paddingBottom: 8 },
-  error: {
-    color: T.accentFallback,
-    fontSize: 14,
+  content: { flexGrow: 1 },
+  error: { paddingHorizontal: T.pad, paddingTop: 12 },
+  cause: { marginTop: 14 },
+  header: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    justifyContent: "space-between",
     paddingHorizontal: T.pad,
-    paddingTop: 12,
+    paddingTop: 20,
+    paddingBottom: 6,
   },
-  section: {
-    paddingHorizontal: T.pad,
-    paddingTop: 24,
-    paddingBottom: 8,
-  },
-  kicker: {
-    color: T.muted,
-    fontFamily: FONT,
-    fontSize: 11,
-    letterSpacing: 1.43,
-    textTransform: "uppercase",
-  },
+  state: { paddingHorizontal: T.pad, paddingVertical: 14 },
   row: {
     flexDirection: "row",
     alignItems: "center",
     gap: 14,
     paddingHorizontal: T.pad,
-    paddingVertical: 24,
+    paddingVertical: 14,
     borderBottomWidth: 1,
     borderBottomColor: T.hairline,
   },
@@ -182,16 +243,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     flexShrink: 0,
   },
-  name: {
-    color: T.ink,
-    fontFamily: FONT,
-    fontSize: 14,
-  },
-  copy: {
-    color: T.muted,
-    fontSize: 15,
-    lineHeight: 22,
-  },
+  name: { flex: 1, minWidth: 0 },
   overlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(11,10,10,0.86)",
@@ -206,18 +258,5 @@ const styles = StyleSheet.create({
     paddingTop: 24,
     paddingBottom: 22,
   },
-  sheetKicker: {
-    color: T.muted,
-    fontFamily: FONT,
-    fontSize: 11,
-    letterSpacing: 1.43,
-    textTransform: "uppercase",
-  },
-  sheetTitle: {
-    color: T.ink,
-    fontFamily: FONT,
-    fontSize: 24,
-    letterSpacing: -0.6,
-    marginTop: 8,
-  },
+  sheetBody: { marginTop: 10 },
 });

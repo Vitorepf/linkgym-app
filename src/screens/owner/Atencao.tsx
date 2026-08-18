@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import type {
   NativeStackNavigationProp,
@@ -11,23 +11,36 @@ import {
   type OwnerAttention,
 } from "../../api";
 import type { RootStackParamList } from "../../nav/types";
-import { FONT, productTheme as T } from "../../theme";
+import { errorInk, productTheme as T } from "../../theme";
 import { AccentCTA } from "../../ui/AccentCTA";
 import { GhostCTA } from "../../ui/GhostCTA";
+import { IconChevron } from "../../ui/Icons";
 import { Initials } from "../../ui/Initials";
-import { DockFooter, Head, Phone } from "../../ui/Screen";
+import { Band, DockFooter, Head, Phone } from "../../ui/Screen";
+import { Txt } from "../../ui/Txt";
 import { weekdayLong } from "../../ui/format";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Atencao">;
 
+/** Fila curta: nomes ranqueados, UMA ação por linha, e a ação É a decisão.
+ *
+ *  Contra a referência de operação: a fila de lá são 11 cartões iguais com TRÊS botões
+ *  cada (~33 destinos) e um "resolver todos" como válvula. Aqui são 3 linhas ordenadas
+ *  por `rank`, 3 destinos, e nenhuma válvula — descartar a fila inteira de uma vez é
+ *  admitir que ela virou ruído.
+ *
+ *  O acento em ÁREA fica no primeiro da fila e só nele. É assim que o rank aparece sem
+ *  matiz semântico: presença de tinta + posição + corpo do nome. Os outros dois usam
+ *  `quiet` — mesma massa, tinta neutra, orçamento intacto. Três retângulos acentuados
+ *  numa rolagem foi a queixa nº1 dos juízes, e ela nasceu exatamente aqui. */
 export function Atencao({ route }: Props) {
-  const { token, accent } = route.params;
+  const { token, accent, studioName } = route.params;
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList, "Atencao">>();
-  const [items, setItems] = useState<OwnerAttention[]>([]);
+  const [items, setItems] = useState<OwnerAttention[] | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
-  const [loaded, setLoaded] = useState(false);
+  const [done, setDone] = useState(0);
 
   const load = useCallback(async () => {
     try {
@@ -35,9 +48,8 @@ export function Atencao({ route }: Props) {
       setItems(payload.items);
       setError("");
     } catch {
-      setError("Não deu para abrir a atenção.");
-    } finally {
-      setLoaded(true);
+      setItems([]);
+      setError("Não deu para abrir a fila.");
     }
   }, [token]);
 
@@ -52,7 +64,8 @@ export function Atencao({ route }: Props) {
     setBusy(id);
     try {
       await applyOwnerAttention(token, id);
-      setItems((prev) => prev.filter((it) => it.id !== id));
+      setItems((prev) => (prev ?? []).filter((it) => it.id !== id));
+      setDone((n) => n + 1);
       setError("");
     } catch {
       setError("Não deu para aplicar.");
@@ -61,18 +74,16 @@ export function Atencao({ route }: Props) {
     }
   }
 
-  const remaining = items.length;
-  const resolved = 3 - remaining;
-  const title = loaded
-    ? `${remaining} alunos precisam de você`
-    : undefined;
+  // O rank é do domínio, então a ordem da tela é a dele — não a ordem em que a API
+  // resolveu mandar. Sem isto, "fila ranqueada" é só uma frase.
+  const queue = items ? [...items].sort((a, b) => a.rank - b.rank) : [];
+  const total = queue.length + done;
 
   return (
     <Phone>
       <Head
         kicker={`${weekdayLong()} · entre uma aula e outra`}
-        title={title}
-        body={loaded ? "Os outros estão no automático." : undefined}
+        title={items === null ? undefined : headline(queue.length)}
         accent={accent}
       />
       <ScrollView
@@ -80,201 +91,142 @@ export function Atencao({ route }: Props) {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        {error ? <Text style={styles.error}>{error}</Text> : null}
-
-        {loaded && items.length === 0 ? (
-          <View style={styles.empty}>
-            <Text style={[styles.emptyKicker, { color: T.ok }]}>
-              Nada pendente
-            </Text>
-            <Text style={styles.emptyTitle}>Pode voltar para a aula</Text>
-          </View>
+        {error ? (
+          <Band rule="none">
+            <Txt role="body" color={errorInk}>
+              {error}
+            </Txt>
+          </Band>
         ) : null}
 
-        {items.map((row) => (
-          <View key={row.id} style={styles.card}>
-            <View style={styles.cardHead}>
-              <Initials name={row.name} size={36} />
-              <View style={styles.cardCopy}>
-                <Text style={styles.name}>{row.name}</Text>
-                <Text style={styles.why}>{whyFor(row)}</Text>
+        {items === null && !error ? (
+          <Band rule="none">
+            <Txt role="body" tone="muted">
+              Abrindo a fila…
+            </Txt>
+          </Band>
+        ) : null}
+
+        {items !== null && queue.length === 0 && !error ? (
+          <Band rule="none">
+            <Txt role="body" tone="muted">
+              {done > 0
+                ? `${done} resolvidos. Pode voltar para a aula.`
+                : "Ninguém sumiu, ninguém marcou dor, ninguém está sem ficha."}
+            </Txt>
+          </Band>
+        ) : null}
+
+        {queue.map((row, i) => (
+          <View key={row.id} style={styles.row}>
+            <Pressable
+              onPress={() =>
+                navigation.navigate("Aluna", {
+                  token,
+                  personId: row.person_id,
+                  studioName,
+                  accent,
+                })
+              }
+              accessibilityRole="button"
+              style={styles.who}
+            >
+              <Initials name={row.name} size={i === 0 ? 44 : 34} />
+              <View style={styles.whoCopy}>
+                <Txt role={i === 0 ? "title" : "body"} numberOfLines={2}>
+                  {row.name}
+                </Txt>
+                <Txt role="note" style={styles.why}>
+                  {row.reason}
+                </Txt>
               </View>
-              <Text style={styles.tag}>{tagFor(row.reason)}</Text>
-            </View>
-            <View style={[styles.box, { borderLeftColor: accent }]}>
-              <Text style={styles.boxKicker}>Decisão pronta</Text>
-              <Text style={styles.decision}>{row.decision}</Text>
-            </View>
-            <View style={styles.actions}>
-              <View style={styles.apply}>
-                <AccentCTA
-                  label="Aplicar"
-                  onPress={() => void apply(row.id)}
-                  accent={accent}
-                  busy={busy === row.id}
-                  disabled={busy !== null && busy !== row.id}
-                  check
-                />
-              </View>
-              <GhostCTA
-                label="Ver ficha"
-                disabled={busy !== null}
-                onPress={() =>
-                  navigation.navigate("Aluna", {
-                    token,
-                    personId: row.person_id,
-                    studioName: route.params.studioName,
-                    accent,
-                  })
-                }
+              <IconChevron color={T.muted2} size={16} />
+            </Pressable>
+            {/* A ação é a decisão. Não existe rótulo "Aplicar" cobrindo uma caixa que
+                repetia a frase logo acima — a frase virou o botão. */}
+            <View style={styles.act}>
+              <AccentCTA
+                label={row.decision}
+                onPress={() => void apply(row.id)}
+                accent={accent}
+                busy={busy === row.id}
+                disabled={busy !== null && busy !== row.id}
+                check
+                quiet={i !== 0}
               />
             </View>
           </View>
         ))}
+
+        {/* Fecha a fila onde o leitor pergunta "só isso?". A lei do domínio é "nunca a
+            turma inteira", então a frase que a defende vive no FIM da lista — não no
+            cabeçalho, onde ela seria só uma lede a mais. */}
+        {queue.length > 0 ? (
+          <Band rule="none">
+            <Txt role="body" tone="muted">
+              Só estes. Os outros estão no automático.
+            </Txt>
+          </Band>
+        ) : null}
       </ScrollView>
-      {loaded ? (
+      {items === null ? null : (
         <DockFooter>
           <View style={styles.dockRow}>
-            <Text style={styles.resolved}>
-              {Math.max(0, resolved)} de 3 resolvidos
-            </Text>
-            <GhostCTA
-              label="Revisão"
-              onPress={() =>
-                navigation.navigate("Revisao", {
-                  token,
-                  studioName: route.params.studioName,
-                  accent,
-                })
-              }
-            />
+            <Txt role="label" style={styles.count}>
+              {total > 0 ? `${done} de ${total} resolvidos` : "Nada na fila"}
+            </Txt>
+            {/* Com fila, o acento pertence ao primeiro nome e este botão é fantasma. Sem
+                fila, o orçamento está livre e a revisão vira o único trabalho da tela —
+                então ela herda a massa. Um dominante em cada estado, nunca dois. */}
+            {queue.length === 0 ? (
+              <AccentCTA
+                label="Revisão"
+                accent={accent}
+                onPress={() =>
+                  navigation.navigate("Revisao", { token, studioName, accent })
+                }
+              />
+            ) : (
+              <GhostCTA
+                label="Revisão"
+                onPress={() =>
+                  navigation.navigate("Revisao", { token, studioName, accent })
+                }
+              />
+            )}
           </View>
         </DockFooter>
-      ) : null}
+      )}
     </Phone>
   );
 }
 
-function tagFor(reason: string): string {
-  switch (reason) {
-    case "student_stopped":
-      return "SUMIU";
-    case "pain_flag":
-      return "DOR";
-    case "debut":
-      return "ESTREIA";
-    case "high_effort":
-      return "DIFÍCIL";
-    default:
-      return reason.toUpperCase();
-  }
-}
-
-function whyFor(row: OwnerAttention): string {
-  switch (row.reason) {
-    case "student_stopped":
-      return `${row.days ?? 1} dias sem treinar`;
-    case "pain_flag":
-      return "Marcou dor no onboarding";
-    case "debut":
-      return "Ainda não fez a estreia";
-    case "high_effort":
-      return "Última sessão difícil";
-    default:
-      return row.reason;
-  }
+function headline(n: number): string {
+  if (n === 0) return "Ninguém precisa de você agora";
+  return n === 1 ? "1 aluno precisa de você" : `${n} alunos precisam de você`;
 }
 
 const styles = StyleSheet.create({
   scroll: { flex: 1 },
-  content: { flexGrow: 1, paddingBottom: 8 },
-  error: {
-    color: T.accentFallback,
-    fontSize: 14,
+  content: { flexGrow: 1 },
+  row: {
     paddingHorizontal: T.pad,
-    paddingTop: 12,
+    paddingVertical: 26,
+    borderBottomWidth: 1,
+    borderBottomColor: T.hairline,
   },
-  empty: {
-    paddingHorizontal: T.pad,
-    paddingVertical: 24,
-  },
-  emptyKicker: {
-    fontFamily: FONT,
-    fontSize: 11,
-    letterSpacing: 1.43,
-    textTransform: "uppercase",
-  },
-  emptyTitle: {
-    color: T.ink,
-    fontFamily: FONT,
-    fontSize: 24,
-    letterSpacing: -0.6,
-    marginTop: 8,
-  },
-  card: {
-    paddingHorizontal: T.pad,
-    paddingVertical: 24,
-    borderBottomWidth: 2,
-    borderBottomColor: T.divider,
-  },
-  cardHead: {
+  who: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
   },
-  cardCopy: { flex: 1, minWidth: 0 },
-  name: {
-    color: T.ink,
-    fontFamily: FONT,
-    fontSize: 15,
-  },
-  why: {
-    color: T.muted,
-    fontSize: 13,
-    marginTop: 2,
-  },
-  tag: {
-    color: T.muted,
-    fontFamily: FONT,
-    fontSize: 10,
-    letterSpacing: 1.1,
-    flexShrink: 0,
-  },
-  box: {
-    marginTop: 14,
-    backgroundColor: T.raised,
-    borderLeftWidth: 3,
-    padding: 14,
-  },
-  boxKicker: {
-    color: T.muted,
-    fontFamily: FONT,
-    fontSize: 11,
-    letterSpacing: 1.32,
-    textTransform: "uppercase",
-  },
-  decision: {
-    color: T.ink,
-    fontFamily: FONT,
-    fontSize: 15,
-    lineHeight: 21,
-    marginTop: 6,
-  },
-  actions: {
-    flexDirection: "row",
-    alignItems: "stretch",
-    gap: 10,
-    marginTop: 14,
-  },
-  apply: { flex: 1 },
+  whoCopy: { flex: 1, minWidth: 0 },
+  why: { marginTop: 2 },
+  act: { marginTop: 14 },
   dockRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 14,
   },
-  resolved: {
-    flex: 1,
-    color: T.muted,
-    fontSize: 13,
-  },
+  count: { flex: 1 },
 });

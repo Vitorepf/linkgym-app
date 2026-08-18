@@ -1,10 +1,18 @@
-import { StyleSheet, Text, View } from "react-native";
-import { FONT, productTheme as T } from "../theme";
+import { StyleSheet, View } from "react-native";
+import { productTheme as T } from "../theme";
+import { Figure } from "./Figure";
 
+/** A fila de pares do eixo 1: mesmo peso visual, um rótulo mudo em caps, o valor com a
+ *  cor e o tamanho. Cada célula é uma Figure, então unidade e direção já vêm de graça — e
+ *  ninguém precisa reinventar o par número/rótulo. */
 type Cell = {
   label: string;
   value: string | number;
-  hint?: string;
+  /** legenda muda ao pé do número. NÃO é baseline — baseline exige número, e mora em
+   *  src/ui/Baseline.tsx. */
+  note?: string;
+  unit?: string;
+  dir?: "up" | "down" | "flat";
 };
 
 type Props = {
@@ -28,9 +36,14 @@ export function MetricGrid({ cells, columns = 2 }: Props) {
               !lastRow && styles.bottom,
             ]}
           >
-            <Text style={styles.label}>{cell.label}</Text>
-            <Text style={styles.value}>{cell.value}</Text>
-            {cell.hint ? <Text style={styles.hint}>{cell.hint}</Text> : null}
+            <Figure
+              value={cell.value}
+              label={cell.label}
+              unit={cell.unit}
+              note={cell.note}
+              dir={cell.dir}
+              role="value"
+            />
           </View>
         );
       })}
@@ -56,25 +69,5 @@ const styles = StyleSheet.create({
   bottom: {
     borderBottomWidth: 1,
     borderBottomColor: T.hairline,
-  },
-  label: {
-    color: T.muted,
-    fontFamily: FONT,
-    fontSize: 11,
-    letterSpacing: 1.32,
-    textTransform: "uppercase",
-  },
-  value: {
-    color: T.ink,
-    fontFamily: FONT,
-    fontSize: 34,
-    letterSpacing: -1.2,
-    marginTop: 4,
-    fontVariant: ["tabular-nums"],
-  },
-  hint: {
-    color: T.muted,
-    fontSize: 11,
-    marginTop: 2,
   },
 });

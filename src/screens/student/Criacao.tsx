@@ -8,11 +8,11 @@ import Animated, {
   useSharedValue,
   withSpring,
 } from "react-native-reanimated";
-import { productTheme } from "../../theme";
+import { errorInk, productTheme } from "../../theme";
 import { Choice } from "../../ui/Choice";
 import { Entity } from "../../ui/Entity";
 import { HoldTick } from "../../ui/HoldTick";
-import { PrimaryButton } from "../../ui/PrimaryButton";
+import { AccentCTA } from "../../ui/AccentCTA";
 
 export type Body = {
   sex: "male" | "female";
@@ -232,7 +232,7 @@ export function Criacao({
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
-      <PrimaryButton
+      <AccentCTA
         label={beat === "weight" ? `Enviar para ${studioName}` : "Continuar"}
         onPress={next}
         disabled={!canGo}
@@ -293,7 +293,7 @@ const styles = StyleSheet.create({
     borderColor: productTheme.divider,
   },
   error: {
-    color: productTheme.accentFallback,
+    color: errorInk,
     fontSize: 14,
     marginBottom: 8,
   },

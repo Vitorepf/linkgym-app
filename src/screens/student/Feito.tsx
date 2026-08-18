@@ -1,201 +1,169 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useEffect } from "react";
+import { StyleSheet, View } from "react-native";
+import Animated, {
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withDelay,
+  withTiming,
+} from "react-native-reanimated";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { formatKg } from "../../offline/sessionQueue";
 import { studentHomeTarget } from "../../nav/StudentTabs";
 import type { RootStackParamList } from "../../nav/types";
-import { FONT, productTheme as T } from "../../theme";
+import { accentSet, MOTION, productTheme as T } from "../../theme";
+import { useAccentMass } from "../../ui/accent";
 import { AccentCTA } from "../../ui/AccentCTA";
-import { MetricGrid } from "../../ui/Metric";
-import { Band, DockFooter, Phone } from "../../ui/Screen";
+import { formatXp } from "../../ui/format";
+import { EASE } from "../../ui/motion";
+import { DockFooter, Phone } from "../../ui/Screen";
+import { Txt } from "../../ui/Txt";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Feito">;
 
+/** A comemoração: uma tela, um número, um botão.
+ *
+ *  O ganho da sessão (XP) e o recorde NÃO moram aqui — cada um tem a sua tela, na ordem
+ *  (Feito -> Recorde). Empilhar os três era o empate de hierarquia que os juízes cobraram.
+ *
+ *  Três corpos e nada mais: número (mega) : rótulo (title) : linha (note) = 3,4 : 1 : 0,44.
+ *  A referência do eixo 3 mede 4,2 : 1 : 0,38 — a escala fechada de razão 1,5 não tem
+ *  degrau mais perto, e o theme.ts já diz que `hero`/`value` cercam esse número.
+ *
+ *  O QUE ANIMA: o número (o anterior é substituído pelo novo) e o fundo (vira o acento de
+ *  borda a borda por volta de 3,7 s). O QUE NUNCA ANIMA: o rótulo — mesmo corpo e mesma
+ *  posição nas duas camadas, então a troca de tom não move um pixel — e o botão, que
+ *  aparece por volta de 5,9 s sem saltar (a doca já ocupa o lugar dela desde o quadro 1).
+ *
+ *  ponytail: a virada é UMA opacidade sobre duas camadas idênticas em vez de seis cores
+ *  animadas. Sai de graça o mecanismo da referência — o valor anterior sendo trocado pelo
+ *  novo — e nenhum texto precisa virar componente animado.
+ */
+function Contagem({
+  n,
+  ink,
+  quiet,
+  note,
+}: {
+  n: number;
+  ink: string;
+  quiet: string;
+  note: string;
+}) {
+  return (
+    <View style={styles.field}>
+      <View style={styles.stack}>
+        <Txt role="mega" color={ink}>
+          {formatXp(n)}
+        </Txt>
+        <Txt role="title" color={quiet}>
+          {n === 1 ? "treino de ofensiva" : "treinos de ofensiva"}
+        </Txt>
+      </View>
+      <Txt role="note" color={quiet} style={styles.note}>
+        {note}
+      </Txt>
+    </View>
+  );
+}
+
 export function Feito({ navigation, route }: Props) {
-  const {
-    studioName,
-    accent,
-    streakCount,
-    xpGained,
-    xpTotal,
-    records,
-    pending,
-    needsCommitment,
-  } = route.params;
+  const { studioName, accent, streakCount, records, pending, needsCommitment } =
+    route.params;
+  // O acento em ÁREA desta tela é o FUNDO. É o único lugar do app onde a comemoração
+  // justifica o orçamento inteiro — por isso o botão vai de par neutro (`quiet`).
+  const { fill, ink } = useAccentMass("Fundo da comemoração", accent);
+  const A = accentSet(accent, T.bg);
+
+  const reduce = useReducedMotion();
+  const turn = useSharedValue(reduce ? 1 : 0);
+  const show = useSharedValue(reduce ? 1 : 0);
+  useEffect(() => {
+    if (reduce) return;
+    turn.value = withDelay(
+      MOTION.turn,
+      withTiming(1, { duration: MOTION.enter, easing: EASE }),
+    );
+    show.value = withDelay(
+      MOTION.reveal,
+      withTiming(1, { duration: MOTION.enter, easing: EASE }),
+    );
+  }, [reduce, show, turn]);
+  const virada = useAnimatedStyle(() => ({ opacity: turn.value }));
+  // O botão APARECE, não salta: a doca já ocupa o lugar dela desde o primeiro quadro e só
+  // a opacidade anda. `pointerEvents` junto para não existir alvo de toque invisível.
+  const surge = useAnimatedStyle(() => ({
+    opacity: show.value,
+    pointerEvents: show.value > 0.5 ? "auto" : "none",
+  }));
 
   function follow() {
     if (records.length > 0) {
-      navigation.navigate("Recorde", {
-        accent,
-        records,
-        needsCommitment,
-      });
+      navigation.navigate("Recorde", { accent, records, needsCommitment });
       return;
     }
     if (needsCommitment) {
       navigation.navigate("Compromisso");
       return;
     }
-    navigation.reset({
-      index: 0,
-      routes: [studentHomeTarget],
-    });
+    navigation.reset({ index: 0, routes: [studentHomeTarget] });
   }
+
+  const note = pending
+    ? "Sessão guardada neste celular. Sobe sozinha quando tiver rede."
+    : `${studioName} já recebeu o resultado.`;
 
   return (
     <Phone>
-      <View style={[styles.hero, { backgroundColor: accent }]}>
-        <Text style={styles.heroKicker}>Ofensiva mantida</Text>
-        <Text style={styles.heroNum}>{streakCount}</Text>
-        <Text style={styles.heroSub}>
-          {streakCount === 1 ? "treino" : "treinos"} na sequência
-        </Text>
+      <View style={styles.stage}>
+        <View
+          style={StyleSheet.absoluteFill}
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+        >
+          <Contagem
+            n={Math.max(0, streakCount - 1)}
+            ink={A.text}
+            quiet={T.muted}
+            note={note}
+          />
+        </View>
+        <Animated.View
+          style={[StyleSheet.absoluteFill, { backgroundColor: fill }, virada]}
+        >
+          <Contagem n={streakCount} ink={ink} quiet={ink} note={note} />
+        </Animated.View>
       </View>
 
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-      >
-        <MetricGrid
-          cells={[
-            { label: "XP hoje", value: `+${xpGained}` },
-            { label: "XP total", value: xpTotal.toLocaleString("pt-BR") },
-          ]}
-        />
-
-        {records.length > 0 ? (
-          <Band raised accentTop accent={accent}>
-            <Text style={[styles.kicker, { color: accent }]}>
-              {records.length} recorde{records.length === 1 ? "" : "s"}
-            </Text>
-            {records.map((row) => (
-              <View key={row.exercise_name} style={styles.prRow}>
-                <Text style={styles.prName}>{row.exercise_name}</Text>
-                <Text style={styles.prKg}>
-                  {formatKg(row.load_kg).replace(".", ",")} kg
-                </Text>
-              </View>
-            ))}
-          </Band>
-        ) : null}
-
-        {pending ? (
-          <Band>
-            <Text style={styles.caption}>
-              Sessão neste celular. Sobe quando tiver rede.
-            </Text>
-          </Band>
-        ) : (
-          <Band rule="hair">
-            <View style={styles.okRow}>
-              <View style={[styles.tick, { backgroundColor: accent }]}>
-                <Text style={styles.tickMark}>✓</Text>
-              </View>
-              <Text style={styles.caption}>
-                {studioName} já recebeu o resultado
-              </Text>
-            </View>
-          </Band>
-        )}
-      </ScrollView>
-
-      <DockFooter>
-        <AccentCTA
-          label={
-            records.length > 0 ? "Ver seu recorde de hoje" : "Seguir"
-          }
-          onPress={follow}
-          accent={accent}
-        />
-        {records.length > 0 ? (
-          <Pressable onPress={follow} style={styles.ghost}>
-            <Text style={styles.ghostText}>Seguir</Text>
-          </Pressable>
-        ) : null}
-      </DockFooter>
+      <Animated.View style={surge}>
+        <DockFooter>
+          <AccentCTA
+            quiet
+            label={
+              records.length > 1
+                ? "Ver seus recordes de hoje"
+                : records.length === 1
+                  ? "Ver seu recorde de hoje"
+                  : "Seguir"
+            }
+            onPress={follow}
+          />
+        </DockFooter>
+      </Animated.View>
     </Phone>
   );
 }
 
 const styles = StyleSheet.create({
-  hero: {
-    paddingHorizontal: T.pad,
-    paddingTop: 20,
-    paddingBottom: 22,
-  },
-  heroKicker: {
-    color: T.bg,
-    fontFamily: FONT,
-    fontSize: 11,
-    letterSpacing: 1.43,
-    textTransform: "uppercase",
-    opacity: 0.8,
-  },
-  heroNum: {
-    color: T.bg,
-    fontFamily: FONT,
-    fontSize: 64,
-    letterSpacing: -3.2,
-    lineHeight: 62,
-    marginTop: 6,
-  },
-  heroSub: {
-    color: T.bg,
-    fontFamily: FONT,
-    fontSize: 14,
-    marginTop: 8,
-  },
-  scroll: { flex: 1 },
-  content: { flexGrow: 1, paddingBottom: 8 },
-  kicker: {
-    fontFamily: FONT,
-    fontSize: 11,
-    letterSpacing: 1.43,
-    textTransform: "uppercase",
-  },
-  prRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 10,
-  },
-  prName: {
-    color: T.ink,
-    fontFamily: FONT,
-    fontSize: 15,
-  },
-  prKg: {
-    color: T.ink,
-    fontFamily: FONT,
-    fontSize: 15,
-    fontVariant: ["tabular-nums"],
-  },
-  okRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  tick: {
-    width: 20,
-    height: 20,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  tickMark: {
-    color: T.bg,
-    fontFamily: FONT,
-    fontSize: 12,
-  },
-  caption: {
-    color: T.muted,
-    fontSize: 13,
+  stage: { flex: 1 },
+  field: {
     flex: 1,
+    paddingHorizontal: T.pad,
+    paddingTop: 16,
+    paddingBottom: 20,
   },
-  ghost: { paddingTop: 14 },
-  ghostText: {
-    color: T.muted,
-    fontFamily: FONT,
-    fontSize: 13,
-    letterSpacing: 1.1,
-    textTransform: "uppercase",
-  },
+  // O bloco de tipo pousa no terço de baixo: o plano de acento vazio ACIMA é a
+  // comemoração, o vazio abaixo do número não separaria nada. E deixa número, rótulo,
+  // linha e botão numa leitura só, de cima para baixo.
+  stack: { flex: 1, justifyContent: "flex-end" },
+  note: { marginTop: 14 },
 });

@@ -6,7 +6,7 @@ import {
   loadCurrent,
   rememberSwap,
 } from "../../offline/sessionQueue";
-import { productTheme } from "../../theme";
+import { accentSet, errorInk, productTheme } from "../../theme";
 
 type Props = {
   token: string;
@@ -25,6 +25,7 @@ export function MaquinaOcupada({
   from,
   items,
 }: Props) {
+  const A = accentSet(accent, productTheme.raised);
   const others = items.filter((item) => item.exercise_id !== from.exercise_id);
   const [open, setOpen] = useState(false);
   const [notice, setNotice] = useState("");
@@ -62,7 +63,7 @@ export function MaquinaOcupada({
         accessibilityRole="button"
         accessibilityLabel="Máquina ocupada"
       >
-        <Text style={[styles.controlText, { color: accent }]}>Máquina ocupada</Text>
+        <Text style={[styles.controlText, { color: A.text }]}>Máquina ocupada</Text>
       </Pressable>
 
       {open ? (
@@ -91,7 +92,7 @@ export function MaquinaOcupada({
       ) : null}
 
       {notice ? (
-        <Text style={[styles.notice, { borderLeftColor: accent }]}>{notice}</Text>
+        <Text style={[styles.notice, { borderLeftColor: A.mark }]}>{notice}</Text>
       ) : null}
       {error ? <Text style={styles.error}>{error}</Text> : null}
     </View>
@@ -137,7 +138,7 @@ const styles = StyleSheet.create({
     borderLeftWidth: 2,
   },
   error: {
-    color: productTheme.accentFallback,
+    color: errorInk,
     fontSize: 14,
     marginTop: 8,
   },

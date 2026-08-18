@@ -9,14 +9,31 @@ export type Session = {
   studio: Studio;
 };
 
+// ponytail: armazenamento seguro que falha não pode derrubar quem chama. O pior caso de
+// um cofre indisponível é o aluno entrar de novo na próxima abertura; o pior caso de uma
+// exceção aqui é o app não abrir. No host web nem existe implementação (o módulo
+// expo-secure-store/build/ExpoSecureStore.web.js é `export default {}`), então isso não é
+// teoria: as três chamadas rejeitam sempre.
 export async function loadToken(): Promise<string | null> {
-  return SecureStore.getItemAsync(TOKEN_KEY);
+  try {
+    return await SecureStore.getItemAsync(TOKEN_KEY);
+  } catch {
+    return null;
+  }
 }
 
 export async function saveToken(token: string): Promise<void> {
-  await SecureStore.setItemAsync(TOKEN_KEY, token);
+  try {
+    await SecureStore.setItemAsync(TOKEN_KEY, token);
+  } catch {
+    /* sessão só nesta abertura */
+  }
 }
 
 export async function clearToken(): Promise<void> {
-  await SecureStore.deleteItemAsync(TOKEN_KEY);
+  try {
+    await SecureStore.deleteItemAsync(TOKEN_KEY);
+  } catch {
+    /* nada guardado, nada a limpar */
+  }
 }

@@ -5,7 +5,7 @@ import {
   type OnboardingBody,
   type Studio,
 } from "../../api";
-import { FONT, productTheme as T } from "../../theme";
+import { accentSet, errorInk, FONT, productTheme as T } from "../../theme";
 import { AccentCTA } from "../../ui/AccentCTA";
 import { Choice } from "../../ui/Choice";
 import { Band, DockFooter, Head, Phone } from "../../ui/Screen";
@@ -35,6 +35,7 @@ const BEAT_INDEX: Record<CriacaoBeat, number> = {
 
 export function SobreVoce({ token, studio, onSent }: Props) {
   const accent = studio.accent_color || T.accentFallback;
+  const A = accentSet(accent);
   const [phase, setPhase] = useState<"ficha" | "criacao">("ficha");
   const [beat, setBeat] = useState<CriacaoBeat>("sex");
   const [experience, setExperience] =
@@ -102,7 +103,7 @@ export function SobreVoce({ token, studio, onSent }: Props) {
                 key={i}
                 style={[
                   styles.tick,
-                  { backgroundColor: i <= tick ? accent : T.divider },
+                  { backgroundColor: i <= tick ? A.mark : T.divider },
                 ]}
               />
             ))}
@@ -247,7 +248,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   error: {
-    color: T.accentFallback,
+    color: errorInk,
     fontSize: 14,
     paddingHorizontal: T.pad,
     paddingTop: 8,

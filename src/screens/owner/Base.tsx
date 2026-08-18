@@ -4,7 +4,7 @@ import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { draftFromLast, listModels, ownerWeek } from "../../api";
 import type { RootStackParamList } from "../../nav/types";
-import { FONT, productTheme as T } from "../../theme";
+import { accentSet, errorInk, FONT, productTheme as T } from "../../theme";
 import { AccentCTA } from "../../ui/AccentCTA";
 import { IconCheck } from "../../ui/Icons";
 import { DockFooter, Head, Phone } from "../../ui/Screen";
@@ -28,6 +28,7 @@ export function Base({
   personName: initialPersonName,
   tab,
 }: Props) {
+  const A = accentSet(accent, T.raised);
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [personId, setPersonId] = useState(initialPersonId ?? "");
@@ -147,7 +148,7 @@ export function Base({
                 styles.row,
                 on && { backgroundColor: T.raised },
                 {
-                  borderLeftColor: on ? accent : "transparent",
+                  borderLeftColor: on ? A.mark : "transparent",
                 },
                 off && styles.off,
               ]}
@@ -185,7 +186,7 @@ const styles = StyleSheet.create({
   scroll: { flex: 1 },
   content: { flexGrow: 1, paddingBottom: 8 },
   error: {
-    color: T.accentFallback,
+    color: errorInk,
     fontSize: 14,
     paddingHorizontal: T.pad,
     paddingTop: 12,

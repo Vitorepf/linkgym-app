@@ -110,3 +110,26 @@ export function IconPlay({ color, size = 13 }: Props) {
     </Svg>
   );
 }
+
+/** Direção. O Whoop carrega isto em MATIZ (verde sobe, laranja atenção) e nós não podemos:
+ *  o único matiz da tela é o do personal e ele nunca significa bom ou ruim. Aqui o
+ *  significado sai de FORMA (triângulo x ponto) e POSIÇÃO (vértice para cima ou para
+ *  baixo). Sem direção, nenhuma marca é desenhada. */
+export function TrendMark({
+  dir,
+  color,
+  size = 10,
+}: { dir: "up" | "down" | "flat"; color: string; size?: number }) {
+  if (dir === "flat") {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 10 10">
+        <Rect x={3.5} y={3.5} width={3} height={3} fill={color} />
+      </Svg>
+    );
+  }
+  return (
+    <Svg width={size} height={size} viewBox="0 0 10 10">
+      <Path d={dir === "up" ? "M5 1.5 9 8.5H1z" : "M5 8.5 1 1.5h8z"} fill={color} />
+    </Svg>
+  );
+}
