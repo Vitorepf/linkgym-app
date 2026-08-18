@@ -2,7 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
-import type { Person, Studio, TodayPayload } from "../api";
+import type { Person, Time, TodayPayload } from "../api";
 import { today } from "../api";
 import { Atencao } from "../screens/owner/Atencao";
 import { Aluna } from "../screens/owner/Aluna";
@@ -32,7 +32,7 @@ export type { RootStackParamList } from "./types";
 export type RootProps = {
   token: string;
   person: Person;
-  studio: Studio;
+  time: Time;
   onboardingComplete: boolean;
   commitmentComplete: boolean;
   debut: boolean;
@@ -44,7 +44,7 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 export function Root({
   token,
   person,
-  studio,
+  time,
   onboardingComplete,
   commitmentComplete,
   debut,
@@ -77,7 +77,7 @@ export function Root({
     }
     let alive = true;
     (async () => {
-      const seen = await AsyncStorage.getItem(estreiaSeenKey(studio.id));
+      const seen = await AsyncStorage.getItem(estreiaSeenKey(time.id));
       if (alive) setShowEstreia(Boolean(debut && !seen));
     })();
     (async () => {
@@ -91,7 +91,7 @@ export function Root({
     return () => {
       alive = false;
     };
-  }, [debut, studio.id, owner, needsOnboarding, token]);
+  }, [debut, time.id, owner, needsOnboarding, token]);
 
   if (
     !owner &&
@@ -101,7 +101,7 @@ export function Root({
     return (
       <View style={styles.boot}>
         <ActivityIndicator
-          color={accentOn(studio.accent_color || productTheme.accentFallback)}
+          color={accentOn(time.accent_color || productTheme.accentFallback)}
         />
       </View>
     );
@@ -122,7 +122,7 @@ export function Root({
             {({ navigation }) => (
               <SobreVoce
                 token={token}
-                studio={studio}
+                time={time}
                 onSent={() => navigation.navigate("Pronto")}
               />
             )}
@@ -132,7 +132,7 @@ export function Root({
               <Pronto
                 token={token}
                 person={person}
-                studio={studio}
+                time={time}
                 onContinue={() => setNeedsOnboarding(false)}
               />
             )}
@@ -145,7 +145,7 @@ export function Root({
               <OwnerTabs
                 token={token}
                 person={person}
-                studio={studio}
+                time={time}
                 onLeave={onLeave}
               />
             )}
@@ -190,7 +190,7 @@ export function Root({
                 <Retomada
                   token={token}
                   person={person}
-                  studio={studio}
+                  time={time}
                   needsCommitment={needsCommitment}
                   comeback={comeback}
                 />
@@ -201,7 +201,7 @@ export function Root({
               {() => (
                 <Estreia
                   token={token}
-                  studio={studio}
+                  time={time}
                   needsCommitment={needsCommitment}
                 />
               )}
@@ -212,7 +212,7 @@ export function Root({
               <StudentTabs
                 token={token}
                 person={person}
-                studio={studio}
+                time={time}
                 needsCommitment={needsCommitment}
                 onLeave={onLeave}
               />
@@ -252,7 +252,7 @@ export function Root({
             {({ navigation }) => (
               <Compromisso
                 token={token}
-                studio={studio}
+                time={time}
                 onDone={() => {
                   setNeedsCommitment(false);
                   navigation.reset({

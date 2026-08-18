@@ -71,7 +71,7 @@ export function Aluna({ navigation, route }: Props) {
     if (!card) return;
     navigation.navigate("Base", {
       token,
-      studioName: route.params.studioName,
+      timeName: route.params.timeName,
       accent,
       personId: card.person_id,
       personName: card.name,
@@ -204,7 +204,7 @@ export function Aluna({ navigation, route }: Props) {
               cells={[
                 {
                   label: "Ofensiva",
-                  value: card.streak.current_count,
+                  value: card.ofensiva.current_count,
                   note: card.commitment_text ?? undefined,
                 },
                 {
@@ -272,7 +272,7 @@ function reasonLine(f: OwnerAttention): string {
 function whyPublish(card: OwnerStudent, first: boolean): string {
   if (first) return "Sem ficha publicada, a estreia é o primeiro toque.";
   if (card.suggested === "nudge") return "Sumiu do fio. A próxima ficha é o caminho de volta.";
-  const n = card.streak.current_count;
+  const n = card.ofensiva.current_count;
   const effort = effortWord(card.last_effort);
   if (n <= 0) return "A ofensiva está zerada. O combinado precisa de uma ficha nova.";
   const tail = effort ? `, esforço ${effort.toLowerCase()} na última` : "";

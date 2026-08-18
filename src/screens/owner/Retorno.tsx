@@ -68,7 +68,7 @@ function hourOf(iso: string): string {
 }
 
 export function Retorno({ route }: Props) {
-  const { token, studioName, accent } = route.params;
+  const { token, timeName, accent } = route.params;
   const A = accentSet(accent, T.raised);
   const [items, setItems] = useState<OwnerReturn[]>([]);
   const [bumpFor, setBumpFor] = useState<Record<string, Bump>>({});
@@ -119,7 +119,7 @@ export function Retorno({ route }: Props) {
   return (
     <Phone>
       <Head
-        kicker={studioName}
+        kicker={timeName}
         kickerMuted
         accent={accent}
         title={

@@ -1,6 +1,5 @@
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
-import { useNavigation } from "@react-navigation/native";
-import type { NativeStackNavigationProp, NativeStackScreenProps } from "@react-navigation/native-stack";
+import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { TodayItem } from "../../api";
 import type { RootStackParamList } from "../../nav/types";
 import { accentSet, productTheme as T } from "../../theme";
@@ -13,69 +12,26 @@ import { formatKg, plannedSets } from "../../ui/format";
 type Props = NativeStackScreenProps<RootStackParamList, "Ficha">;
 
 export function Ficha({ navigation, route }: Props) {
-  const { items, studioName, accent, token, prescriptionId } = route.params;
-  return (
-    <FichaBody
-      token={token}
-      studioName={studioName}
-      accent={accent}
-      items={items}
-      prescriptionId={prescriptionId}
-      onBack={() => navigation.goBack()}
-    />
-  );
-}
-
-export function FichaBody({
-  token,
-  studioName,
-  accent,
-  items,
-  prescriptionId,
-  error,
-  tab,
-  onBack,
-}: {
-  token: string;
-  studioName: string;
-  accent: string;
-  items: TodayItem[];
-  prescriptionId: string;
-  error?: string;
-  tab?: boolean;
-  onBack?: () => void;
-}) {
-  const navigation =
-    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { items, timeName, accent, token, prescriptionId } = route.params;
   const ac = accent || T.accentFallback;
   const A = accentSet(ac);
   const rows = [...items].sort((a, b) => a.position - b.position);
 
   return (
-    <Phone tab={tab}>
-      <Head kicker={studioName} title="Minha ficha" accent={ac} />
+    <Phone>
+      {/* O nome do personal é CONTEXTO, não ação: mudo, como nas quatro abas. */}
+      <Head kicker={timeName} title="Minha ficha" kickerMuted accent={ac} />
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        {/* Sem vermelho de erro para o aluno: a falha é dita, não acusada. */}
-        {error ? (
-          <Band rule="hair">
+        {rows.length === 0 ? (
+          <Band>
             <Txt role="body" tone="muted">
-              {error}
+              Ainda não tem ficha hoje.
             </Txt>
           </Band>
-        ) : null}
-
-        {rows.length === 0 ? (
-          error ? null : (
-            <Band>
-              <Txt role="body" tone="muted">
-                Ainda não tem ficha hoje.
-              </Txt>
-            </Band>
-          )
         ) : (
           <>
             <Band>
@@ -104,7 +60,7 @@ export function FichaBody({
                   navigation.navigate("ComoFazer", {
                     item,
                     items,
-                    studioName,
+                    timeName,
                     accent: ac,
                     token,
                     prescriptionId,
@@ -142,11 +98,13 @@ export function FichaBody({
           </>
         )}
       </ScrollView>
-      {onBack ? (
-        <DockFooter>
-          <AccentCTA label="Voltar à sessão" onPress={onBack} accent={ac} />
-        </DockFooter>
-      ) : null}
+      <DockFooter>
+        <AccentCTA
+          label="Voltar à sessão"
+          onPress={() => navigation.goBack()}
+          accent={ac}
+        />
+      </DockFooter>
     </Phone>
   );
 }

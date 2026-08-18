@@ -5,7 +5,7 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import {
   today,
   type Person,
-  type Studio,
+  type Time,
   type TodayItem,
   type TodayPayload,
 } from "../../api";
@@ -21,7 +21,7 @@ import { dateShort, formatKg, plannedSets, weekdayShort } from "../../ui/format"
 type Props = {
   token: string;
   person: Person;
-  studio: Studio;
+  time: Time;
 };
 
 type Prescription = TodayPayload["prescription"];
@@ -37,8 +37,8 @@ type Prescription = TodayPayload["prescription"];
  *  ponytail: sem MetricGrid. Minutos e faixa de carga são secundários e cabem na legenda
  *  do herói em uma linha muda; três células de 41px seriam área grande carregando pouco —
  *  o defeito que esta tela existe para não ter. */
-export function FichaTab({ token, studio }: Props) {
-  const ac = studio.accent_color || T.accentFallback;
+export function FichaTab({ token, time }: Props) {
+  const ac = time.accent_color || T.accentFallback;
   const A = accentSet(ac);
   const nav = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [pres, setPres] = useState<Prescription>(null);
@@ -66,9 +66,10 @@ export function FichaTab({ token, studio }: Props) {
   const rows = [...(pres?.items ?? [])].sort((a, b) => a.position - b.position);
 
   return (
-    <Phone tab>
+    <Phone>
       <Head
-        kicker={studio.name}
+        kicker={time.name}
+        kickerMuted
         title={pres?.name || "Nada para hoje"}
         accent={ac}
         right={
@@ -94,7 +95,7 @@ export function FichaTab({ token, studio }: Props) {
         ) : rows.length === 0 ? (
           <Band>
             <Txt role="body" tone="muted">
-              {studio.name} ainda não publicou nada para hoje.
+              {time.name} ainda não publicou nada para hoje.
             </Txt>
           </Band>
         ) : (
@@ -126,7 +127,7 @@ export function FichaTab({ token, studio }: Props) {
                   nav.navigate("ComoFazer", {
                     item,
                     items: rows,
-                    studioName: studio.name,
+                    timeName: time.name,
                     accent: ac,
                     token,
                     prescriptionId: pres.id,

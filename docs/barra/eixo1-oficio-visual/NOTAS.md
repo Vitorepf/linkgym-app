@@ -90,7 +90,7 @@ colorido, nunca competindo com o valor.
 No Whoop, verde = boa recuperação, laranja = atenção, azul = strain, e as setas ▲▼ herdam
 essa escala. É a alavanca mais forte da tela deles.
 
-O LinkGym tem **um** acento, e ele pertence ao personal (`StudioTheme { name, accent,
+O LinkGym tem **um** acento, e ele pertence ao personal (`TimeTheme { name, accent,
 logoUrl }`). Não existe verde-bom/vermelho-ruim disponível: o acento pode SER verde, pode
 ser cinza, pode ser amarelo. Um sistema que dependa de cor semântica quebra na marca 6
 (`Corpo Livre`, acento `#121111`) e na marca 13 (`Ponto 12`, acento = o próprio fundo).

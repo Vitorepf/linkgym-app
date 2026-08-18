@@ -32,7 +32,7 @@ function fromProse(src: DraftItem["load_source"], who: string): string {
 }
 
 export function Ajustar({ navigation, route }: Props) {
-  const { token, studioName, accent, prescriptionId, personId, personName } =
+  const { token, timeName, accent, prescriptionId, personId, personName } =
     route.params;
   const A = accentSet(accent, T.raised);
   const who = personName.trim().split(/\s+/)[0] || "o aluno";
@@ -235,7 +235,7 @@ export function Ajustar({ navigation, route }: Props) {
                 setError("");
                 navigation.navigate("Publicar", {
                   token,
-                  studioName,
+                  timeName,
                   accent,
                   prescriptionId,
                   personId,

@@ -187,9 +187,9 @@ function Camada({
 
 export function Feito({ navigation, route }: Props) {
   const {
-    studioName,
+    timeName,
     accent,
-    streakCount,
+    ofensivaCount,
     xpGained,
     records,
     proof,
@@ -237,7 +237,7 @@ export function Feito({ navigation, route }: Props) {
 
   const note = pending
     ? "Sessão guardada neste celular. Sobe sozinha quando tiver rede."
-    : `${studioName} já recebeu o resultado.`;
+    : `${timeName} já recebeu o resultado.`;
   // A carga que prova o esforço de hoje é a maior das que subiram — a mesma regra da
   // Recorde, para o número não trocar de dono entre as duas telas.
   const pr = [...records].sort((a, b) => b.load_kg - a.load_kg)[0] ?? null;
@@ -251,7 +251,7 @@ export function Feito({ navigation, route }: Props) {
           importantForAccessibility="no-hide-descendants"
         >
           <Camada
-            n={Math.max(0, streakCount - 1)}
+            n={Math.max(0, ofensivaCount - 1)}
             gained={xpGained}
             pr={pr}
             proof={proof}
@@ -264,7 +264,7 @@ export function Feito({ navigation, route }: Props) {
           style={[StyleSheet.absoluteFill, { backgroundColor: fill }, virada]}
         >
           <Camada
-            n={streakCount}
+            n={ofensivaCount}
             gained={xpGained}
             pr={pr}
             proof={proof}

@@ -4,7 +4,7 @@
 // playwright e interage de verdade. O contador NÃO é um número escrito à mão: um
 // init-script instala um interceptador em fase de captura na janela, antes de qualquer
 // handler do app, e conta cada pointerdown/keydown CONFIÁVEL (isTrusted) — ou seja, o
-// toque físico do usuário, não a intenção do teste.
+// toque físico da pessoa, não a intenção do teste.
 //
 // Os seletores são de ACESSIBILIDADE, não de desenho: papel (`accessibilityRole`) mais
 // nome acessível (`accessibilityLabel`, senão o texto do próprio controle), sempre

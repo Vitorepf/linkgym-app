@@ -3,38 +3,31 @@ import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useEffect, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
-import Animated from "react-native-reanimated";
-import { today, type Studio, type TodayPayload } from "../../api";
+import { today, type Time, type TodayPayload } from "../../api";
 import { studentHomeTarget } from "../../nav/StudentTabs";
 import type { RootStackParamList } from "../../nav/types";
-import { createSession, newClientId } from "../../offline/sessionQueue";
-import { accentSet, MOTION, productTheme as T } from "../../theme";
+import { createSession, newLocalId } from "../../offline/sessionQueue";
+import { productTheme as T } from "../../theme";
 import { AccentCTA } from "../../ui/AccentCTA";
 import { Figure } from "../../ui/Figure";
 import { plannedSets } from "../../ui/format";
-import { useTone } from "../../ui/motion";
-import { Band, DockFooter, Head, Phone } from "../../ui/Screen";
+import { Band, D0_STEPS, DockFooter, Head, Phone, StepRail } from "../../ui/Screen";
 import { Txt } from "../../ui/Txt";
 
 type Props = {
   token: string;
-  studio: Studio;
+  time: Time;
   needsCommitment: boolean;
 };
 
-/** O D0 do aluno tem QUATRO paradas — convite, Sobre você, Pronto, Estreia — e a barra
- *  tem que estar visível em todas, como na barra do eixo 3. Esta é a última: quatro de
- *  quatro. O número não é chutado, é a contagem das telas que existem no Root. */
-const STEPS = 4;
-
-export function estreiaSeenKey(studioId: string): string {
-  return `estreia.seen.${studioId}`;
+export function estreiaSeenKey(timeId: string): string {
+  return `estreia.seen.${timeId}`;
 }
 
-export function Estreia({ token, studio, needsCommitment }: Props) {
+export function Estreia({ token, time, needsCommitment }: Props) {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList, "Estreia">>();
-  const accent = studio.accent_color || T.accentFallback;
+  const accent = time.accent_color || T.accentFallback;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [payload, setPayload] = useState<TodayPayload | null>(null);
@@ -66,7 +59,7 @@ export function Estreia({ token, studio, needsCommitment }: Props) {
     try {
       const data = payload ?? (await today(token));
       setPayload(data);
-      await AsyncStorage.setItem(estreiaSeenKey(studio.id), "1");
+      await AsyncStorage.setItem(estreiaSeenKey(time.id), "1");
       const next = data.prescription;
       if (!next) {
         navigation.reset({
@@ -75,7 +68,7 @@ export function Estreia({ token, studio, needsCommitment }: Props) {
         });
         return;
       }
-      const session = await createSession(next.id, newClientId());
+      const session = await createSession(next.id, newLocalId());
       navigation.reset({
         index: 1,
         routes: [
@@ -84,14 +77,14 @@ export function Estreia({ token, studio, needsCommitment }: Props) {
             name: "Serie",
             params: {
               token,
-              studioName: studio.name,
+              timeName: time.name,
               accent,
-              clientId: session.client_id,
+              localId: session.local_id,
               prescriptionId: next.id,
               items: next.items,
               itemIndex: 0,
               setIndex: 1,
-              streakCount: data.streak.current_count,
+              ofensivaCount: data.ofensiva.current_count,
               xpTotal: data.xp_total,
               needsCommitment,
             },
@@ -109,8 +102,13 @@ export function Estreia({ token, studio, needsCommitment }: Props) {
     <Phone>
       {/* Sem seta de voltar: a Estreia é a raiz da pilha, não há passo atrás para
           desfazer. Onde há, a seta é pequena e discreta — nunca um convite. */}
-      <Head kicker={`${STEPS} · ${STEPS}`} title="Primeira sessão" accent={accent}>
-        <StepBar accent={accent} />
+      {/* Última parada do D0: oito de oito, na mesma régua das sete anteriores. */}
+      <Head
+        kicker={`${D0_STEPS} · ${D0_STEPS}`}
+        title="Primeira sessão"
+        accent={accent}
+      >
+        <StepRail accent={accent} now={D0_STEPS} />
       </Head>
 
       <ScrollView
@@ -162,7 +160,7 @@ export function Estreia({ token, studio, needsCommitment }: Props) {
                 Fecha a lista e ocupa o último terço — vazio ali lê como defeito. */}
             <Band rule="none">
               <Txt role="body" tone="muted">
-                O {studio.name} montou {prescription.name} para o seu primeiro dia.
+                O {time.name} montou {prescription.name} para o seu primeiro dia.
                 Curto de propósito.
               </Txt>
             </Band>
@@ -170,7 +168,7 @@ export function Estreia({ token, studio, needsCommitment }: Props) {
         ) : (
           <Band>
             <Txt role="body" tone="muted">
-              A ficha do {studio.name} ainda não chegou. Ela aparece no Hoje assim que
+              A ficha do {time.name} ainda não chegou. Ela aparece no Hoje assim que
               ele publicar.
             </Txt>
           </Band>
@@ -198,43 +196,9 @@ export function Estreia({ token, studio, needsCommitment }: Props) {
   );
 }
 
-/** A barra do D0. Traço fino com o acento — papel subordinado, não massa, então não
- *  disputa o orçamento com o botão. O último passo ACENDE ao chegar: é a própria barra
- *  andando, o mecanismo da referência. Sob redução de movimento ele já nasce aceso. */
-function StepBar({ accent }: { accent: string }) {
-  const A = accentSet(accent);
-  const [here, setHere] = useState(false);
-  useEffect(() => {
-    setHere(true);
-  }, []);
-  const lit = useTone(here, T.divider, A.mark, MOTION.enter);
-
-  return (
-    <View
-      style={styles.bar}
-      accessible
-      accessibilityLabel={`Passo ${STEPS} de ${STEPS}`}
-    >
-      {Array.from({ length: STEPS - 1 }, (_, i) => (
-        <View key={i} style={[styles.tick, { backgroundColor: A.mark }]} />
-      ))}
-      <Animated.View style={[styles.tick, lit]} />
-    </View>
-  );
-}
-
 const ORD = 26;
 
 const styles = StyleSheet.create({
-  bar: {
-    flexDirection: "row",
-    gap: 6,
-    marginTop: 14,
-  },
-  tick: {
-    flex: 1,
-    height: 2,
-  },
   scroll: { flex: 1 },
   content: { flexGrow: 1 },
   colHead: {

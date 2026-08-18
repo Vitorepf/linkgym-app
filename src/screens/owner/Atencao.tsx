@@ -34,7 +34,7 @@ type Props = NativeStackScreenProps<RootStackParamList, "Atencao">;
  *  `quiet` — mesma massa, tinta neutra, orçamento intacto. Três retângulos acentuados
  *  numa rolagem foi a queixa nº1 dos juízes, e ela nasceu exatamente aqui. */
 export function Atencao({ route }: Props) {
-  const { token, accent, studioName } = route.params;
+  const { token, accent, timeName } = route.params;
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList, "Atencao">>();
   const [items, setItems] = useState<OwnerAttention[] | null>(null);
@@ -124,7 +124,7 @@ export function Atencao({ route }: Props) {
                 navigation.navigate("Aluna", {
                   token,
                   personId: row.person_id,
-                  studioName,
+                  timeName,
                   accent,
                 })
               }
@@ -183,14 +183,14 @@ export function Atencao({ route }: Props) {
                 label="Revisão"
                 accent={accent}
                 onPress={() =>
-                  navigation.navigate("Revisao", { token, studioName, accent })
+                  navigation.navigate("Revisao", { token, timeName, accent })
                 }
               />
             ) : (
               <GhostCTA
                 label="Revisão"
                 onPress={() =>
-                  navigation.navigate("Revisao", { token, studioName, accent })
+                  navigation.navigate("Revisao", { token, timeName, accent })
                 }
               />
             )}

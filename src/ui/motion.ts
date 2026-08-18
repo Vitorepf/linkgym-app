@@ -10,7 +10,6 @@ import {
 import { MOTION } from "../theme";
 
 export const EASE = Easing.bezier(...MOTION.ease);
-export const EASE_OUT = Easing.bezier(...MOTION.easeOut);
 
 /** Estado é mudança de TOM no mesmo elemento — nunca uma tela nova, nunca um salto de
  *  posição. Serve tanto para o toque (press → state) quanto para seleção.

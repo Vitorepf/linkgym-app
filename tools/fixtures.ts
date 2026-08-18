@@ -1,6 +1,6 @@
 // Fixtures do host de screenshot. Uma entrada por tela, com os props de sessão do Root,
 // o initialState do NavigationContainer e o JSON que o stub de rede devolve.
-// Dados de academia de verdade: nomes brasileiros, exercícios reais, cargas em kg.
+// Dados de treino de verdade: nomes brasileiros, exercícios reais, cargas em kg.
 import type {
   DraftItem,
   FinishRecord,
@@ -12,7 +12,7 @@ import type {
   Person,
   ProgressPayload,
   RecordItem,
-  Studio,
+  Time,
   TodayItem,
   TodayPayload,
 } from "../src/api";
@@ -187,7 +187,7 @@ const OWNER_STUDENT: OwnerStudent = {
     { exercise_name: "Agachamento livre", load_kg: 82.5 },
     { exercise_name: "Supino reto com barra", load_kg: 62.5 },
   ],
-  streak: { current_count: 12 },
+  ofensiva: { current_count: 12 },
   suggested: "Subir 2,5 kg no terra",
   commitment_text: "4 dias por semana, antes do trabalho.",
 };
@@ -226,7 +226,7 @@ const DRAFT: DraftItem[] = ITEMS.map((it, i) => ({
 }));
 
 const PROGRESS: ProgressPayload = {
-  streak: { current_count: 214, protector_available: true },
+  ofensiva: { current_count: 214, protector_available: true },
   xp_total: 18740,
   league: [
     { name: "Carlos Eduardo Lima", xp_total: 21100, me: false },
@@ -240,7 +240,7 @@ const PROGRESS: ProgressPayload = {
     { badge_key: "pr_terra", earned_at: "2026-08-18T11:04:00.000Z" },
     { badge_key: "cem_dias", earned_at: "2026-05-20T11:00:00.000Z" },
   ],
-  readiness_week: [
+  prontidao_week: [
     { for_date: "2026-08-12", score: 72 },
     { for_date: "2026-08-13", score: 81 },
     { for_date: "2026-08-14", score: 64 },
@@ -251,12 +251,12 @@ const PROGRESS: ProgressPayload = {
   ],
 };
 
-function todayPayload(studio: Studio, over: Partial<TodayPayload> = {}): TodayPayload {
+function todayPayload(time: Time, over: Partial<TodayPayload> = {}): TodayPayload {
   return {
-    studio,
+    time,
     person: { id: ALUNA.id, name: ALUNA.name },
-    readiness: { score: 84, energy: 4, soreness: 2, sleep: 4, label: "pronta" },
-    streak: { current_count: 12, protector_available: true },
+    prontidao: { score: 84, energy: 4, soreness: 2, sleep: 4, label: "pronta" },
+    ofensiva: { current_count: 12, protector_available: true },
     xp_total: 18740,
     prescription: {
       id: "pr-1",
@@ -288,27 +288,27 @@ export type Fixture = {
   api?: Record<string, unknown>;
 };
 
-const OWNER_CHROME = { token: TOKEN, studioName: "", accent: "" };
+const OWNER_CHROME = { token: TOKEN, timeName: "", accent: "" };
 
-function session(studio: Studio): SessionRoute {
+function session(time: Time): SessionRoute {
   return {
     token: TOKEN,
-    studioName: studio.name,
-    accent: studio.accent_color,
-    clientId: "cs-shot-0001",
+    timeName: time.name,
+    accent: time.accent_color,
+    localId: "cs-shot-0001",
     prescriptionId: "pr-1",
     items: ITEMS,
     itemIndex: 1, // terra: carga de 3 dígitos
     setIndex: 2,
-    streakCount: 12,
+    ofensivaCount: 12,
     xpTotal: 18740,
     needsCommitment: false,
   };
 }
 
 /** Params por tela, resolvidos com a marca ativa. */
-export function params(screen: string, studio: Studio): object | undefined {
-  const chrome = { ...OWNER_CHROME, studioName: studio.name, accent: studio.accent_color };
+export function params(screen: string, time: Time): object | undefined {
+  const chrome = { ...OWNER_CHROME, timeName: time.name, accent: time.accent_color };
   switch (screen) {
     case "Retorno":
     case "Atencao":
@@ -338,14 +338,14 @@ export function params(screen: string, studio: Studio): object | undefined {
     case "ComoFazer":
       return { ...chrome, item: ITEMS[0], items: ITEMS, prescriptionId: "pr-1" };
     case "Serie":
-      return session(studio);
+      return session(time);
     case "Descanso":
-      return { ...session(studio), restSeconds: 180, last: false };
+      return { ...session(time), restSeconds: 180, last: false };
     case "Feito":
       return {
-        studioName: studio.name,
-        accent: studio.accent_color,
-        streakCount: 214,
+        timeName: time.name,
+        accent: time.accent_color,
+        ofensivaCount: 214,
         xpTotal: 18740,
         xpGained: 40,
         records: RECORDS,
@@ -353,7 +353,7 @@ export function params(screen: string, studio: Studio): object | undefined {
         needsCommitment: false,
       };
     case "Recorde":
-      return { accent: studio.accent_color, records: RECORDS };
+      return { accent: time.accent_color, records: RECORDS };
     default:
       return undefined;
   }
@@ -362,12 +362,12 @@ export function params(screen: string, studio: Studio): object | undefined {
 /** Props diretos dos componentes que não são rota. */
 export function directProps(
   kind: Fixture["direct"],
-  studio: Studio,
+  time: Time,
 ): Record<string, unknown> {
   if (kind === "Criacao") {
     return {
-      accent: studio.accent_color,
-      studioName: studio.name,
+      accent: time.accent_color,
+      timeName: time.name,
       busy: false,
       error: "",
       onBeat: () => {},
@@ -377,8 +377,8 @@ export function directProps(
   }
   return {
     token: TOKEN,
-    studioName: studio.name,
-    accent: studio.accent_color,
+    timeName: time.name,
+    accent: time.accent_color,
     prescriptionId: "pr-1",
     from: ITEMS[4],
     items: ITEMS,
@@ -443,11 +443,11 @@ export const FIXTURES: Record<string, Fixture> = {
     tab: "Progresso",
     api: {
       "/v1/progress": {
-        streak: { current_count: 0, protector_available: false },
+        ofensiva: { current_count: 0, protector_available: false },
         xp_total: 0,
         league: [],
         badges: [],
-        readiness_week: [],
+        prontidao_week: [],
       },
     },
   },
@@ -469,20 +469,20 @@ export const SCREENS = Object.keys(FIXTURES).filter((k) => !HARNESS.includes(k))
  * Só rotas /v1 — qualquer outra URL (fonte, asset) passa direto.
  */
 export function apiRoutes(
-  studio: Studio,
+  time: Time,
   over: Record<string, unknown> = {},
 ): [RegExp, unknown][] {
   const mine: MePayload = {
     person: ALUNA,
-    studio,
+    time,
     onboarding_complete: true,
     commitment_complete: true,
     debut: false,
   };
   const base: [RegExp, unknown][] = [
     [/^\/v1\/me$/, mine],
-    [/^\/v1\/today\/readiness$/, { score: 84, energy: 4, soreness: 2, sleep: 4, label: "pronta" }],
-    [/^\/v1\/today$/, todayPayload(studio)],
+    [/^\/v1\/today\/prontidao$/, { score: 84, energy: 4, soreness: 2, sleep: 4, label: "pronta" }],
+    [/^\/v1\/today$/, todayPayload(time)],
     [/^\/v1\/owner\/home$/, OWNER_HOME],
     [/^\/v1\/owner\/attention\/[^/]+\/apply$/, { ok: true }],
     [/^\/v1\/owner\/attention$/, { items: ATTENTION }],
@@ -509,7 +509,7 @@ export function apiRoutes(
     [/^\/v1\/progress$/, PROGRESS],
     [/^\/v1\/records$/, { items: PR_ITEMS }],
     [/^\/v1\/sessions\/[^/]+\/finish$/, {
-      streak: { current_count: 214, protector_available: true },
+      ofensiva: { current_count: 214, protector_available: true },
       xp_gained: 40,
       xp_total: 18740,
       records: RECORDS,
@@ -517,25 +517,25 @@ export function apiRoutes(
     }],
     [/^\/v1\/sessions\/[^/]+\/sets$/, { ok: true }],
     [/^\/v1\/sessions\/[^/]+\/swap$/, { ok: true }],
-    [/^\/v1\/sessions$/, { id: "s-1", client_id: "cs-shot-0001", started_at: "2026-08-18T11:00:00.000Z" }],
+    [/^\/v1\/sessions$/, { id: "s-1", local_id: "cs-shot-0001", started_at: "2026-08-18T11:00:00.000Z" }],
     [/^\/v1\/comebacks\/[^/]+\/complete$/, { ok: true }],
     [/^\/v1\/onboarding$/, { ok: true }],
     [/^\/v1\/commitment$/, { ok: true }],
-    [/^\/v1\/auth\/code$/, { ok: true, dev_code: "4242", studio }],
-    [/^\/v1\/auth\/verify$/, { token: TOKEN, person: ALUNA, studio }],
+    [/^\/v1\/auth\/code$/, { ok: true, dev_code: "4242", time }],
+    [/^\/v1\/auth\/verify$/, { token: TOKEN, person: ALUNA, time }],
     [/^\/v1\/auth\/logout$/, { ok: true }],
   ];
 
   const named: Record<string, unknown> = {
-    comeback: todayPayload(studio, {
+    comeback: todayPayload(time, {
       prescription: null,
-      streak: { current_count: 0, protector_available: false },
+      ofensiva: { current_count: 0, protector_available: false },
       comeback: { id: "cb-1", minutes: 18, coach_line: "Volta curta. O acervo não foi embora." },
     }),
-    vazio: todayPayload(studio, {
+    vazio: todayPayload(time, {
       prescription: null,
-      readiness: { score: 0, energy: 0, soreness: 0, sleep: 0, label: "" },
-      streak: { current_count: 0, protector_available: false },
+      prontidao: { score: 0, energy: 0, soreness: 0, sleep: 0, label: "" },
+      ofensiva: { current_count: 0, protector_available: false },
       xp_total: 0,
       coach_line: "",
     }),

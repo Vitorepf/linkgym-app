@@ -1,16 +1,16 @@
 import { useCallback, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
-import { putOnboarding, type OnboardingBody, type Studio } from "../../api";
-import { accentSet, productTheme as T } from "../../theme";
+import { putOnboarding, type OnboardingBody, type Time } from "../../api";
+import { productTheme as T } from "../../theme";
 import { AccentCTA } from "../../ui/AccentCTA";
 import { Choice } from "../../ui/Choice";
-import { Head, Phone } from "../../ui/Screen";
+import { D0_STEPS, Head, Phone, StepRail } from "../../ui/Screen";
 import { Txt } from "../../ui/Txt";
 import { Criacao, type Body } from "./Criacao";
 
 type Props = {
   token: string;
-  studio: Studio;
+  time: Time;
   onSent: () => void;
 };
 
@@ -24,15 +24,14 @@ const DAYS: OnboardingBody["days_per_week"][] = [2, 3, 4, 5, 6];
 
 type CriacaoBeat = "sex" | "height" | "weight";
 
-/** Os seis passos do D0 numa régua só: três perguntas aqui, três na Criacao. A barra é a
- *  mesma nos seis, então o aluno nunca perde quanto falta. */
-const STEPS = [0, 1, 2, 3, 4, 5] as const;
+/** Seis perguntas: três aqui, três na Criacao. A régua é a do D0 inteiro (`StepRail`), a
+ *  mesma que Pronto e Estreia continuam — o aluno nunca perde quanto falta nem vê o
+ *  contador andar para trás na virada de tela. */
 const CRIACAO = 3;
 const BEAT_TICK: Record<CriacaoBeat, number> = { sex: 3, height: 4, weight: 5 };
 
-export function SobreVoce({ token, studio, onSent }: Props) {
-  const accent = studio.accent_color || T.accentFallback;
-  const A = accentSet(accent);
+export function SobreVoce({ token, time, onSent }: Props) {
+  const accent = time.accent_color || T.accentFallback;
   const [step, setStep] = useState(0);
   const [beat, setBeat] = useState<CriacaoBeat>("sex");
   const [experience, setExperience] =
@@ -75,39 +74,22 @@ export function SobreVoce({ token, studio, onSent }: Props) {
     "Sente dor em alguma articulação?",
   ][step];
   const note = [
-    `${studio.name} usa isso para ajustar a ficha.`,
+    `${time.name} usa isso para ajustar a ficha.`,
     "Pense numa semana ruim, não numa semana boa.",
-    `Se marcar sim, o ${studio.name} te liga antes de montar a ficha.`,
+    `Se marcar sim, o ${time.name} te liga antes de montar a ficha.`,
   ][step];
 
   return (
     <Phone>
-      <Head kicker={`${tick + 1} · 6`} accent={accent}>
-        <View
-          style={styles.progress}
-          accessibilityRole="progressbar"
-          accessibilityLabel={`Pergunta ${tick + 1} de 6`}
-          accessibilityValue={{ min: 1, max: 6, now: tick + 1 }}
-        >
-          {STEPS.map((i) => (
-            <View
-              key={i}
-              style={[
-                styles.tick,
-                i <= tick
-                  ? { height: 6, backgroundColor: A.mark }
-                  : { height: 2, backgroundColor: T.divider },
-              ]}
-            />
-          ))}
-        </View>
+      <Head kicker={`${tick + 1} · ${D0_STEPS}`} accent={accent}>
+        <StepRail accent={accent} now={tick + 1} />
       </Head>
 
       <View style={styles.fill}>
         {step === CRIACAO ? (
           <Criacao
             accent={accent}
-            studioName={studio.name}
+            timeName={time.name}
             busy={busy}
             error={error}
             onBeat={onBeat}
@@ -200,15 +182,6 @@ export function SobreVoce({ token, studio, onSent }: Props) {
 }
 
 const styles = StyleSheet.create({
-  progress: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    gap: 6,
-    marginTop: 14,
-  },
-  // Cumprido é ESPESSURA, não matiz: no time 13 o acento e o divider quase empatam de
-  // cor, e 6px contra 2px continua legível.
-  tick: { flex: 1 },
   fill: {
     flex: 1,
     paddingHorizontal: T.pad,

@@ -4,7 +4,7 @@ import {
   progress,
   type Person,
   type ProgressPayload,
-  type Studio,
+  type Time,
 } from "../../api";
 import { accentSet, errorInk, productTheme as T } from "../../theme";
 import { useAccentMass } from "../../ui/accent";
@@ -16,7 +16,7 @@ import { Txt } from "../../ui/Txt";
 type Props = {
   token: string;
   person: Person;
-  studio: Studio;
+  time: Time;
 };
 
 /** Os quatro selos que a API escreve de verdade. Só o CONQUISTADO aparece: quem não tem
@@ -30,11 +30,11 @@ const SELOS: Record<string, string> = {
 
 const BAR = 62;
 
-export function Progresso({ token, studio }: Props) {
-  const A = accentSet(studio.accent_color);
+export function Progresso({ token, time }: Props) {
+  const A = accentSet(time.accent_color);
   // O ÚNICO elemento em ÁREA da tela. A Ofensiva é o número do ritual; tudo o mais aqui
   // é neutro, inclusive a barra de hoje e a linha da liga.
-  const hero = useAccentMass("Ofensiva", studio.accent_color);
+  const hero = useAccentMass("Ofensiva", time.accent_color);
   const [data, setData] = useState<ProgressPayload | null>(null);
   const [error, setError] = useState("");
 
@@ -59,7 +59,7 @@ export function Progresso({ token, studio }: Props) {
   const earned = new Set((data?.badges ?? []).map((b) => b.badge_key));
   const selos = Object.keys(SELOS).filter((k) => earned.has(k));
 
-  const week = data?.readiness_week ?? [];
+  const week = data?.prontidao_week ?? [];
   const registrados = week.filter((d) => d.score > 0);
   const media = registrados.length
     ? Math.round(
@@ -74,8 +74,8 @@ export function Progresso({ token, studio }: Props) {
   const solo = !selos.length && !week.length && !league.length;
 
   return (
-    <Phone tab>
-      <Head kicker={studio.name} title="Progresso" kickerMuted />
+    <Phone>
+      <Head kicker={time.name} title="Progresso" kickerMuted />
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}
@@ -100,16 +100,16 @@ export function Progresso({ token, studio }: Props) {
                 Ofensiva
               </Txt>
               <Txt role="mega" color={hero.ink}>
-                {data.streak.current_count}
+                {data.ofensiva.current_count}
               </Txt>
               <Txt role="body" color={hero.ink} style={styles.heroProse}>
-                {data.streak.current_count === 0
-                  ? `Sua primeira sessão com ${studio.name} abre a ofensiva.`
-                  : `Sessões seguidas com ${studio.name}.`}
+                {data.ofensiva.current_count === 0
+                  ? `Sua primeira sessão com ${time.name} abre a ofensiva.`
+                  : `Sessões seguidas com ${time.name}.`}
               </Txt>
-              {data.streak.current_count > 0 ? (
+              {data.ofensiva.current_count > 0 ? (
                 <Txt role="label" color={hero.ink} style={styles.heroState}>
-                  {data.streak.protector_available
+                  {data.ofensiva.protector_available
                     ? "Protetor guardado"
                     : "Protetor gasto"}
                 </Txt>

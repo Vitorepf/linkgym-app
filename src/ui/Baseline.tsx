@@ -16,32 +16,34 @@ import { Txt } from "./Txt";
  *    - e, se o chamador não tiver o valor, ele não passa `baseline` e nada é desenhado.
  *      Não desenhar é a resposta certa — não existe placeholder de baseline.
  *
- *  Hoje é o caso vivo disso: /v1/today devolve `readiness.score` e mais nada com que
+ *  Hoje é o caso vivo disso: /v1/today devolve `prontidao.score` e mais nada com que
  *  comparar, então a Prontidão fica SEM baseline até a API mandar uma. A camada continua
  *  faltando; o que sumiu foi a mentira. */
-export type BaselineSpec = {
+type BaselineSpec = {
   /** o número contra o qual a métrica está sendo comparada. Sem ele, sem baseline. */
   value: number;
-  /** de quem é este número: "SUA MÉDIA DE 30 DIAS", "COMBINADO COM O PERSONAL". */
+  /** de quem é este número: "MÉDIA ATÉ ONTEM", "SUA MÉDIA DE 7 DIAS". */
   label: string;
-  min?: number;
-  max?: number;
-  unit?: string;
 };
 
-export function Baseline({ value, label, min = 0, max = 100, unit }: BaselineSpec) {
+// ponytail: eixo fixo 0–100. Os dois chamadores são prontidão, e um eixo configurável era
+// três props que ninguém nunca passou. Volta a ser parâmetro no dia do primeiro caso real.
+const MIN = 0;
+const MAX = 100;
+
+export function Baseline({ value, label }: BaselineSpec) {
   // ponytail: fora do eixo não é baseline, é ruído — some, mesmo com valor.
-  if (!Number.isFinite(value) || value < min || value > max || max <= min) return null;
-  const t = (value - min) / (max - min);
+  if (!Number.isFinite(value) || value < MIN || value > MAX) return null;
+  const t = (value - MIN) / (MAX - MIN);
 
   return (
     <View style={styles.wrap}>
       <View style={styles.axis}>
         <Txt role="label" tone="dim">
-          {min}
+          {MIN}
         </Txt>
         <Txt role="label" tone="dim">
-          {max}
+          {MAX}
         </Txt>
       </View>
       <View style={styles.rule} />
@@ -49,7 +51,6 @@ export function Baseline({ value, label, min = 0, max = 100, unit }: BaselineSpe
         <View style={styles.tick} />
         <Txt role="label" style={styles.num}>
           {value}
-          {unit ?? ""}
         </Txt>
         <Txt role="label" tone="dim" numberOfLines={1}>
           {label}

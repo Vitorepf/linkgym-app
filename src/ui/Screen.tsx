@@ -1,21 +1,22 @@
-import { type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { StyleSheet, View } from "react-native";
+import Animated from "react-native-reanimated";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-import { accentOn, productTheme as T } from "../theme";
+import { accentOn, accentSet, MOTION, productTheme as T } from "../theme";
 import { AccentBudget } from "./accent";
+import { useTone } from "./motion";
 import { Txt } from "./Txt";
 
 type PhoneProps = {
   children?: ReactNode;
-  /** Tab screens: top inset only. Stack: top inset; DockFooter owns the bottom. */
-  tab?: boolean;
 };
 
 /** Toda tela passa por aqui, então o orçamento de acento é montado aqui — nenhuma tela
  *  precisa lembrar de abrir escopo, e não existe tela fora do orçamento. */
-export function Phone({ children, tab }: PhoneProps) {
+export function Phone({ children }: PhoneProps) {
   return (
-    <SafeAreaView style={styles.phone} edges={tab ? ["top"] : ["top"]}>
+    // Só o topo: embaixo quem paga o inset é o dock (tab) ou o DockFooter (stack).
+    <SafeAreaView style={styles.phone} edges={PHONE_EDGES}>
       <AccentBudget>{children}</AccentBudget>
     </SafeAreaView>
   );
@@ -69,6 +70,39 @@ export function Head({
   );
 }
 
+/** UMA régua para o D0 inteiro. Antes eram três: SobreVoce contava `n · 6`, Pronto `3 · 4`
+ *  e Estreia `4 · 4`, com três espessuras de traço. Na sequência real o contador ANDAVA
+ *  PARA TRÁS (6 · 6 → 3 · 4), que é a única coisa que uma barra de progresso não pode
+ *  fazer. Oito paradas depois do convite: as seis perguntas, o Pronto e a Estreia.
+ *  O convite tem a espinha rotulada dele, que é outro objeto — não entra nesta contagem. */
+export const D0_STEPS = 8;
+
+/** Cumprido é ESPESSURA antes de ser tinta: no time 13 o acento e o divider caem no mesmo
+ *  cinza, e uma barra codificada só por matiz não diz nada ali. O passo de agora ACENDE ao
+ *  chegar — é a própria barra andando, e não um salto. */
+export function StepRail({ accent, now }: { accent: string; now: number }) {
+  const mark = accentSet(accent || T.accentFallback).mark;
+  const [arrived, setArrived] = useState(false);
+  useEffect(() => setArrived(true), [now]);
+  return (
+    <View
+      style={styles.rail}
+      accessibilityRole="progressbar"
+      accessibilityLabel={`Passo ${now} de ${D0_STEPS}`}
+      accessibilityValue={{ min: 1, max: D0_STEPS, now }}
+    >
+      {Array.from({ length: D0_STEPS }, (_, i) => (
+        <Tick key={i} on={i + 1 < now || (i + 1 === now && arrived)} mark={mark} />
+      ))}
+    </View>
+  );
+}
+
+function Tick({ on, mark }: { on: boolean; mark: string }) {
+  const tone = useTone(on, T.divider, mark, MOTION.enter);
+  return <Animated.View style={[styles.tick, on && styles.tickOn, tone]} />;
+}
+
 type BandProps = {
   children?: ReactNode;
   rule?: "strong" | "hair" | "none";
@@ -112,6 +146,8 @@ export function DockFooter({ children }: { children: ReactNode }) {
   );
 }
 
+const PHONE_EDGES = ["top"] as const;
+
 const styles = StyleSheet.create({
   // O chão é bg — o mesmo de app.json. Antes era surface, e o token bg quase não existia.
   phone: {
@@ -132,6 +168,9 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   headMain: { flex: 1, minWidth: 0 },
+  rail: { flexDirection: "row", alignItems: "flex-end", gap: 6, marginTop: 14 },
+  tick: { flex: 1, height: 2 },
+  tickOn: { height: 6 },
   title: { marginTop: 5 },
   lede: { marginTop: 8 },
   bandPad: {

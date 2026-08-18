@@ -82,8 +82,8 @@ globalThis.localStorage?.clear();
 // ---- rede determinística, instalada ANTES de montar.
 const FX: Fixture = FIXTURES[SCREEN] ?? {};
 const B = brand(BRAND);
-const STUDIO = { id: "t-shot", name: B.name, accent_color: B.accent };
-const ROUTES = apiRoutes(STUDIO, FX.api);
+const TIME = { id: "t-shot", name: B.name, accent_color: B.accent };
+const ROUTES = apiRoutes(TIME, FX.api);
 const realFetch = globalThis.fetch.bind(globalThis);
 
 globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -128,7 +128,7 @@ function initialState() {
   if (!FX.route) return undefined;
   return {
     index: 0,
-    routes: [{ name: FX.route.name, params: params(FX.route.name, STUDIO) }],
+    routes: [{ name: FX.route.name, params: params(FX.route.name, TIME) }],
   };
 }
 
@@ -205,7 +205,7 @@ export function ShotHost() {
   }
 
   if (FX.direct) {
-    const props = directProps(FX.direct, STUDIO);
+    const props = directProps(FX.direct, TIME);
     return (
       <GestureHandlerRootView style={styles.flex}>
         <SafeAreaProvider>
@@ -238,7 +238,7 @@ export function ShotHost() {
             <Root
               token={TOKEN}
               person={owner ? PERSONAL : ALUNA}
-              studio={STUDIO}
+              time={TIME}
               onboardingComplete={FX.onboardingComplete ?? true}
               commitmentComplete={FX.commitmentComplete ?? true}
               debut={FX.debut ?? false}

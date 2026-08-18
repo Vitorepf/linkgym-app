@@ -69,7 +69,7 @@ export default function App() {
             <Root
               token={session.token}
               person={session.person}
-              studio={session.studio}
+              time={session.time}
               onboardingComplete={session.onboarding_complete}
               commitmentComplete={session.commitment_complete}
               debut={session.debut}

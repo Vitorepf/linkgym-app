@@ -23,7 +23,6 @@ export const productTheme = {
   // marcado por PRESENÇA de tinta, não por cor. A chave fica porque tools/contrast.mjs
   // a lê; some quando o gate parar de pedi-la.
   ok: "#f3f2f2",
-  radius: 0,
   accentFallback: "#ec3013",
   pad: 20,
 } as const;
@@ -71,11 +70,9 @@ export const MOTION = {
   press: 90,
   state: 220,
   enter: 340,
-  count: 900,
   turn: 3700,
   reveal: 5900,
   ease: [0.2, 0, 0, 1],
-  easeOut: [0.16, 1, 0.3, 1],
 } as const;
 
 // ---------------------------------------------------------------------------

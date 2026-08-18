@@ -13,9 +13,8 @@ import { weekdayLong } from "../../ui/format";
 
 type Props = {
   token: string;
-  studioName: string;
+  timeName: string;
   accent: string;
-  tab?: boolean;
 };
 
 /** O fio em texto: `adherence` chega como "3 de 4" — feito de prescrito. Os dois números
@@ -47,7 +46,7 @@ function bandOf(f: ReturnType<typeof fio>): number {
   return f.done >= f.planned ? 2 : 1;
 }
 
-export function Revisao({ token, studioName, accent, tab }: Props) {
+export function Revisao({ token, timeName, accent }: Props) {
   const startedAt = useRef(Date.now());
   const [items, setItems] = useState<OwnerWeekItem[]>([]);
   const [picked, setPicked] = useState<Record<string, boolean>>({});
@@ -139,7 +138,7 @@ export function Revisao({ token, studioName, accent, tab }: Props) {
 
   if (done) {
     return (
-      <Phone tab={tab}>
+      <Phone>
         <Head
           kicker={weekdayLong()}
           title={`A semana de ${done.n} está revisada`}
@@ -154,7 +153,7 @@ export function Revisao({ token, studioName, accent, tab }: Props) {
         <Band rule="none">
           <Txt role="label">O que cada um recebe</Txt>
           <Txt role="body" style={styles.gap}>
-            {`"${studioName} revisou sua semana"`}, com o ajuste dele em uma linha.
+            {`"${timeName} revisou sua semana"`}, com o ajuste dele em uma linha.
           </Txt>
         </Band>
       </Phone>
@@ -162,7 +161,7 @@ export function Revisao({ token, studioName, accent, tab }: Props) {
   }
 
   return (
-    <Phone tab={tab}>
+    <Phone>
       <Head
         kicker={weekdayLong()}
         title={n > 0 ? `A semana dos ${n}` : "A semana"}

@@ -50,14 +50,14 @@ export type Person = {
   role: string;
 };
 
-export type Studio = {
+export type Time = {
   id: string;
   name: string;
   accent_color: string;
 };
 
 export function requestCode(phone: string, inviteCode?: string) {
-  return request<{ ok: boolean; dev_code?: string; studio?: Studio }>(
+  return request<{ ok: boolean; dev_code?: string; time?: Time }>(
     "/v1/auth/code",
     {
       method: "POST",
@@ -67,7 +67,7 @@ export function requestCode(phone: string, inviteCode?: string) {
 }
 
 export function verify(phone: string, code: string, inviteCode?: string) {
-  return request<{ token: string; person: Person; studio: Studio }>(
+  return request<{ token: string; person: Person; time: Time }>(
     "/v1/auth/verify",
     {
       method: "POST",
@@ -78,7 +78,7 @@ export function verify(phone: string, code: string, inviteCode?: string) {
 
 export type MePayload = {
   person: Person;
-  studio: Studio;
+  time: Time;
   onboarding_complete: boolean;
   commitment_complete: boolean;
   debut: boolean;
@@ -105,7 +105,7 @@ export type TodayItem = {
   video_url: string | null;
 };
 
-export type Readiness = {
+export type Prontidao = {
   score: number;
   energy: number;
   soreness: number;
@@ -114,10 +114,10 @@ export type Readiness = {
 };
 
 export type TodayPayload = {
-  studio: Studio;
+  time: Time;
   person: { id: string; name: string };
-  readiness: Readiness;
-  streak: { current_count: number; protector_available: boolean };
+  prontidao: Prontidao;
+  ofensiva: { current_count: number; protector_available: boolean };
   xp_total: number;
   prescription: {
     id: string;
@@ -157,11 +157,11 @@ export function today(token: string) {
   return request<TodayPayload>("/v1/today", { token });
 }
 
-export function putReadiness(
+export function putProntidao(
   token: string,
   body: { energy: number; soreness: number; sleep: number },
 ) {
-  return request<Readiness>("/v1/today/readiness", {
+  return request<Prontidao>("/v1/today/prontidao", {
     method: "PUT",
     token,
     body: JSON.stringify(body),
@@ -201,7 +201,7 @@ export async function completeComeback(token: string, id: string) {
 
 export type SessionStart = {
   id: string;
-  client_id: string;
+  local_id: string;
   started_at: string;
 };
 
@@ -212,7 +212,7 @@ export type FinishRecord = {
 };
 
 export type FinishPayload = {
-  streak: { current_count: number; protector_available: boolean };
+  ofensiva: { current_count: number; protector_available: boolean };
   xp_gained: number;
   xp_total: number;
   records: FinishRecord[];
@@ -220,7 +220,7 @@ export type FinishPayload = {
 };
 
 export type SessionSetBody = {
-  client_set_id: string;
+  local_id: string;
   prescription_item_id: string;
   exercise_id: string;
   swapped_from_exercise_id: string | null;
@@ -234,7 +234,7 @@ export type SessionSetBody = {
 
 export function startSession(
   token: string,
-  body: { client_id: string; prescription_id: string },
+  body: { local_id: string; prescription_id: string },
 ) {
   return request<SessionStart>("/v1/sessions", {
     method: "POST",
@@ -336,7 +336,7 @@ export type OwnerStudent = {
   name: string;
   last_effort: number | null;
   last_loads: { exercise_name: string; load_kg: number }[];
-  streak: { current_count: number };
+  ofensiva: { current_count: number };
   suggested: string;
   commitment_text: string | null;
 };
@@ -418,11 +418,11 @@ export type LeagueRow = {
 };
 
 export type ProgressPayload = {
-  streak: { current_count: number; protector_available: boolean };
+  ofensiva: { current_count: number; protector_available: boolean };
   xp_total: number;
   league: LeagueRow[];
   badges: { badge_key: string; earned_at: string }[];
-  readiness_week: { for_date: string; score: number }[];
+  prontidao_week: { for_date: string; score: number }[];
 };
 
 export type RecordItem = {

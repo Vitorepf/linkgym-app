@@ -40,15 +40,15 @@ const WORDS: { effort: Effort; label: string }[] = [
 export function Descanso({ navigation, route }: Props) {
   const {
     token,
-    studioName,
+    timeName,
     accent,
-    clientId,
+    localId,
     items,
     itemIndex,
     setIndex,
     restSeconds,
     last,
-    streakCount,
+    ofensivaCount,
     xpTotal,
   } = route.params;
   const A = accentSet(accent);
@@ -87,7 +87,7 @@ export function Descanso({ navigation, route }: Props) {
 
   async function pick(n: Effort) {
     setEffort(n);
-    await patchLastSetEffort(clientId, n);
+    await patchLastSetEffort(localId, n);
   }
 
   async function goFinish() {
@@ -96,8 +96,8 @@ export function Descanso({ navigation, route }: Props) {
     try {
       // A prova sai da sessão local AGORA: `flush` termina em `dropSession`, e depois
       // dele não há mais série, carga nem horário para ler.
-      const proof = sessionProof(await markFinished(clientId, effort));
-      const result = await flush(token, clientId);
+      const proof = sessionProof(await markFinished(localId, effort));
+      const result = await flush(token, localId);
       const finish = result.ok ? result.finish : undefined;
       navigation.reset({
         index: 1,
@@ -106,9 +106,9 @@ export function Descanso({ navigation, route }: Props) {
           {
             name: "Feito",
             params: {
-              studioName,
+              timeName,
               accent,
-              streakCount: finish?.streak.current_count ?? streakCount + 1,
+              ofensivaCount: finish?.ofensiva.current_count ?? ofensivaCount + 1,
               xpGained: finish?.xp_gained ?? 10,
               xpTotal: finish?.xp_total ?? xpTotal + 10,
               records: finish?.records ?? [],
@@ -173,7 +173,7 @@ export function Descanso({ navigation, route }: Props) {
         <Txt role="note" tone="dim" style={styles.note}>
           {left === 0
             ? "Descanso fechado. Marca como foi e segue."
-            : `O ${studioName} pediu ${restSeconds}s entre as séries deste exercício.`}
+            : `O ${timeName} pediu ${restSeconds}s entre as séries deste exercício.`}
         </Txt>
       </Band>
 
@@ -195,7 +195,7 @@ export function Descanso({ navigation, route }: Props) {
         </View>
         <Txt role="note" tone="dim" style={styles.note}>
           {effort
-            ? noteFor(effort, studioName)
+            ? noteFor(effort, timeName)
             : "Um toque. O peso de amanhã sai daqui."}
         </Txt>
       </Band>
@@ -233,10 +233,10 @@ export function Descanso({ navigation, route }: Props) {
   );
 }
 
-function noteFor(effort: Effort, studioName: string): string {
-  if (effort === 1) return `Sobrou tanque. O ${studioName} sobe a carga na próxima.`;
+function noteFor(effort: Effort, timeName: string): string {
+  if (effort === 1) return `Sobrou tanque. O ${timeName} sobe a carga na próxima.`;
   if (effort === 2) return "Era essa a série.";
-  return `O ${studioName} vê e não empurra amanhã.`;
+  return `O ${timeName} vê e não empurra amanhã.`;
 }
 
 const styles = StyleSheet.create({

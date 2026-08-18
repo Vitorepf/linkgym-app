@@ -1,24 +1,23 @@
 import { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
-import { today, type Person, type Studio, type TodayPayload } from "../../api";
+import { today, type Person, type Time, type TodayPayload } from "../../api";
 import { accentSet, productTheme as T } from "../../theme";
 import { AccentCTA } from "../../ui/AccentCTA";
 import { Figure } from "../../ui/Figure";
 import { plannedSets } from "../../ui/format";
-import { Band, DockFooter, Head, Phone } from "../../ui/Screen";
+import { Band, D0_STEPS, DockFooter, Head, Phone, StepRail } from "../../ui/Screen";
 import { Txt } from "../../ui/Txt";
 
 type Props = {
   token: string;
   person: Person;
-  studio: Studio;
+  time: Time;
   onContinue: () => void;
 };
 
-/** O D0 do aluno tem QUATRO paradas — convite, Sobre você, Pronto, Estreia — e a barra
- *  do eixo 3 tem que estar visível em todas. Esta é a terceira. */
-const STEPS = 4;
-const HERE = 3;
+/** Penúltima parada do D0. A contagem e a barra são as de `StepRail`, uma só para as oito
+ *  paradas — aqui não se inventa denominador. */
+const HERE = D0_STEPS - 1;
 
 /** "O que acontece agora": um número, uma instrução curta, um botão.
  *
@@ -31,8 +30,8 @@ const HERE = 3;
  *  A instrução é UMA frase com UMA palavra no acento, e ela é o MOTIVO do botão: a
  *  permissão é emoldurada aqui, na tela do produto, antes de qualquer diálogo do sistema.
  */
-export function Pronto({ token, studio, onContinue }: Props) {
-  const accent = studio.accent_color || T.accentFallback;
+export function Pronto({ token, time, onContinue }: Props) {
+  const accent = time.accent_color || T.accentFallback;
   const A = accentSet(accent);
   const [pres, setPres] = useState<TodayPayload["prescription"]>(null);
 
@@ -54,27 +53,8 @@ export function Pronto({ token, studio, onContinue }: Props) {
 
   return (
     <Phone>
-      <Head kicker={`${HERE} · ${STEPS}`} title="O que acontece agora" accent={accent}>
-        {/* ponytail: barra estática. O traço é fino — marca, não massa — então não
-            disputa o orçamento de acento com o botão. Feito x a fazer é ESPESSURA antes
-            de ser tinta: no time 13 o acento e o divider caem no mesmo cinza, e uma
-            barra codificada só por matiz não diz nada ali. */}
-        <View
-          style={styles.bar}
-          accessible
-          accessibilityLabel={`Passo ${HERE} de ${STEPS}`}
-        >
-          {Array.from({ length: STEPS }, (_, i) => (
-            <View
-              key={i}
-              style={
-                i < HERE
-                  ? [styles.tick, styles.done, { backgroundColor: A.mark }]
-                  : styles.tick
-              }
-            />
-          ))}
-        </View>
+      <Head kicker={`${HERE} · ${D0_STEPS}`} title="O que acontece agora" accent={accent}>
+        <StepRail accent={accent} now={HERE} />
       </Head>
 
       <View style={styles.mid}>
@@ -111,9 +91,6 @@ export function Pronto({ token, studio, onContinue }: Props) {
 }
 
 const styles = StyleSheet.create({
-  bar: { flexDirection: "row", alignItems: "flex-end", gap: 6, marginTop: 14 },
-  tick: { flex: 1, height: 1, backgroundColor: T.divider },
-  done: { height: 3 },
   // O terço de baixo é da instrução e do botão. O número sobe do centro geométrico para
   // o terço óptico com o paddingBottom — centrado exato ele FLUTUA, com vão igual em
   // cima e embaixo, e vão igual não compõe nada.

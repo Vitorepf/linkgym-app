@@ -25,7 +25,7 @@ function up(s: string) {
 }
 
 export function ComoFazer({ navigation, route }: Props) {
-  const { item, items, studioName, accent, token, prescriptionId } = route.params;
+  const { item, items, timeName, accent, token, prescriptionId } = route.params;
   const A = accentSet(accent);
   const video = item.video_url;
   const [failed, setFailed] = useState(false);
@@ -105,7 +105,7 @@ export function ComoFazer({ navigation, route }: Props) {
           <Band>
             {/* Só o nome do personal — o recado é dele, não do sistema. O traço do acento
                 é a voz dele, o mesmo da Ficha; nunca marca de erro. */}
-            <Txt role="label">{studioName}</Txt>
+            <Txt role="label">{timeName}</Txt>
             <Txt role="body" style={[styles.said, { borderLeftColor: A.mark }]}>
               {note}
             </Txt>
@@ -117,8 +117,8 @@ export function ComoFazer({ navigation, route }: Props) {
             <Txt role="title">Este exercício ainda não tem descrição.</Txt>
             <Txt role="body" tone="muted" style={styles.body}>
               {video
-                ? `Assista ao vídeo, ou pergunte ao ${studioName} na hora.`
-                : `Pergunte ao ${studioName} na hora.`}
+                ? `Assista ao vídeo, ou pergunte ao ${timeName} na hora.`
+                : `Pergunte ao ${timeName} na hora.`}
             </Txt>
           </Band>
         ) : null}
@@ -126,7 +126,7 @@ export function ComoFazer({ navigation, route }: Props) {
         <Band rule="none">
           <MaquinaOcupada
             token={token}
-            studioName={studioName}
+            timeName={timeName}
             accent={accent}
             prescriptionId={prescriptionId}
             from={item}

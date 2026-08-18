@@ -8,7 +8,7 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { ApiError, requestCode, verify, type Person, type Studio } from "../api";
+import { ApiError, requestCode, verify, type Person, type Time } from "../api";
 import { errorInk, FONT, productTheme as T } from "../theme";
 import { AccentCTA } from "../ui/AccentCTA";
 import { GhostCTA } from "../ui/GhostCTA";
@@ -33,7 +33,7 @@ const STEPS: { key: Step; label: string }[] = [
 ];
 
 type Props = {
-  onEntered: (session: { token: string; person: Person; studio: Studio }) => void;
+  onEntered: (session: { token: string; person: Person; time: Time }) => void;
 };
 
 export function AccessScreen({ onEntered }: Props) {
@@ -43,9 +43,9 @@ export function AccessScreen({ onEntered }: Props) {
   const [step, setStep] = useState<Step>("phone");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [studio, setStudio] = useState<Studio | null>(null);
+  const [time, setTime] = useState<Time | null>(null);
 
-  const accent = studio?.accent_color || T.accentFallback;
+  const accent = time?.accent_color || T.accentFallback;
 
   async function sendCode() {
     setBusy(true);
@@ -53,7 +53,7 @@ export function AccessScreen({ onEntered }: Props) {
     try {
       const res = await requestCode(phone, invite);
       if (res.dev_code) setOtp(res.dev_code);
-      setStudio(res.studio ?? null);
+      setTime(res.time ?? null);
       setStep("otp");
     } catch (e) {
       setError(messageFor(e));
@@ -101,7 +101,7 @@ export function AccessScreen({ onEntered }: Props) {
             acento ESCREVE (4,5:1 contra o chão). A massa do acento é do botão, e é só
             dele — por isso a marca ao lado vai sem `fill`. */}
         <Head
-          kicker={studio ? `${studio.name} te chamou` : "Convite"}
+          kicker={time ? `${time.name} te chamou` : "Convite"}
           title="Entrar"
           body={
             step === "phone"
@@ -112,7 +112,7 @@ export function AccessScreen({ onEntered }: Props) {
                 `Os 4 dígitos foram para o ${phone}.`
           }
           accent={accent}
-          right={studio ? <Initials name={studio.name} size={34} /> : undefined}
+          right={time ? <Initials name={time.name} size={34} /> : undefined}
         />
         <ScrollView
           style={styles.flex}
@@ -246,7 +246,7 @@ export function AccessScreen({ onEntered }: Props) {
                 <GhostCTA
                   label="Trocar número"
                   onPress={() => {
-                    setStudio(null);
+                    setTime(null);
                     setOtp("");
                     setError("");
                     setStep("phone");

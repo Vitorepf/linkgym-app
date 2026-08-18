@@ -9,14 +9,14 @@ import type { SessionProof } from "../offline/sessionQueue";
 
 export type SessionRoute = {
   token: string;
-  studioName: string;
+  timeName: string;
   accent: string;
-  clientId: string;
+  localId: string;
   prescriptionId: string;
   items: TodayItem[];
   itemIndex: number;
   setIndex: number;
-  streakCount: number;
+  ofensivaCount: number;
   xpTotal: number;
   needsCommitment: boolean;
 };
@@ -38,35 +38,35 @@ export type RootStackParamList = {
   Painel: NavigatorScreenParams<OwnerTabParamList> | undefined;
   Retorno: {
     token: string;
-    studioName: string;
+    timeName: string;
     accent: string;
   };
   Atencao: {
     token: string;
-    studioName: string;
+    timeName: string;
     accent: string;
   };
   Revisao: {
     token: string;
-    studioName: string;
+    timeName: string;
     accent: string;
   };
   Aluna: {
     token: string;
     personId: string;
-    studioName: string;
+    timeName: string;
     accent: string;
   };
   Base: {
     token: string;
-    studioName: string;
+    timeName: string;
     accent: string;
     personId?: string;
     personName?: string;
   };
   Ajustar: {
     token: string;
-    studioName: string;
+    timeName: string;
     accent: string;
     prescriptionId: string;
     personId: string;
@@ -75,7 +75,7 @@ export type RootStackParamList = {
   };
   Publicar: {
     token: string;
-    studioName: string;
+    timeName: string;
     accent: string;
     prescriptionId: string;
     personId: string;
@@ -89,14 +89,14 @@ export type RootStackParamList = {
   Hoje: NavigatorScreenParams<StudentTabParamList> | undefined;
   Ficha: {
     token: string;
-    studioName: string;
+    timeName: string;
     accent: string;
     items: TodayItem[];
     prescriptionId: string;
   };
   ComoFazer: {
     token: string;
-    studioName: string;
+    timeName: string;
     accent: string;
     item: TodayItem;
     items: TodayItem[];
@@ -105,9 +105,9 @@ export type RootStackParamList = {
   Serie: SessionRoute;
   Descanso: SessionRoute & { restSeconds: number; last: boolean };
   Feito: {
-    studioName: string;
+    timeName: string;
     accent: string;
-    streakCount: number;
+    ofensivaCount: number;
     xpTotal: number;
     xpGained: number;
     records: FinishRecord[];

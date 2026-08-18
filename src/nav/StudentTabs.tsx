@@ -1,5 +1,5 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import type { Person, Studio } from "../api";
+import type { Person, Time } from "../api";
 import { FichaTab } from "../screens/student/FichaTab";
 import { Hoje } from "../screens/student/Hoje";
 import { Perfil } from "../screens/student/Perfil";
@@ -18,7 +18,7 @@ export const studentHomeTarget = {
 type Props = {
   token: string;
   person: Person;
-  studio: Studio;
+  time: Time;
   needsCommitment: boolean;
   onLeave: () => void;
 };
@@ -28,11 +28,11 @@ const Tab = createBottomTabNavigator<StudentTabParamList>();
 export function StudentTabs({
   token,
   person,
-  studio,
+  time,
   needsCommitment,
   onLeave,
 }: Props) {
-  const accent = studio.accent_color || productTheme.accentFallback;
+  const accent = time.accent_color || productTheme.accentFallback;
 
   return (
     <Tab.Navigator initialRouteName="Hoje" {...dockTabs(accent)}>
@@ -41,25 +41,25 @@ export function StudentTabs({
           <Hoje
             token={token}
             person={person}
-            studio={studio}
+            time={time}
             needsCommitment={needsCommitment}
           />
         )}
       </Tab.Screen>
       <Tab.Screen name="MinhaFicha">
         {() => (
-          <FichaTab token={token} person={person} studio={studio} />
+          <FichaTab token={token} person={person} time={time} />
         )}
       </Tab.Screen>
       <Tab.Screen name="Progresso">
-        {() => <Progresso token={token} person={person} studio={studio} />}
+        {() => <Progresso token={token} person={person} time={time} />}
       </Tab.Screen>
       <Tab.Screen name="Perfil">
         {() => (
           <Perfil
             token={token}
             person={person}
-            studio={studio}
+            time={time}
             onLeave={onLeave}
           />
         )}

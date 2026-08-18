@@ -3,11 +3,11 @@ import { useEffect, useRef, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import {
   progress,
-  putReadiness,
+  putProntidao,
   today,
   type Person,
-  type Readiness,
-  type Studio,
+  type Prontidao,
+  type Time,
   type TodayPayload,
 } from "../../api";
 import type { StudentTabNavigation } from "../../nav/types";
@@ -15,7 +15,7 @@ import {
   createSession,
   flush,
   loadCurrent,
-  newClientId,
+  newLocalId,
   resumeCursor,
   sessionProof,
 } from "../../offline/sessionQueue";
@@ -42,13 +42,13 @@ import { dateShort, plannedSets, weekdayLong } from "../../ui/format";
 type Props = {
   token: string;
   person: Person;
-  studio: Studio;
+  time: Time;
   needsCommitment: boolean;
 };
 
-export function Hoje({ token, studio, needsCommitment }: Props) {
+export function Hoje({ token, time, needsCommitment }: Props) {
   const navigation = useNavigation<StudentTabNavigation>();
-  const accent = studio.accent_color || T.accentFallback;
+  const accent = time.accent_color || T.accentFallback;
   const A = accentSet(accent);
   const [data, setData] = useState<TodayPayload | null>(null);
   const [week, setWeek] = useState<{ for_date: string; score: number }[]>([]);
@@ -69,9 +69,9 @@ export function Hoje({ token, studio, needsCommitment }: Props) {
         const payload = await today(token);
         if (alive) {
           setData(payload);
-          setEnergy(payload.readiness.energy);
-          setSoreness(payload.readiness.soreness);
-          setSleep(payload.readiness.sleep);
+          setEnergy(payload.prontidao.energy);
+          setSoreness(payload.prontidao.soreness);
+          setSleep(payload.prontidao.sleep);
           setError("");
         }
       } catch {
@@ -81,7 +81,7 @@ export function Hoje({ token, studio, needsCommitment }: Props) {
         // A série de prontidão da semana já é servida para a Progresso. É dela que saem o
         // delta e a baseline daqui — números reais, do mesmo corpo. Sem ela, os dois somem.
         const p = await progress(token);
-        if (alive) setWeek(p.readiness_week);
+        if (alive) setWeek(p.prontidao_week);
       } catch {
         /* sem histórico: o 84 fica sem delta e sem baseline, e é só isso. */
       }
@@ -99,9 +99,9 @@ export function Hoje({ token, studio, needsCommitment }: Props) {
   const prescription = data?.prescription ?? null;
   const answered = inScale(energy) && inScale(soreness) && inScale(sleep);
   const dirty =
-    energy !== (data?.readiness.energy ?? 0) ||
-    soreness !== (data?.readiness.soreness ?? 0) ||
-    sleep !== (data?.readiness.sleep ?? 0);
+    energy !== (data?.prontidao.energy ?? 0) ||
+    soreness !== (data?.prontidao.soreness ?? 0) ||
+    sleep !== (data?.prontidao.sleep ?? 0);
 
   useEffect(() => {
     if (!answered || !dirty || savingRef.current) return;
@@ -109,12 +109,12 @@ export function Hoje({ token, studio, needsCommitment }: Props) {
     setSaving(true);
     void (async () => {
       try {
-        const readiness = await putReadiness(token, {
+        const prontidao = await putProntidao(token, {
           energy,
           soreness,
           sleep,
         });
-        setData((prev) => (prev ? { ...prev, readiness } : prev));
+        setData((prev) => (prev ? { ...prev, prontidao } : prev));
         setError("");
       } catch {
         setError("Não deu para registrar como você está.");
@@ -129,11 +129,11 @@ export function Hoje({ token, studio, needsCommitment }: Props) {
     if (!prescription || !data) return;
     const base = {
       token,
-      studioName: studio.name,
+      timeName: time.name,
       accent,
       prescriptionId: prescription.id,
       items: prescription.items,
-      streakCount: data.streak.current_count,
+      ofensivaCount: data.ofensiva.current_count,
       xpTotal: data.xp_total,
       needsCommitment,
     };
@@ -141,13 +141,13 @@ export function Hoje({ token, studio, needsCommitment }: Props) {
     if (existing && existing.prescription_id === prescription.id) {
       if (existing.finished) {
         const proof = sessionProof(existing);
-        const result = await flush(token, existing.client_id);
+        const result = await flush(token, existing.local_id);
         const finish = result.ok ? result.finish : undefined;
         navigation.navigate("Feito", {
-          studioName: studio.name,
+          timeName: time.name,
           accent,
-          streakCount:
-            finish?.streak.current_count ?? data.streak.current_count + 1,
+          ofensivaCount:
+            finish?.ofensiva.current_count ?? data.ofensiva.current_count + 1,
           xpGained: finish?.xp_gained ?? 10,
           xpTotal: finish?.xp_total ?? data.xp_total + 10,
           records: finish?.records ?? [],
@@ -161,7 +161,7 @@ export function Hoje({ token, studio, needsCommitment }: Props) {
       if (cursor === "done") {
         navigation.navigate("Descanso", {
           ...base,
-          clientId: existing.client_id,
+          localId: existing.local_id,
           itemIndex: Math.max(0, prescription.items.length - 1),
           setIndex:
             prescription.items[prescription.items.length - 1]?.planned_sets ?? 1,
@@ -174,39 +174,41 @@ export function Hoje({ token, studio, needsCommitment }: Props) {
       }
       navigation.navigate("Serie", {
         ...base,
-        clientId: existing.client_id,
+        localId: existing.local_id,
         itemIndex: cursor.itemIndex,
         setIndex: cursor.setIndex,
       });
       return;
     }
-    const session = await createSession(prescription.id, newClientId());
+    const session = await createSession(prescription.id, newLocalId());
     navigation.navigate("Serie", {
       ...base,
-      clientId: session.client_id,
+      localId: session.local_id,
       itemIndex: 0,
       setIndex: 1,
     });
   }
 
   const now = new Date();
-  const score = data?.readiness.score ?? 0;
+  const score = data?.prontidao.score ?? 0;
   const sets = prescription ? plannedSets(prescription.items) : 0;
-  const cta = resume ? "Continuar" : ctaLabel(data?.readiness.label ?? "");
+  const cta = resume ? "Continuar" : ctaLabel(data?.prontidao.label ?? "");
 
-  // Dias ANTERIORES: o de hoje é o próprio 84, e comparar um número consigo mesmo é o
-  // empate que não diz nada.
-  const past = week.filter((d) => d.for_date < isoDay(now));
+  // Dias ANTERIORES e REGISTRADOS: o de hoje é o próprio 84, e comparar um número consigo
+  // mesmo é o empate que não diz nada. `score` 0 é dia sem registro, não dia ruim — a
+  // Progresso já o descarta, e contá-lo aqui puxava esta média para baixo da de lá: a
+  // mesma prontidão lida com dois números em duas abas vizinhas.
+  const past = week.filter((d) => d.for_date < isoDay(now) && d.score > 0);
   const prev = past.length ? past[past.length - 1].score : null;
   const mean = past.length
     ? Math.round(past.reduce((s, d) => s + d.score, 0) / past.length)
     : null;
   // A leitura sai da prontidão SALVA — a mesma que gerou o 84. Enquanto uma escala nova
   // não voltou da API, a frase não fala por ela.
-  const reading = data ? readingOf(data.readiness) : null;
+  const reading = data ? readingOf(data.prontidao) : null;
 
   return (
-    <Phone tab>
+    <Phone>
       <Head
         kicker={`${weekdayLong(now)} · ${dateShort(now)}`}
         kickerMuted
@@ -309,8 +311,11 @@ export function Hoje({ token, studio, needsCommitment }: Props) {
                       </Txt>
                     </View>
                   )}
+                  {/* "média da semana" era o mesmo nome que a Progresso dá a OUTRO
+                      número (lá entra o dia de hoje, aqui não): duas abas vizinhas
+                      mostravam a mesma prontidão com dois valores. O nome diz a janela. */}
                   {mean === null ? null : (
-                    <Baseline value={mean} label="média da semana" />
+                    <Baseline value={mean} label="média até ontem" />
                   )}
                   {/* A frase é DERIVADA dos três valores do dia e cita cada número. Se
                       nenhum dos três se destaca, `readingOf` devolve null e a tela cala —
@@ -384,9 +389,9 @@ export function Hoje({ token, studio, needsCommitment }: Props) {
         {data?.coach_line ? (
           <Band rule="hair">
             <View style={styles.row}>
-              <Initials name={studio.name} size={34} />
+              <Initials name={time.name} size={34} />
               <View style={styles.grow}>
-                <Txt role="body">{studio.name} revisou sua semana</Txt>
+                <Txt role="body">{time.name} revisou sua semana</Txt>
                 <Txt role="note">hoje</Txt>
               </View>
             </View>
@@ -397,13 +402,13 @@ export function Hoje({ token, studio, needsCommitment }: Props) {
         ) : null}
 
         {/* Ofensiva zerada não vira "OFENSIVA 0" no rodapé: falha é AUSÊNCIA de marca. */}
-        {data && data.streak.current_count > 0 ? (
+        {data && data.ofensiva.current_count > 0 ? (
           <Band rule="none">
             <View style={styles.anchorRow}>
               <IconCheck color={T.muted} size={14} />
               <Txt role="label" tone="dim">
-                Ofensiva {data.streak.current_count}
-                {data.streak.protector_available ? " · 1 protetor guardado" : ""}
+                Ofensiva {data.ofensiva.current_count}
+                {data.ofensiva.protector_available ? " · 1 protetor guardado" : ""}
               </Txt>
             </View>
           </Band>
@@ -446,7 +451,7 @@ function deltaLine(score: number, prev: number): string {
  *
  *  Se nenhum dos três se destaca (tudo em 3), não há afirmação honesta a fazer e a função
  *  devolve null: a tela cala. Uma frase de ânimo genérica seria pior que o silêncio. */
-function readingOf(r: Readiness): string | null {
+function readingOf(r: Prontidao): string | null {
   if (!inScale(r.energy) || !inScale(r.soreness) || !inScale(r.sleep)) return null;
   if (!r.score) return null;
 

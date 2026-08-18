@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { StyleSheet, View } from "react-native";
 import Animated from "react-native-reanimated";
-import { putCommitment, type Studio } from "../../api";
+import { putCommitment, type Time } from "../../api";
 import { productTheme as T } from "../../theme";
 import { AccentCTA } from "../../ui/AccentCTA";
 import { Choice } from "../../ui/Choice";
@@ -15,7 +15,7 @@ type Days = 2 | 3 | 4 | 5 | 6;
 
 type Props = {
   token: string;
-  studio: Studio;
+  time: Time;
   onDone: () => void;
 };
 
@@ -80,8 +80,8 @@ function Piso({
   );
 }
 
-export function Compromisso({ token, studio, onDone }: Props) {
-  const accent = studio.accent_color || T.accentFallback;
+export function Compromisso({ token, time, onDone }: Props) {
+  const accent = time.accent_color || T.accentFallback;
   const [days, setDays] = useState<Days | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -110,7 +110,7 @@ export function Compromisso({ token, studio, onDone }: Props) {
   if (receipt) {
     return (
       <Phone>
-        <Head kicker="Combinado" title={`${studio.name} já sabe.`} accent={accent} />
+        <Head kicker="Combinado" title={`${time.name} já sabe.`} accent={accent} />
         <Piso days={days} line={line} final />
         <DockFooter>
           <AccentCTA label="Seguir" onPress={onDone} accent={accent} />
@@ -141,11 +141,11 @@ export function Compromisso({ token, studio, onDone }: Props) {
 
       <Band raised rule="none">
         <View style={styles.witness}>
-          <Initials name={studio.name} size={34} />
+          <Initials name={time.name} size={34} />
           <View style={styles.witnessCopy}>
             <Txt role="label">Quem vai saber</Txt>
             <Txt role="title" numberOfLines={1}>
-              {studio.name}
+              {time.name}
             </Txt>
           </View>
         </View>

@@ -6,7 +6,7 @@ import {
   ownerHome,
   type OwnerHome,
   type Person,
-  type Studio,
+  type Time,
 } from "../../api";
 import type { OwnerTabNavigation } from "../../nav/types";
 import { errorInk, productTheme as T } from "../../theme";
@@ -22,7 +22,7 @@ import { weekdayLong, weekdayShort } from "../../ui/format";
 type Props = {
   token: string;
   person: Person;
-  studio: Studio;
+  time: Time;
   onLeave: () => void;
 };
 
@@ -43,9 +43,9 @@ type Day = OwnerHome["fio"]["week"][number];
  *
  *  Acento: UM só elemento pinta área — o botão do primeiro da fila. Os outros dois são
  *  `quiet`. O fio é tinta neutra: a semana não pode competir com a ação de hoje. */
-export function Painel({ token, studio, onLeave }: Props) {
+export function Painel({ token, time, onLeave }: Props) {
   const navigation = useNavigation<OwnerTabNavigation>();
-  const accent = studio.accent_color || T.accentFallback;
+  const accent = time.accent_color || T.accentFallback;
   const [data, setData] = useState<OwnerHome | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
@@ -85,11 +85,11 @@ export function Painel({ token, studio, onLeave }: Props) {
   const fio = data ? readFio(data.fio.week) : null;
 
   return (
-    <Phone tab>
+    <Phone>
       {/* Sem retrato e sem saudação: a referência gasta o maior texto da tela no nome
           do PROFISSIONAL, que é a única pessoa que já sabe quem é. Aqui o cabeçalho diz
           de quem é a casa e que dia é hoje, em uma linha. */}
-      <Head kicker={`${studio.name} · ${weekdayLong()}`} accent={accent} />
+      <Head kicker={`${time.name} · ${weekdayLong()}`} accent={accent} />
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}
@@ -131,7 +131,7 @@ export function Painel({ token, studio, onLeave }: Props) {
                 onPress={() =>
                   navigation.navigate("Atencao", {
                     token,
-                    studioName: studio.name,
+                    timeName: time.name,
                     accent,
                   })
                 }
@@ -164,7 +164,7 @@ export function Painel({ token, studio, onLeave }: Props) {
                 navigation.navigate("Aluna", {
                   token,
                   personId: row.person_id,
-                  studioName: studio.name,
+                  timeName: time.name,
                   accent,
                 })
               }
@@ -249,7 +249,7 @@ export function Painel({ token, studio, onLeave }: Props) {
             onPress={() =>
               navigation.navigate("Retorno", {
                 token,
-                studioName: studio.name,
+                timeName: time.name,
                 accent,
               })
             }

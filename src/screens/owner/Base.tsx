@@ -20,11 +20,10 @@ type Load = OwnerStudent["last_loads"][number];
 
 type Props = {
   token: string;
-  studioName: string;
+  timeName: string;
   accent: string;
   personId?: string;
   personName?: string;
-  tab?: boolean;
 };
 
 /** Uma origem. Seleção é TOM no mesmo elemento mais um traço à esquerda — nunca um matiz
@@ -74,11 +73,10 @@ function Origem({
 
 export function Base({
   token,
-  studioName,
+  timeName,
   accent,
   personId: initialPersonId,
   personName: initialPersonName,
-  tab,
 }: Props) {
   const A = accentSet(accent, T.raised);
   const navigation =
@@ -136,7 +134,7 @@ export function Base({
       setError("");
       navigation.navigate("Ajustar", {
         token,
-        studioName,
+        timeName,
         accent,
         prescriptionId: draft.draft_id,
         personId,
@@ -155,7 +153,7 @@ export function Base({
   const keeps = picked === "last";
 
   return (
-    <Phone tab={tab}>
+    <Phone>
       <Head
         kicker={personName || "Nova ficha"}
         title="De onde a gente parte?"

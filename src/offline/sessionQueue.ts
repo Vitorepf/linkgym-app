@@ -7,7 +7,7 @@ import {
 } from "../api";
 
 export type QueuedSet = {
-  client_set_id: string;
+  local_id: string;
   prescription_item_id: string;
   exercise_id: string;
   swapped_from_exercise_id?: string;
@@ -20,7 +20,7 @@ export type QueuedSet = {
 };
 
 export type LocalSession = {
-  client_id: string;
+  local_id: string;
   server_id?: string;
   prescription_id: string;
   sets: QueuedSet[];
@@ -30,11 +30,11 @@ export type LocalSession = {
 
 const CURRENT_KEY = "linkgym.session.current";
 
-function storageKey(clientId: string): string {
-  return `linkgym.session.${clientId}`;
+function storageKey(localId: string): string {
+  return `linkgym.session.${localId}`;
 }
 
-export function newClientId(): string {
+export function newLocalId(): string {
   const c = globalThis.crypto;
   if (c && typeof c.randomUUID === "function") {
     return c.randomUUID();
@@ -46,8 +46,8 @@ export function newClientId(): string {
   });
 }
 
-export async function loadSession(clientId: string): Promise<LocalSession | null> {
-  const raw = await AsyncStorage.getItem(storageKey(clientId));
+export async function loadSession(localId: string): Promise<LocalSession | null> {
+  const raw = await AsyncStorage.getItem(storageKey(localId));
   if (!raw) return null;
   try {
     return JSON.parse(raw) as LocalSession;
@@ -63,24 +63,24 @@ export async function loadCurrent(): Promise<LocalSession | null> {
 }
 
 export async function saveSession(session: LocalSession): Promise<void> {
-  await AsyncStorage.setItem(storageKey(session.client_id), JSON.stringify(session));
-  await AsyncStorage.setItem(CURRENT_KEY, session.client_id);
+  await AsyncStorage.setItem(storageKey(session.local_id), JSON.stringify(session));
+  await AsyncStorage.setItem(CURRENT_KEY, session.local_id);
 }
 
-export async function dropSession(clientId: string): Promise<void> {
-  await AsyncStorage.removeItem(storageKey(clientId));
+export async function dropSession(localId: string): Promise<void> {
+  await AsyncStorage.removeItem(storageKey(localId));
   const current = await AsyncStorage.getItem(CURRENT_KEY);
-  if (current === clientId) {
+  if (current === localId) {
     await AsyncStorage.removeItem(CURRENT_KEY);
   }
 }
 
 export async function createSession(
   prescriptionId: string,
-  clientId = newClientId(),
+  localId = newLocalId(),
 ): Promise<LocalSession> {
   const session: LocalSession = {
-    client_id: clientId,
+    local_id: localId,
     prescription_id: prescriptionId,
     sets: [],
   };
@@ -94,10 +94,10 @@ export async function ensureServerSession(
 ): Promise<string> {
   let session = await loadCurrent();
   if (!session || session.prescription_id !== prescriptionId || session.finished) {
-    session = await createSession(prescriptionId, newClientId());
+    session = await createSession(prescriptionId, newLocalId());
   }
   const started = await startSession(token, {
-    client_id: session.client_id,
+    local_id: session.local_id,
     prescription_id: prescriptionId,
   });
   session.server_id = started.id;
@@ -106,21 +106,21 @@ export async function ensureServerSession(
 }
 
 export async function rememberSwap(
-  clientId: string,
+  localId: string,
   fromExerciseId: string,
   toExerciseId: string,
 ): Promise<void> {
-  const session = await loadSession(clientId);
+  const session = await loadSession(localId);
   if (!session) return;
   session.swaps = { ...session.swaps, [fromExerciseId]: toExerciseId };
   await saveSession(session);
 }
 
 export async function enqueueSet(
-  clientId: string,
+  localId: string,
   set: QueuedSet,
 ): Promise<LocalSession> {
-  const session = await loadSession(clientId);
+  const session = await loadSession(localId);
   if (!session) {
     throw new Error("sessao_ausente");
   }
@@ -129,7 +129,7 @@ export async function enqueueSet(
     to && to !== set.exercise_id
       ? { ...set, exercise_id: to, swapped_from_exercise_id: set.exercise_id }
       : set;
-  const i = session.sets.findIndex((s) => s.client_set_id === queued.client_set_id);
+  const i = session.sets.findIndex((s) => s.local_id === queued.local_id);
   if (i >= 0) {
     session.sets[i] = queued;
   } else {
@@ -140,10 +140,10 @@ export async function enqueueSet(
 }
 
 export async function patchLastSetEffort(
-  clientId: string,
+  localId: string,
   effort: 1 | 2 | 3,
 ): Promise<void> {
-  const session = await loadSession(clientId);
+  const session = await loadSession(localId);
   if (!session || session.sets.length === 0) return;
   session.sets[session.sets.length - 1] = {
     ...session.sets[session.sets.length - 1],
@@ -153,10 +153,10 @@ export async function patchLastSetEffort(
 }
 
 export async function markFinished(
-  clientId: string,
+  localId: string,
   effort: 1 | 2 | 3,
 ): Promise<LocalSession | null> {
-  const session = await loadSession(clientId);
+  const session = await loadSession(localId);
   if (!session) return null;
   session.finished = { effort };
   await saveSession(session);
@@ -195,16 +195,16 @@ export type FlushResult =
   | { ok: true; finish?: FinishPayload }
   | { ok: false };
 
-export async function flush(token: string, clientId?: string): Promise<FlushResult> {
-  const session = clientId
-    ? await loadSession(clientId)
+export async function flush(token: string, localId?: string): Promise<FlushResult> {
+  const session = localId
+    ? await loadSession(localId)
     : await loadCurrent();
   if (!session) {
     return { ok: true };
   }
   try {
     const started = await startSession(token, {
-      client_id: session.client_id,
+      local_id: session.local_id,
       prescription_id: session.prescription_id,
     });
     session.server_id = started.id;
@@ -212,7 +212,7 @@ export async function flush(token: string, clientId?: string): Promise<FlushResu
 
     for (const set of session.sets) {
       await addSessionSet(token, started.id, {
-        client_set_id: set.client_set_id,
+        local_id: set.local_id,
         prescription_item_id: set.prescription_item_id,
         exercise_id: set.exercise_id,
         swapped_from_exercise_id: set.swapped_from_exercise_id ?? null,
@@ -227,7 +227,7 @@ export async function flush(token: string, clientId?: string): Promise<FlushResu
 
     if (session.finished) {
       const finish = await finishSession(token, started.id, session.finished.effort);
-      await dropSession(session.client_id);
+      await dropSession(session.local_id);
       return { ok: true, finish };
     }
 

@@ -9,7 +9,7 @@ import {
   flush,
   lastLoadForItem,
   loadSession,
-  newClientId,
+  newLocalId,
   nextAfter,
   stepKg,
   type LocalSession,
@@ -31,9 +31,9 @@ type Props = NativeStackScreenProps<RootStackParamList, "Serie">;
 export function Serie({ navigation, route }: Props) {
   const {
     token,
-    studioName,
+    timeName,
     accent,
-    clientId,
+    localId,
     items,
     itemIndex,
     setIndex,
@@ -41,7 +41,7 @@ export function Serie({ navigation, route }: Props) {
   const A = accentSet(accent, T.raised);
   const item = items[itemIndex];
   const [load, setLoad] = useState(item?.load_kg ?? 0);
-  const [reps, setReps] = useState(item ? defaultReps(item.planned_reps) : 10);
+  const reps = item ? defaultReps(item.planned_reps) : 10;
   const [session, setSession] = useState<LocalSession | null>(null);
   const loadSV = useSharedValue(load);
   const startLoad = useSharedValue(load);
@@ -69,7 +69,7 @@ export function Serie({ navigation, route }: Props) {
   useEffect(() => {
     let alive = true;
     (async () => {
-      const stored = await loadSession(clientId);
+      const stored = await loadSession(localId);
       if (!alive) return;
       setSession(stored);
       if (item) {
@@ -79,7 +79,7 @@ export function Serie({ navigation, route }: Props) {
     return () => {
       alive = false;
     };
-  }, [clientId, item]);
+  }, [localId, item]);
 
   const rest = item?.rest_seconds ?? 90;
   const last = nextAfter(items, itemIndex, setIndex) === "done";
@@ -90,12 +90,12 @@ export function Serie({ navigation, route }: Props) {
     if (busy || !item) return;
     setBusy(true);
     try {
-      const stored = await loadSession(clientId);
+      const stored = await loadSession(localId);
       const existing = stored?.sets.find(
         (s) => s.prescription_item_id === item.id && s.set_index === setIndex,
       );
-      await enqueueSet(clientId, {
-        client_set_id: existing?.client_set_id ?? newClientId(),
+      await enqueueSet(localId, {
+        local_id: existing?.local_id ?? newLocalId(),
         prescription_item_id: item.id,
         exercise_id: item.exercise_id,
         set_index: setIndex,
@@ -104,7 +104,7 @@ export function Serie({ navigation, route }: Props) {
         rest_seconds: rest,
         performed_at: existing?.performed_at ?? new Date().toISOString(),
       });
-      flush(token, clientId).catch(() => undefined);
+      flush(token, localId).catch(() => undefined);
       navigation.navigate("Descanso", {
         ...route.params,
         restSeconds: rest,
@@ -187,7 +187,7 @@ export function Serie({ navigation, route }: Props) {
             navigation.navigate("ComoFazer", {
               item,
               items,
-              studioName,
+              timeName,
               accent,
               token,
               prescriptionId: route.params.prescriptionId,
@@ -214,7 +214,7 @@ export function Serie({ navigation, route }: Props) {
             unit="kg"
             label="Carga"
             dir={dir}
-            note={`${studioName} pediu ${formatKg(asked)} kg`}
+            note={`${timeName} pediu ${formatKg(asked)} kg`}
           />
           <View style={styles.stepRow}>
             <View style={styles.step}>
@@ -276,7 +276,7 @@ export function Serie({ navigation, route }: Props) {
 
       {item.notes ? (
         <Band raised rule="none">
-          <Txt role="label">{studioName} disse</Txt>
+          <Txt role="label">{timeName} disse</Txt>
           <Txt role="body" style={styles.note}>
             {item.notes}
           </Txt>
@@ -290,7 +290,7 @@ export function Serie({ navigation, route }: Props) {
             onPress={() =>
               navigation.navigate("Ficha", {
                 token,
-                studioName,
+                timeName,
                 accent,
                 items,
                 prescriptionId: route.params.prescriptionId,

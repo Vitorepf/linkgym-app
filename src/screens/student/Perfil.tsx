@@ -4,7 +4,7 @@ import {
   progress,
   type Person,
   type ProgressPayload,
-  type Studio,
+  type Time,
 } from "../../api";
 import { errorInk, productTheme as T } from "../../theme";
 import { formatNum } from "../../ui/format";
@@ -17,7 +17,7 @@ import { Txt } from "../../ui/Txt";
 type Props = {
   token: string;
   person: Person;
-  studio: Studio;
+  time: Time;
   onLeave: () => void;
 };
 
@@ -29,7 +29,7 @@ type Props = {
  *    - tinha DUAS convenções de rótulo dentro dela mesma: um kicker acentuado e um mudo,
  *      ambos em 11 px/1,43 — e o resto do app escreve rótulo em `Txt role="label"`
  *      (12 px/1,3, mudo). Sobrou uma convenção, a do sistema.
- *    - a segunda célula da grade dizia "Recorde" e desenhava `streak.current_count`: o
+ *    - a segunda célula da grade dizia "Recorde" e desenhava `ofensiva.current_count`: o
  *      MESMO número da célula ao lado, com outro nome. O payload não tem recorde de
  *      ofensiva, então a célula que mentia saiu e entrou o Protetor, que é dado real.
  *    - a barra "Quanto falta" media o selo de 4 semanas — o MESMO selo que a fila logo
@@ -47,8 +47,8 @@ const SELOS = [
   { key: "retomada", label: "Retomada", mark: "R" },
 ] as const;
 
-export function Perfil({ token, person, studio, onLeave }: Props) {
-  const accent = studio.accent_color || T.accentFallback;
+export function Perfil({ token, person, time, onLeave }: Props) {
+  const accent = time.accent_color || T.accentFallback;
   const [data, setData] = useState<ProgressPayload | null>(null);
   const [error, setError] = useState("");
 
@@ -73,12 +73,12 @@ export function Perfil({ token, person, studio, onLeave }: Props) {
   const name = person.name.trim() || "Você";
   const place = data ? data.league.findIndex((row) => row.me) + 1 : 0;
   const earned = new Set((data?.badges ?? []).map((b) => b.badge_key));
-  const streak = data?.streak.current_count ?? 0;
+  const ofensiva = data?.ofensiva.current_count ?? 0;
 
   return (
-    <Phone tab>
+    <Phone>
       <Head
-        kicker={studio.name}
+        kicker={time.name}
         kickerMuted
         title={name}
         right={<Initials name={name} accent={accent} fill size={54} />}
@@ -101,13 +101,13 @@ export function Perfil({ token, person, studio, onLeave }: Props) {
               cells={[
                 {
                   label: "Ofensiva",
-                  value: streak,
+                  value: ofensiva,
                   note: "sessões seguidas",
                 },
                 {
                   label: "Protetor",
-                  value: data.streak.protector_available ? "1" : "—",
-                  note: data.streak.protector_available
+                  value: data.ofensiva.protector_available ? "1" : "—",
+                  note: data.ofensiva.protector_available
                     ? "guardado"
                     : "gasto nesta ofensiva",
                 },
@@ -118,7 +118,7 @@ export function Perfil({ token, person, studio, onLeave }: Props) {
                 {
                   label: "Liga",
                   value: place > 0 ? `${place}º` : "—",
-                  note: studio.name,
+                  note: time.name,
                 },
               ]}
             />

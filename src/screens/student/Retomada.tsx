@@ -9,12 +9,12 @@ import {
   today,
   type Person,
   type RecordItem,
-  type Studio,
+  type Time,
   type TodayPayload,
 } from "../../api";
 import { studentHomeTarget, STUDENT_HOME_ROUTE } from "../../nav/StudentTabs";
 import type { RootStackParamList } from "../../nav/types";
-import { createSession, newClientId } from "../../offline/sessionQueue";
+import { createSession, newLocalId } from "../../offline/sessionQueue";
 import { accentSet, productTheme as T } from "../../theme";
 import { AccentCTA } from "../../ui/AccentCTA";
 import { Figure } from "../../ui/Figure";
@@ -27,7 +27,7 @@ import { dateShort, formatKg, formatNum } from "../../ui/format";
 type Props = {
   token: string;
   person: Person;
-  studio: Studio;
+  time: Time;
   needsCommitment: boolean;
   comeback: NonNullable<TodayPayload["comeback"]>;
 };
@@ -45,15 +45,15 @@ type Props = {
  *  O fato — a Ofensiva zerou — é dito UMA vez, no número, em corpo de métrica, ao lado do
  *  XP que continua inteiro. Não existe contagem de dias perdidos em corpo grande, não
  *  existe a palavra culpa, não existe tinta de erro: falha é AUSÊNCIA de marca. */
-export function Retomada({ token, studio, needsCommitment, comeback }: Props) {
+export function Retomada({ token, time, needsCommitment, comeback }: Props) {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList, "Retomada">>();
-  const accent = studio.accent_color || T.accentFallback;
+  const accent = time.accent_color || T.accentFallback;
   const A = accentSet(accent);
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
   const [acervo, setAcervo] = useState<RecordItem[]>([]);
-  const [streak, setStreak] = useState<number | null>(null);
+  const [ofensiva, setOfensiva] = useState<number | null>(null);
   const [xp, setXp] = useState<number | null>(null);
 
   useEffect(() => {
@@ -63,7 +63,7 @@ export function Retomada({ token, studio, needsCommitment, comeback }: Props) {
         const [rec, payload] = await Promise.all([records(token), today(token)]);
         if (!alive) return;
         setAcervo(rec.items);
-        setStreak(payload.streak.current_count);
+        setOfensiva(payload.ofensiva.current_count);
         setXp(payload.xp_total);
       } catch {
         /* sem acervo: nada abaixo da faixa é desenhado. Nenhum placeholder inventado. */
@@ -86,7 +86,7 @@ export function Retomada({ token, studio, needsCommitment, comeback }: Props) {
         navigation.reset({ index: 0, routes: [studentHomeTarget] });
         return;
       }
-      const session = await createSession(prescription.id, newClientId());
+      const session = await createSession(prescription.id, newLocalId());
       navigation.reset({
         index: 1,
         routes: [
@@ -95,14 +95,14 @@ export function Retomada({ token, studio, needsCommitment, comeback }: Props) {
             name: "Serie",
             params: {
               token,
-              studioName: studio.name,
+              timeName: time.name,
               accent,
-              clientId: session.client_id,
+              localId: session.local_id,
               prescriptionId: prescription.id,
               items: prescription.items,
               itemIndex: 0,
               setIndex: 1,
-              streakCount: payload.streak.current_count,
+              ofensivaCount: payload.ofensiva.current_count,
               xpTotal: payload.xp_total,
               needsCommitment,
             },
@@ -146,12 +146,12 @@ export function Retomada({ token, studio, needsCommitment, comeback }: Props) {
         <View style={styles.row}>
           {/* ponytail: o desenho é a marca do personal, que já existe. Um mascote novo
               seria arte nova para dizer o que estas duas letras já dizem. */}
-          <Initials name={studio.name} size={44} />
+          <Initials name={time.name} size={44} />
           <View style={styles.grow}>
             <Txt role="label" color={A.text}>
               Retomada
             </Txt>
-            <Txt role="body">{studio.name}</Txt>
+            <Txt role="body">{time.name}</Txt>
           </View>
           <Pressable
             onPress={() => navigation.navigate(STUDENT_HOME_ROUTE)}
@@ -221,10 +221,10 @@ export function Retomada({ token, studio, needsCommitment, comeback }: Props) {
         ) : null}
 
         {/* O fato, dito UMA vez e no número — e do lado dele o que não foi embora. */}
-        {streak !== null && xp !== null ? (
+        {ofensiva !== null && xp !== null ? (
           <MetricGrid
             cells={[
-              { label: "Ofensiva", value: streak, note: "recomeça na próxima" },
+              { label: "Ofensiva", value: ofensiva, note: "recomeça na próxima" },
               { label: "XP", value: formatNum(xp), note: "continua seu" },
             ]}
           />

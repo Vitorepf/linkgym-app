@@ -27,9 +27,9 @@ type Beat = "sex" | "height" | "weight";
 
 type Props = {
   accent: string;
-  /** nome do time. `studioName` é o nome da prop no chamador (src/api.ts `Studio`), não
+  /** nome do time. `timeName` é o nome da prop no chamador (src/api.ts `Time`), não
    *  vocabulário de tela: aqui dentro ele só aparece como o nome, nunca como tipo. */
-  studioName: string;
+  timeName: string;
   busy: boolean;
   error: string;
   onBeat: (beat: Beat) => void;
@@ -48,7 +48,7 @@ const SPRING = { damping: 16, stiffness: 140, mass: 0.8 };
 
 export function Criacao({
   accent,
-  studioName,
+  timeName,
   busy,
   error,
   onBeat,
@@ -195,7 +195,7 @@ export function Criacao({
         )}
         {/* a razão de perguntar não sai da tela em nenhum dos três tempos. */}
         <Txt role="body" tone="muted" style={styles.why}>
-          {studioName} usa na primeira ficha.
+          {timeName} usa na primeira ficha.
         </Txt>
       </Animated.View>
 
@@ -269,7 +269,7 @@ export function Criacao({
       ) : null}
 
       <AccentCTA
-        label={beat === "weight" ? `Enviar para ${studioName}` : "Continuar"}
+        label={beat === "weight" ? `Enviar para ${timeName}` : "Continuar"}
         onPress={next}
         accent={accent}
         disabled={!canGo}

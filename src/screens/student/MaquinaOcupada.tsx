@@ -15,7 +15,7 @@ import { Txt } from "../../ui/Txt";
 
 type Props = {
   token: string;
-  studioName: string;
+  timeName: string;
   accent: string;
   prescriptionId: string;
   from: TodayItem;
@@ -31,7 +31,7 @@ function meta(item: TodayItem): string {
  *  aqui estouraria o orçamento da tela hospedeira. O acento entra como TEXTO no kicker. */
 export function MaquinaOcupada({
   token,
-  studioName,
+  timeName,
   accent,
   prescriptionId,
   from,
@@ -51,7 +51,7 @@ export function MaquinaOcupada({
       const sessionId = await ensureServerSession(token, prescriptionId);
       const current = await loadCurrent();
       if (current) {
-        await rememberSwap(current.client_id, from.exercise_id, to.exercise_id);
+        await rememberSwap(current.local_id, from.exercise_id, to.exercise_id);
       }
       await swapExercise(token, sessionId, from.exercise_id, to.exercise_id);
       setDone(to);
@@ -73,7 +73,7 @@ export function MaquinaOcupada({
           Trocado
         </Txt>
         <Txt role="title" style={styles.title}>
-          {studioName} já sabe.
+          {timeName} já sabe.
         </Txt>
         <Txt role="body" tone="muted" style={styles.lede}>
           A Ofensiva não quebrou. Você faz {done.name} no lugar de {from.name}.
@@ -102,7 +102,7 @@ export function MaquinaOcupada({
         Troque. A Ofensiva fica.
       </Txt>
       <Txt role="body" tone="muted" style={styles.lede}>
-        {studioName} é avisado na hora.
+        {timeName} é avisado na hora.
       </Txt>
 
       <View style={styles.from}>
