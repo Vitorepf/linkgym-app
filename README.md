@@ -27,7 +27,7 @@ O QR abre no app **Expo Go** (SDK 54), não no Chrome. No terminal tem que apare
 - Celular no 5G: `make tunnel` (localhost no iPhone é o próprio telefone — por isso o Chrome deu `ERR_CONNECTION_FAILED`).
 - Simulador: `i` no terminal.
 
-A API **não** precisa estar no ar para a tela Convite.
+A API **precisa** estar no ar para entrar (`make start` no `linkgym-api`). No dev: toque Fred / Vitor / Huan / Jose; OTP é `0000`.
 
 ## Depois, com a API
 

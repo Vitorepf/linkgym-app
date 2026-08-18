@@ -1,13 +1,44 @@
 import { useFonts, Archivo_800ExtraBold } from "@expo-google-fonts/archivo";
 import { StatusBar } from "expo-status-bar";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { useEffect, useState } from "react";
+import { ActivityIndicator, StyleSheet, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { logout, me, type Person, type Studio } from "./src/api";
+import { AccessScreen } from "./src/screens/Access";
+import { StudioHome } from "./src/screens/StudioHome";
+import { clearToken, loadToken, saveToken } from "./src/session";
 import { productTheme } from "./src/theme";
+
+type Session = { token: string; person: Person; studio: Studio };
 
 export default function App() {
   const [loaded] = useFonts({ Archivo_800ExtraBold });
+  const [boot, setBoot] = useState(true);
+  const [session, setSession] = useState<Session | null>(null);
 
-  if (!loaded) {
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      const token = await loadToken();
+      if (!token) {
+        if (alive) setBoot(false);
+        return;
+      }
+      try {
+        const mine = await me(token);
+        if (alive) setSession({ token, ...mine });
+      } catch {
+        await clearToken();
+      } finally {
+        if (alive) setBoot(false);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  if (!loaded || boot) {
     return (
       <View style={styles.boot}>
         <ActivityIndicator color={productTheme.accentFallback} />
@@ -17,15 +48,29 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <View style={styles.container}>
-        <Text style={styles.kicker}>Convite</Text>
-        <Text style={styles.title}>Entre com o código do seu personal.</Text>
-        <Text style={styles.body}>
-          Sem convite não há conta. Depois do login, a cara do app é a marca
-          dele.
-        </Text>
-        <StatusBar style="light" />
-      </View>
+      {session ? (
+        <StudioHome
+          person={session.person}
+          studio={session.studio}
+          onLeave={async () => {
+            try {
+              await logout(session.token);
+            } catch {
+              /* still leave */
+            }
+            await clearToken();
+            setSession(null);
+          }}
+        />
+      ) : (
+        <AccessScreen
+          onEntered={async (next) => {
+            await saveToken(next.token);
+            setSession(next);
+          }}
+        />
+      )}
+      <StatusBar style="light" />
     </SafeAreaProvider>
   );
 }
@@ -36,31 +81,5 @@ const styles = StyleSheet.create({
     backgroundColor: productTheme.bg,
     alignItems: "center",
     justifyContent: "center",
-  },
-  container: {
-    flex: 1,
-    backgroundColor: productTheme.bg,
-    justifyContent: "center",
-    paddingHorizontal: 24,
-  },
-  kicker: {
-    color: productTheme.accentFallback,
-    fontFamily: "Archivo_800ExtraBold",
-    fontSize: 11,
-    letterSpacing: 1.6,
-    textTransform: "uppercase",
-    marginBottom: 12,
-  },
-  title: {
-    color: productTheme.ink,
-    fontFamily: "Archivo_800ExtraBold",
-    fontSize: 28,
-    letterSpacing: -0.6,
-  },
-  body: {
-    color: productTheme.muted,
-    fontSize: 15,
-    marginTop: 14,
-    lineHeight: 22,
   },
 });
