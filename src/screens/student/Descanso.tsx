@@ -13,6 +13,7 @@ import {
   markFinished,
   nextAfter,
   patchLastSetEffort,
+  sessionProof,
 } from "../../offline/sessionQueue";
 import { studentHomeTarget } from "../../nav/StudentTabs";
 import type { RootStackParamList } from "../../nav/types";
@@ -93,7 +94,9 @@ export function Descanso({ navigation, route }: Props) {
     if (!effort || busy) return;
     setBusy(true);
     try {
-      await markFinished(clientId, effort);
+      // A prova sai da sessão local AGORA: `flush` termina em `dropSession`, e depois
+      // dele não há mais série, carga nem horário para ler.
+      const proof = sessionProof(await markFinished(clientId, effort));
       const result = await flush(token, clientId);
       const finish = result.ok ? result.finish : undefined;
       navigation.reset({
@@ -109,6 +112,7 @@ export function Descanso({ navigation, route }: Props) {
               xpGained: finish?.xp_gained ?? 10,
               xpTotal: finish?.xp_total ?? xpTotal + 10,
               records: finish?.records ?? [],
+              proof,
               pending: !result.ok,
               needsCommitment: route.params.needsCommitment,
             },
@@ -201,7 +205,7 @@ export function Descanso({ navigation, route }: Props) {
           <AccentCTA
             label={
               ending
-                ? "Terminar treino"
+                ? "Terminar sessão"
                 : left === 0
                   ? "Próxima série"
                   : "Pular descanso"
@@ -231,7 +235,7 @@ export function Descanso({ navigation, route }: Props) {
 
 function noteFor(effort: Effort, studioName: string): string {
   if (effort === 1) return `Sobrou tanque. O ${studioName} sobe a carga na próxima.`;
-  if (effort === 2) return "Era esse o treino.";
+  if (effort === 2) return "Era essa a série.";
   return `O ${studioName} vê e não empurra amanhã.`;
 }
 

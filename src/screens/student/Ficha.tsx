@@ -144,7 +144,7 @@ export function FichaBody({
       </ScrollView>
       {onBack ? (
         <DockFooter>
-          <AccentCTA label="Voltar ao treino" onPress={onBack} accent={ac} />
+          <AccentCTA label="Voltar à sessão" onPress={onBack} accent={ac} />
         </DockFooter>
       ) : null}
     </Phone>

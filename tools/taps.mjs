@@ -203,10 +203,10 @@ async function flow3(context, base) {
     await tap(page, button(page, /entrar/i));
     steps.push("convite + telefone + código");
 
-    // Primeiro valor real: o treino do dia na mão, pronto para começar. Registrar a série
+    // Primeiro valor real: a prescrição do dia na mão, pronta para começar. Registrar a série
     // é o fluxo 2 — aqui a conta fecha quando o aluno VÊ o que o corpo vai fazer hoje.
     await button(page, /começar|continuar/i).waitFor({ state: "visible", timeout: 15000 });
-    steps.push("entrou e viu o treino do dia");
+    steps.push("entrou e viu a prescrição do dia");
 
     const c = await count(page);
     return {

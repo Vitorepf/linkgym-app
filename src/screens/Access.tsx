@@ -1,11 +1,10 @@
-import { useState } from "react";
+import { useState, type ComponentProps } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
   TextInput,
   View,
 } from "react-native";
@@ -15,12 +14,22 @@ import { AccentCTA } from "../ui/AccentCTA";
 import { GhostCTA } from "../ui/GhostCTA";
 import { Initials } from "../ui/Initials";
 import { Band, DockFooter, Head, Phone } from "../ui/Screen";
+import { Txt } from "../ui/Txt";
 
 const DEV_PEOPLE = [
   { name: "Fred", phone: "11900000001" },
   { name: "Vitor", phone: "11900000002" },
   { name: "Huan", phone: "11900000003" },
   { name: "Jose", phone: "11900000004" },
+];
+
+type Step = "phone" | "otp";
+
+/** A barra de passos do eixo 3: o caminho inteiro fica visível em TODOS os passos, então
+ *  quem está na porta sabe quanto falta sem tocar em nada. Dois passos, e é o fim. */
+const STEPS: { key: Step; label: string }[] = [
+  { key: "phone", label: "Telefone e convite" },
+  { key: "otp", label: "Código de 4 dígitos" },
 ];
 
 type Props = {
@@ -31,21 +40,19 @@ export function AccessScreen({ onEntered }: Props) {
   const [phone, setPhone] = useState("");
   const [invite, setInvite] = useState("");
   const [otp, setOtp] = useState("");
-  const [step, setStep] = useState<"phone" | "otp">("phone");
+  const [step, setStep] = useState<Step>("phone");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [studio, setStudio] = useState<Studio | null>(null);
 
   const accent = studio?.accent_color || T.accentFallback;
 
-  async function sendCode(nextPhone = phone) {
+  async function sendCode() {
     setBusy(true);
     setError("");
     try {
-      const res = await requestCode(nextPhone, invite);
-      if (res.dev_code) {
-        setOtp(res.dev_code);
-      }
+      const res = await requestCode(phone, invite);
+      if (res.dev_code) setOtp(res.dev_code);
       setStudio(res.studio ?? null);
       setStep("otp");
     } catch (e) {
@@ -55,12 +62,11 @@ export function AccessScreen({ onEntered }: Props) {
     }
   }
 
-  async function confirm(nextPhone = phone, nextOtp = otp) {
+  async function confirm() {
     setBusy(true);
     setError("");
     try {
-      const session = await verify(nextPhone, nextOtp, invite);
-      onEntered(session);
+      onEntered(await verify(phone, otp, invite));
     } catch (e) {
       setError(messageFor(e));
     } finally {
@@ -75,8 +81,7 @@ export function AccessScreen({ onEntered }: Props) {
     setError("");
     try {
       const res = await requestCode(devPhone, "");
-      const session = await verify(devPhone, res.dev_code ?? "0000", "");
-      onEntered(session);
+      onEntered(await verify(devPhone, res.dev_code ?? "0000", ""));
     } catch (e) {
       setError(messageFor(e));
     } finally {
@@ -84,11 +89,7 @@ export function AccessScreen({ onEntered }: Props) {
     }
   }
 
-  const body = studio
-    ? "Ele já montou a sua ficha. Aqui você marca o que fez e ele acompanha."
-    : step === "phone"
-      ? "Sem convite não nasce aluno. Trocar de iPhone: o mesmo número, um código novo."
-      : "Os 4 dígitos que chegaram.";
+  const now = step === "phone" ? 1 : 2;
 
   return (
     <Phone>
@@ -96,18 +97,22 @@ export function AccessScreen({ onEntered }: Props) {
         style={styles.flex}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
+        {/* O nome de quem convidou vive no kicker, que é o único lugar da tela onde o
+            acento ESCREVE (4,5:1 contra o chão). A massa do acento é do botão, e é só
+            dele — por isso a marca ao lado vai sem `fill`. */}
         <Head
-          kicker={studio ? "Convite" : "Acesso"}
+          kicker={studio ? `${studio.name} te chamou` : "Convite"}
           title="Entrar"
           body={
-            studio ? `${studio.name} te chamou. ${body}` : body
+            step === "phone"
+              ? "Sem convite não há aluno. Quem já entrou uma vez deixa o convite em branco."
+              : // O número aparece de volta, do jeito que foi digitado: quem errou um
+                // dígito descobre AQUI, e não depois de esperar uma mensagem que nunca
+                // chega. A causa do passo mora na tela, não atrás de um toque.
+                `Os 4 dígitos foram para o ${phone}.`
           }
           accent={accent}
-          right={
-            studio ? (
-              <Initials name={studio.name} accent={accent} fill size={34} />
-            ) : undefined
-          }
+          right={studio ? <Initials name={studio.name} size={34} /> : undefined}
         />
         <ScrollView
           style={styles.flex}
@@ -116,77 +121,65 @@ export function AccessScreen({ onEntered }: Props) {
           showsVerticalScrollIndicator={false}
         >
           <Band>
-            {/* NOME ACESSÍVEL, e não o placeholder. Sem convite não nasce aluno: esta é a
-                ÚNICA porta do app, e para quem usa leitor de tela ela era três campos sem
-                nome. O placeholder some assim que a pessoa digita — nome que evapora não é
-                nome. `accessibilityLabel` é o rótulo; `accessibilityHint` diz o que o campo
-                faz com o que foi digitado. */}
+            {/* RÓTULO VISÍVEL, e não só placeholder. Placeholder some assim que a pessoa
+                digita: nome que evapora não é nome — nem para quem enxerga, nem para o
+                leitor de tela. O rótulo é caps/tracked/mudo; o valor é que tem tamanho.
+                `accessibilityLabel` repete o rótulo visível para casar o que se vê com o
+                que se ouve; `accessibilityHint` diz o que o campo faz com o que foi
+                digitado. A ordem de foco é a ordem do documento: rótulo, campo, rótulo,
+                campo, erro, ação. */}
             {step === "phone" ? (
               <>
-                <TextInput
+                <Field
+                  label="Telefone"
                   value={phone}
                   onChangeText={setPhone}
-                  accessibilityLabel="Telefone com DDD"
-                  accessibilityHint="É para onde vai o código de 4 dígitos"
+                  hint="É para onde vai o código de 4 dígitos"
                   placeholder="11 90000 0000"
-                  placeholderTextColor={T.muted}
                   keyboardType="phone-pad"
                   autoComplete="tel"
-                  style={styles.input}
                 />
-                <TextInput
+                <Field
+                  label="Convite"
                   value={invite}
                   onChangeText={setInvite}
-                  accessibilityLabel="Convite do personal"
-                  accessibilityHint="Só na primeira vez. Quem já entrou uma vez deixa em branco"
+                  hint="Só na primeira vez. Quem já entrou uma vez deixa em branco"
                   placeholder="Convite (só na primeira vez)"
-                  placeholderTextColor={T.muted}
                   autoCapitalize="characters"
-                  style={styles.input}
                 />
               </>
             ) : (
-              <TextInput
+              <Field
+                label="Código"
                 value={otp}
                 onChangeText={setOtp}
-                accessibilityLabel="Código de 4 dígitos"
-                accessibilityHint="O código que chegou por mensagem"
+                hint="Os 4 dígitos que chegaram por mensagem"
                 placeholder="0000"
-                placeholderTextColor={T.muted}
                 keyboardType="number-pad"
                 textContentType="oneTimeCode"
                 autoComplete="sms-otp"
                 maxLength={4}
-                // A ORDEM DE FOCO segue o passo: o campo que acabou de aparecer é o
-                // próximo destino, e não o fim de uma varredura pela tela inteira.
                 autoFocus
-                style={styles.input}
               />
             )}
-            {/* O ERRO É ANUNCIADO: `alert` faz o leitor de tela falar a mensagem quando ela
-                aparece, em vez de ela existir só para quem enxerga a linha vermelha. */}
+            {/* O ERRO É ANUNCIADO: `alert` faz o leitor de tela falar a mensagem quando
+                ela aparece, em vez de ela existir só para quem enxerga a linha. */}
             {error ? (
-              <Text
+              <Txt
+                role="body"
+                color={errorInk}
                 style={styles.error}
                 accessibilityRole="alert"
                 accessibilityLiveRegion="assertive"
               >
                 {error}
-              </Text>
+              </Txt>
             ) : null}
           </Band>
 
-          {studio ? (
-            <Band rule="hair">
-              <Text style={styles.footer}>
-                A cara é do seu personal. O app por dentro é o mesmo.
-              </Text>
-            </Band>
-          ) : null}
-
           {__DEV__ ? (
             <Band rule="none">
-              <Text style={styles.devKicker}>Dev · OTP 0000</Text>
+              <Txt role="label">Dev · OTP 0000</Txt>
               <View style={styles.chips}>
                 {DEV_PEOPLE.map((p) => (
                   <Pressable
@@ -196,12 +189,40 @@ export function AccessScreen({ onEntered }: Props) {
                     accessibilityLabel={`Entrar como ${p.name}`}
                     style={styles.chip}
                   >
-                    <Text style={styles.chipText}>{p.name}</Text>
+                    <Txt role="body">{p.name}</Txt>
                   </Pressable>
                 ))}
               </View>
             </Band>
           ) : null}
+
+          <View
+            style={styles.spine}
+            accessible
+            accessibilityRole="progressbar"
+            accessibilityLabel="Caminho até entrar"
+            accessibilityValue={{
+              min: 1,
+              max: STEPS.length,
+              now,
+              text: `Passo ${now} de ${STEPS.length}: ${STEPS[now - 1].label}`,
+            }}
+          >
+            {STEPS.map((s, i) => {
+              const done = i + 1 < now;
+              const here = i + 1 === now;
+              return (
+                <View key={s.key} style={[styles.stepRow, i > 0 && styles.stepRule]}>
+                  {/* Estado por FORMA e PRESENÇA, nunca por matiz: o passo vencido e o
+                      passo de agora têm marca; o que ainda não chegou é a marca vazia. */}
+                  <View style={[styles.mark, (done || here) && styles.markOn]} />
+                  <Txt role="body" tone={here ? "ink" : "muted"}>
+                    {s.label}
+                  </Txt>
+                </View>
+              );
+            })}
+          </View>
         </ScrollView>
         <DockFooter>
           {step === "phone" ? (
@@ -226,6 +247,8 @@ export function AccessScreen({ onEntered }: Props) {
                   label="Trocar número"
                   onPress={() => {
                     setStudio(null);
+                    setOtp("");
+                    setError("");
                     setStep("phone");
                   }}
                 />
@@ -235,6 +258,26 @@ export function AccessScreen({ onEntered }: Props) {
         </DockFooter>
       </KeyboardAvoidingView>
     </Phone>
+  );
+}
+
+/** Rótulo visível + campo, sempre nessa ordem e sempre com o mesmo nome nos dois canais.
+ *  Existe porque a tela tem três campos e o par rótulo/nome acessível não pode divergir
+ *  em nenhum deles — essa divergência já foi apontada como defeito real aqui. */
+type FieldProps = ComponentProps<typeof TextInput> & { label: string; hint: string };
+
+function Field({ label, hint, style, ...rest }: FieldProps) {
+  return (
+    <View style={styles.field}>
+      <Txt role="label">{label}</Txt>
+      <TextInput
+        {...rest}
+        accessibilityLabel={label}
+        accessibilityHint={hint}
+        placeholderTextColor={T.muted}
+        style={[styles.input, style]}
+      />
+    </View>
   );
 }
 
@@ -249,8 +292,6 @@ function messageFor(e: unknown): string {
         return "Código errado ou vencido.";
       case "telefone_invalido":
         return "Telefone inválido.";
-      default:
-        return "Não deu para falar com a API. Ela está no ar?";
     }
   }
   return "Não deu para falar com a API. Ela está no ar?";
@@ -258,48 +299,50 @@ function messageFor(e: unknown): string {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  content: { flexGrow: 1, paddingBottom: 8 },
+  // O corpo desce para o alcance do polegar: campos e caminho encostam na ação, e o ar
+  // sobra em UMA folga só, embaixo do cabeçalho, em vez de virar um retângulo cercado de
+  // filete no meio da tela. Era 400 px de nada no terço de baixo.
+  content: { flexGrow: 1, justifyContent: "flex-end", paddingBottom: 8 },
+  field: { marginBottom: 14 },
   input: {
     color: T.ink,
     fontFamily: FONT,
     fontSize: 18,
-    paddingVertical: 14,
+    minHeight: 52,
+    paddingVertical: 12,
     paddingHorizontal: 14,
+    marginTop: 6,
     borderWidth: 2,
     borderColor: T.divider,
-    marginBottom: 8,
   },
-  error: {
-    color: errorInk,
-    marginTop: 8,
-    fontSize: 14,
-  },
-  footer: {
-    color: T.muted,
-    fontSize: 13,
-    lineHeight: 20,
-  },
-  devKicker: {
-    color: T.muted,
-    fontFamily: FONT,
-    fontSize: 11,
-    letterSpacing: 1.43,
-    textTransform: "uppercase",
-    marginBottom: 12,
-  },
-  chips: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  error: { marginTop: 4 },
+  chips: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 12 },
   chip: {
     borderWidth: 2,
     borderColor: T.divider,
     paddingHorizontal: 14,
-    paddingVertical: 12,
     minHeight: 44,
     justifyContent: "center",
   },
-  chipText: {
-    color: T.ink,
-    fontFamily: FONT,
-    fontSize: 15,
+  spine: {
+    borderTopWidth: 2,
+    borderTopColor: T.divider,
+    paddingHorizontal: T.pad,
   },
+  stepRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    paddingVertical: 20,
+  },
+  stepRule: { borderTopWidth: 1, borderTopColor: T.hairline },
+  mark: {
+    width: 14,
+    height: 14,
+    borderWidth: 2,
+    borderColor: T.divider,
+    flexShrink: 0,
+  },
+  markOn: { backgroundColor: T.ink, borderColor: T.ink },
   ghost: { marginTop: 10 },
 });

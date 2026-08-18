@@ -102,7 +102,7 @@ export function Publicar({ route }: Props) {
 
             <View style={styles.header}>
               <Txt role="label">Também para</Txt>
-              {rows.length > 0 ? <Txt role="label" tone="dim">Feito na semana</Txt> : null}
+              {rows.length > 0 ? <Txt role="label">Feito na semana</Txt> : null}
             </View>
 
             {others === null ? (

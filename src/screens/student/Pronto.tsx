@@ -57,7 +57,7 @@ export function Pronto({ token, studio, onContinue }: Props) {
       <Head kicker={`${HERE} · ${STEPS}`} title="O que acontece agora" accent={accent}>
         {/* ponytail: barra estática. O traço é fino — marca, não massa — então não
             disputa o orçamento de acento com o botão. Feito x a fazer é ESPESSURA antes
-            de ser tinta: na marca 13 o acento e o divider caem no mesmo cinza, e uma
+            de ser tinta: no time 13 o acento e o divider caem no mesmo cinza, e uma
             barra codificada só por matiz não diz nada ali. */}
         <View
           style={styles.bar}

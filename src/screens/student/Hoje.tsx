@@ -17,6 +17,7 @@ import {
   loadCurrent,
   newClientId,
   resumeCursor,
+  sessionProof,
 } from "../../offline/sessionQueue";
 import { accentSet, errorInk, productTheme as T } from "../../theme";
 import { AccentCTA } from "../../ui/AccentCTA";
@@ -139,6 +140,7 @@ export function Hoje({ token, studio, needsCommitment }: Props) {
     const existing = await loadCurrent();
     if (existing && existing.prescription_id === prescription.id) {
       if (existing.finished) {
+        const proof = sessionProof(existing);
         const result = await flush(token, existing.client_id);
         const finish = result.ok ? result.finish : undefined;
         navigation.navigate("Feito", {
@@ -149,6 +151,7 @@ export function Hoje({ token, studio, needsCommitment }: Props) {
           xpGained: finish?.xp_gained ?? 10,
           xpTotal: finish?.xp_total ?? data.xp_total + 10,
           records: finish?.records ?? [],
+          proof,
           pending: !result.ok,
           needsCommitment,
         });

@@ -7,7 +7,6 @@ import {
   defaultReps,
   enqueueSet,
   flush,
-  formatKg,
   lastLoadForItem,
   loadSession,
   newClientId,
@@ -19,6 +18,7 @@ import type { RootStackParamList } from "../../nav/types";
 import { accentSet, productTheme as T } from "../../theme";
 import { AccentCTA } from "../../ui/AccentCTA";
 import { Figure } from "../../ui/Figure";
+import { formatKg } from "../../ui/format";
 import { GhostCTA } from "../../ui/GhostCTA";
 import { HoldTick } from "../../ui/HoldTick";
 import { IconPlay } from "../../ui/Icons";
@@ -27,8 +27,6 @@ import { Txt } from "../../ui/Txt";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Serie">;
 
-/** formatKg arredonda no meio quilo e devolve ponto; a tela fala português. */
-const kgOf = (n: number) => formatKg(n).replace(".", ",");
 
 export function Serie({ navigation, route }: Props) {
   const {
@@ -85,7 +83,7 @@ export function Serie({ navigation, route }: Props) {
 
   const rest = item?.rest_seconds ?? 90;
   const last = nextAfter(items, itemIndex, setIndex) === "done";
-  const kg = kgOf(load);
+  const kg = formatKg(load);
   const [busy, setBusy] = useState(false);
 
   async function onDone() {
@@ -151,7 +149,7 @@ export function Serie({ navigation, route }: Props) {
         <View style={styles.ticks}>
           {Array.from({ length: sets }, (_, i) => {
             const n = i + 1;
-            // A série de agora é mais ALTA, não só de outra cor: na marca 13 o acento
+            // A série de agora é mais ALTA, não só de outra cor: no time 13 o acento
             // encosta no traço neutro, e a forma continua dizendo onde o aluno está.
             return (
               <View
@@ -216,7 +214,7 @@ export function Serie({ navigation, route }: Props) {
             unit="kg"
             label="Carga"
             dir={dir}
-            note={`${studioName} pediu ${kgOf(asked)} kg`}
+            note={`${studioName} pediu ${formatKg(asked)} kg`}
           />
           <View style={styles.stepRow}>
             <View style={styles.step}>
@@ -264,7 +262,7 @@ export function Serie({ navigation, route }: Props) {
               {/* Série que ainda não aconteceu é AUSÊNCIA de marca — não marca de falha. */}
               {logged ? (
                 <Txt role="body" tone="muted">
-                  {kgOf(logged.load_kg)} kg × {logged.reps}
+                  {formatKg(logged.load_kg)} kg × {logged.reps}
                 </Txt>
               ) : current ? (
                 <Txt role="body">

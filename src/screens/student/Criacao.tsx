@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useEffect, useMemo, useState } from "react";
+import { Pressable, StyleSheet, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   FadeIn,
@@ -8,11 +8,14 @@ import Animated, {
   useSharedValue,
   withSpring,
 } from "react-native-reanimated";
-import { errorInk, productTheme } from "../../theme";
+import { errorInk, productTheme as T } from "../../theme";
+import { AccentCTA } from "../../ui/AccentCTA";
 import { Choice } from "../../ui/Choice";
 import { Entity } from "../../ui/Entity";
+import { Figure } from "../../ui/Figure";
+import { formatKg } from "../../ui/format";
 import { HoldTick } from "../../ui/HoldTick";
-import { AccentCTA } from "../../ui/AccentCTA";
+import { Txt } from "../../ui/Txt";
 
 export type Body = {
   sex: "male" | "female";
@@ -24,6 +27,8 @@ type Beat = "sex" | "height" | "weight";
 
 type Props = {
   accent: string;
+  /** nome do time. `studioName` é o nome da prop no chamador (src/api.ts `Studio`), não
+   *  vocabulário de tela: aqui dentro ele só aparece como o nome, nunca como tipo. */
   studioName: string;
   busy: boolean;
   error: string;
@@ -55,11 +60,9 @@ export function Criacao({
   const [sex, setSex] = useState<"male" | "female" | null>(null);
   const [heightCm, setHeightCm] = useState(HEIGHT_START);
   const [weightKg, setWeightKg] = useState(WEIGHT_START);
-  const heightRef = useRef(heightCm);
-  const weightRef = useRef(weightKg);
-  heightRef.current = heightCm;
-  weightRef.current = weightKg;
 
+  // shared values são a fonte única do valor corrente: o gesto escreve neles na UI thread
+  // e o botão lê deles na JS thread. Eram dois refs espelhando o estado; morreram.
   const heightSV = useSharedValue(HEIGHT_START);
   const weightSV = useSharedValue(WEIGHT_START);
   const stance = useSharedValue(0);
@@ -98,6 +101,12 @@ export function Criacao({
     const v = clamp(Math.round(n * 2) / 2, WEIGHT_MIN, WEIGHT_MAX);
     weightSV.value = v;
     setWeightKg(v);
+  }
+
+  /** um passo do controle, seja botão ou ação de acessibilidade. */
+  function bump(dir: 1 | -1) {
+    if (beat === "height") setHeight(heightSV.value + dir);
+    if (beat === "weight") setWeight(weightSV.value + dir * 0.5);
   }
 
   const pan = useMemo(
@@ -159,46 +168,67 @@ export function Criacao({
     onBack();
   }
 
-  const title =
-    beat === "sex"
-      ? "Masculino ou feminino?"
-      : beat === "height"
-        ? `${heightCm} cm`
-        : `${formatKg(weightKg)} kg`;
-  const caption =
-    beat === "sex"
-      ? `${studioName} usa na primeira ficha.`
-      : beat === "height"
-        ? "Arrasta a figura para cima. Ou − / +."
-        : "Arrasta para os lados.";
+  const measure = beat === "height" ? "Altura" : "Peso";
+  const spoken =
+    beat === "height"
+      ? `${heightCm} centímetros`
+      : `${formatKg(weightKg)} quilos`;
 
   return (
     <>
-      <Animated.View key={beat} entering={FadeIn.duration(180)} style={styles.copy}>
-        <Text style={styles.title}>{title}</Text>
-        <Text style={styles.caption}>{caption}</Text>
+      {/* O que anima é o número; o rótulo e o botão ficam onde estão. */}
+      <Animated.View key={beat} entering={FadeIn.duration(180)}>
+        {beat === "sex" ? (
+          <Txt role="title">Masculino ou feminino?</Txt>
+        ) : (
+          <Figure
+            value={beat === "height" ? heightCm : formatKg(weightKg)}
+            label={measure}
+            unit={beat === "height" ? "cm" : "kg"}
+            note={
+              beat === "height"
+                ? "Arrasta a figura para cima. Ou − / +."
+                : "Arrasta a figura para os lados. Ou − / +."
+            }
+            role="hero"
+          />
+        )}
+        {/* a razão de perguntar não sai da tela em nenhum dos três tempos. */}
+        <Txt role="body" tone="muted" style={styles.why}>
+          {studioName} usa na primeira ficha.
+        </Txt>
       </Animated.View>
 
       <GestureDetector gesture={pan}>
         <Animated.View
           collapsable={false}
           style={styles.canvas}
-          accessibilityLabel="Figura"
-          accessibilityValue={
-            beat === "height"
-              ? { text: `${heightCm} centímetros` }
-              : beat === "weight"
-                ? { text: `${formatKg(weightKg)} quilos` }
-                : undefined
+          accessible={beat !== "sex"}
+          accessibilityRole="adjustable"
+          accessibilityLabel={measure}
+          accessibilityValue={{ text: spoken }}
+          accessibilityActions={ADJUST}
+          onAccessibilityAction={(e) =>
+            bump(e.nativeEvent.actionName === "increment" ? 1 : -1)
           }
         >
-          <Entity
-            accent={accent}
-            stance={stance}
-            heightCm={heightSV}
-            weightKg={weightSV}
-            assembled={assembled}
-          />
+          {/* A figura é a codificação redundante do número — só serve se for lida de
+              relance, e o palco tem quase mil pixels. Escala do palco inteiro (é tudo
+              retângulo, não borra), pé no chão, sem tocar no primitivo.
+
+              E ela é CINZA, não acentuada: o acento é do personal e esta tela já o gasta
+              inteiro no botão (o orçamento é de UM elemento pintando área por tela). Este
+              corpo é da Pessoa. De quebra, some o pior caso do time 13 — acento igual ao
+              fundo desenhava uma figura invisível. */}
+          <View style={styles.stage}>
+            <Entity
+              accent={T.divider}
+              stance={stance}
+              heightCm={heightSV}
+              weightKg={weightSV}
+              assembled={assembled}
+            />
+          </View>
         </Animated.View>
       </GestureDetector>
 
@@ -207,105 +237,86 @@ export function Criacao({
           <Choice
             label="Masculino"
             selected={sex === "male"}
+            accent={accent}
             onPress={() => morphSex("male")}
           />
           <Choice
             label="Feminino"
             selected={sex === "female"}
+            accent={accent}
             onPress={() => morphSex("female")}
           />
         </View>
       ) : (
-        <Stepper
-          down={() =>
-            beat === "height"
-              ? setHeight(heightRef.current - 1)
-              : setWeight(weightRef.current - 0.5)
-          }
-          up={() =>
-            beat === "height"
-              ? setHeight(heightRef.current + 1)
-              : setWeight(weightRef.current + 0.5)
-          }
-        />
+        <View style={styles.stepper}>
+          <HoldTick
+            onTick={() => bump(-1)}
+            label="−"
+            hint={`Diminuir ${measure.toLowerCase()}`}
+          />
+          <HoldTick
+            onTick={() => bump(1)}
+            label="+"
+            hint={`Aumentar ${measure.toLowerCase()}`}
+          />
+        </View>
       )}
 
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+      {error ? (
+        <Txt role="body" color={errorInk} style={styles.error}>
+          {error}
+        </Txt>
+      ) : null}
 
       <AccentCTA
         label={beat === "weight" ? `Enviar para ${studioName}` : "Continuar"}
         onPress={next}
+        accent={accent}
         disabled={!canGo}
         busy={busy}
         block
       />
-      <Pressable onPress={back} hitSlop={12} style={styles.back}>
-        <Text style={styles.backText}>Voltar</Text>
+      <Pressable
+        onPress={back}
+        hitSlop={12}
+        accessibilityRole="button"
+        style={styles.back}
+      >
+        <Txt role="label">Voltar</Txt>
       </Pressable>
     </>
   );
 }
 
-function Stepper({ down, up }: { down: () => void; up: () => void }) {
-  return (
-    <View style={styles.stepper}>
-      <HoldTick onTick={down} label="−" hint="Diminuir" />
-      <HoldTick onTick={up} label="+" hint="Aumentar" />
-    </View>
-  );
-}
+const ADJUST = [{ name: "increment" }, { name: "decrement" }] as const;
 
 function clamp(n: number, min: number, max: number) {
   return Math.min(max, Math.max(min, n));
 }
 
-function formatKg(n: number) {
-  return n === Math.round(n) ? String(n) : n.toFixed(1);
-}
-
 const styles = StyleSheet.create({
-  copy: {
-    marginBottom: 4,
-  },
-  title: {
-    color: productTheme.ink,
-    fontFamily: "Archivo_800ExtraBold",
-    fontSize: 32,
-    letterSpacing: -0.7,
-    lineHeight: 36,
-  },
-  caption: {
-    color: productTheme.muted,
-    fontSize: 15,
-    lineHeight: 22,
-    marginTop: 10,
-  },
+  why: { marginTop: 10 },
+  // A figura PISA no chão logo acima do controle, em vez de boiar no meio de um vazio:
+  // o terço inferior fica com número, controle e ação, que é onde o dedo está.
   canvas: {
     flex: 1,
-    justifyContent: "center",
-    minHeight: 280,
+    justifyContent: "flex-end",
   },
-  sex: { marginTop: 8 },
+  stage: {
+    transform: [{ scale: 1.5 }],
+    transformOrigin: "bottom",
+    marginBottom: 14,
+  },
+  sex: { marginTop: 8, gap: 8 },
   stepper: {
     flexDirection: "row",
     borderTopWidth: 2,
     borderBottomWidth: 2,
-    borderColor: productTheme.divider,
+    borderColor: T.divider,
   },
-  error: {
-    color: errorInk,
-    fontSize: 14,
-    marginBottom: 8,
-  },
+  error: { marginBottom: 8 },
   back: {
     alignSelf: "flex-start",
     paddingVertical: 16,
-  },
-  backText: {
-    color: productTheme.muted,
-    fontFamily: "Archivo_800ExtraBold",
-    fontSize: 13,
-    letterSpacing: 1.1,
-    textTransform: "uppercase",
   },
 });

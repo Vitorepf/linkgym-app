@@ -94,6 +94,19 @@ const PR_ITEMS: RecordItem[] = [
   },
 ];
 
+/** A prova da sessão que a Feito desenha, com a MESMA conta de `sessionProof`: uma
+ *  execução inteira de ITEMS, série por série, na carga prescrita. Os 47 min são MEDIDOS
+ *  (vão entre a primeira e a última série) e por isso diferem dos 52 PREVISTOS que a Hoje
+ *  mostra — são dois números de donos diferentes, e o fixture não os empata. */
+const PROOF = {
+  sets: ITEMS.reduce((n, it) => n + it.planned_sets, 0),
+  volumeKg: ITEMS.reduce(
+    (kg, it) => kg + it.planned_sets * Number(it.planned_reps) * it.load_kg,
+    0,
+  ),
+  minutes: 47,
+};
+
 // 20 alunos: é o lote que o fluxo 1 mede (tools/taps.mjs).
 const WEEK: OwnerWeekItem[] = [
   { person_id: "p-ana", name: "Ana Beatriz Nascimento Rodrigues", adherence: "3 de 4", suggested: "Repetir com +2,5 kg", selected: true },
@@ -336,6 +349,7 @@ export function params(screen: string, studio: Studio): object | undefined {
         xpTotal: 18740,
         xpGained: 40,
         records: RECORDS,
+        proof: PROOF,
         needsCommitment: false,
       };
     case "Recorde":
@@ -482,7 +496,8 @@ export function apiRoutes(
       /^\/v1\/models$/,
       {
         items: [
-          // Base.tsx procura o modelo pelo nome literal "Treino A". Sem ele o fluxo trava.
+          // Base.tsx usa o PRIMEIRO modelo da lista e escreve o nome que vier — não
+          // chumba nome de Modelo. Estes dois nomes espelham o seed da API.
           { id: "m-1", name: "Treino A" },
           { id: "m-2", name: "Treino B" },
           { id: "m-3", name: "Full body iniciante" },

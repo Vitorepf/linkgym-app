@@ -109,7 +109,7 @@ export function Estreia({ token, studio, needsCommitment }: Props) {
     <Phone>
       {/* Sem seta de voltar: a Estreia é a raiz da pilha, não há passo atrás para
           desfazer. Onde há, a seta é pequena e discreta — nunca um convite. */}
-      <Head kicker={`${STEPS} · ${STEPS}`} title="Primeiro treino" accent={accent}>
+      <Head kicker={`${STEPS} · ${STEPS}`} title="Primeira sessão" accent={accent}>
         <StepBar accent={accent} />
       </Head>
 

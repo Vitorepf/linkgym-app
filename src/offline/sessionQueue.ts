@@ -163,6 +163,34 @@ export async function markFinished(
   return session;
 }
 
+/** A prova do esforço de HOJE, tirada da sessão local — séries feitas, carga total movida
+ *  e duração. Vive aqui porque `flush()` -> `dropSession()` apaga a sessão ANTES da tela
+ *  de comemoração montar: quem vai comemorar tem que ler os números ANTES do flush, e os
+ *  dois caminhos que fecham sessão (Descanso e a retomada da Hoje) leem o mesmo código.
+ *
+ *  Sem número inventado: a duração é o vão entre a primeira e a última série gravadas, e
+ *  some (`undefined`) quando não fecha um minuto ou quando só existe uma série. A tela não
+ *  desenha o que não veio. */
+export type SessionProof = {
+  sets: number;
+  volumeKg: number;
+  minutes?: number;
+};
+
+export function sessionProof(session: LocalSession | null): SessionProof | undefined {
+  if (!session || session.sets.length === 0) return undefined;
+  const at = session.sets
+    .map((s) => Date.parse(s.performed_at))
+    .filter((n) => Number.isFinite(n));
+  const span =
+    at.length > 1 ? (Math.max(...at) - Math.min(...at)) / 60000 : 0;
+  return {
+    sets: session.sets.length,
+    volumeKg: session.sets.reduce((sum, s) => sum + s.reps * s.load_kg, 0),
+    minutes: span >= 1 ? Math.round(span) : undefined,
+  };
+}
+
 export type FlushResult =
   | { ok: true; finish?: FinishPayload }
   | { ok: false };
@@ -255,12 +283,6 @@ export function lastLoadForItem(
     }
   }
   return fallback;
-}
-
-export function formatKg(n: number): string {
-  const x = Math.round(n * 2) / 2;
-  if (Number.isInteger(x)) return String(x);
-  return x.toFixed(1);
 }
 
 export function stepKg(n: number, delta: number): number {

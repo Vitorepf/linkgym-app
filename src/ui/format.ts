@@ -25,12 +25,19 @@ export function dateShort(d = new Date()): string {
   return `${d.getDate()} ${["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"][d.getMonth()]}`;
 }
 
+/** O quilo do app, num lugar só. A grade de carga anda de meio em meio (ver `stepKg`),
+ *  então o formato ANCORA nela: arredonda no meio quilo e escreve em português. Eram dois
+ *  formatKg com semânticas diferentes — este e um em offline/sessionQueue — e a Serie
+ *  importava o outro e traduzia o ponto na mão. */
 export function formatKg(n: number): string {
-  if (Number.isInteger(n)) return String(n);
-  return String(n).replace(".", ",");
+  const x = Math.round(n * 2) / 2;
+  if (Number.isInteger(x)) return String(x);
+  return x.toFixed(1).replace(".", ",");
 }
 
-export function formatXp(n: number): string {
+/** Inteiro com separador de milhar em português. Serve XP, volume de sessão e qualquer
+ *  número grande da tela — chamava-se `formatXp` e não tinha nada de XP. */
+export function formatNum(n: number): string {
   return n.toLocaleString("pt-BR");
 }
 

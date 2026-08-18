@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useRef, type ReactNode } from "react";
-import { accentFill, productTheme as T } from "../theme";
+import { accentSet, productTheme as T } from "../theme";
 
 /** ORÇAMENTO DE ACENTO, metade dois.
  *
@@ -12,8 +12,9 @@ import { accentFill, productTheme as T } from "../theme";
  *  e marca pequena) — e esses dois não têm limite, porque não são massa.
  *
  *  Duas travas, uma barata e uma alta:
- *    1. tipo — `accentSet` não devolve mais `fill`. A única porta para o acento em massa é
- *       este hook, então "pintar área com o acento sem passar pelo orçamento" não compila.
+ *    1. tipo — `accentFill` não é mais exportado de src/theme.ts. Sobraram DUAS portas
+ *       nomeadas: `accentSet().piece` para peça pequena e repetida, e este hook para a
+ *       massa dominante. Não existe terceira, e o compilador é quem fiscaliza.
  *    2. ruído — o segundo elemento a reivindicar na MESMA tela dispara `console.error`
  *       nomeando os dois. tools/shots.mjs trata erro de console como reprova, então o
  *       estouro derruba um gate que já existe. Não derruba a tela: o app segue montado,
@@ -56,6 +57,6 @@ export function useAccentMass(who: string, accent?: string, claim = true) {
     };
   }, [slot, who, claim]);
   return claim
-    ? accentFill(accent || T.accentFallback)
+    ? accentSet(accent || T.accentFallback).piece
     : { fill: T.fill, ink: T.ink };
 }

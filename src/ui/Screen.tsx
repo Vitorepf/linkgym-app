@@ -112,27 +112,6 @@ export function DockFooter({ children }: { children: ReactNode }) {
   );
 }
 
-/** Legacy wrapper — unported screens keep compiling while they move to Phone/Head/Band. */
-type ScreenProps = {
-  kicker?: string;
-  title?: string;
-  body?: string;
-  accent?: string;
-  children?: ReactNode;
-  tab?: boolean;
-};
-
-export function Screen({ kicker, title, body, accent, children, tab }: ScreenProps) {
-  return (
-    <Phone tab={tab}>
-      {kicker || title || body ? (
-        <Head kicker={kicker} title={title} body={body} accent={accent} />
-      ) : null}
-      <View style={styles.legacy}>{children}</View>
-    </Phone>
-  );
-}
-
 const styles = StyleSheet.create({
   // O chão é bg — o mesmo de app.json. Antes era surface, e o token bg quase não existia.
   phone: {
@@ -174,9 +153,5 @@ const styles = StyleSheet.create({
     borderTopWidth: 2,
     borderTopColor: T.divider,
     backgroundColor: T.dock,
-  },
-  legacy: {
-    flex: 1,
-    paddingHorizontal: T.pad,
   },
 });

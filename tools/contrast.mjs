@@ -9,14 +9,14 @@
 //               pode existir: quem desenha pede o tom ao sistema. A seção varre a fonte e
 //               cada lugar que ainda passa o acento cru é uma reprova, com o número da
 //               pior marca. Nenhum vazamento = nada a medir = zero reprova.
-//   derivado  — o que accentOn/accentFill/pressedFill entregam para as 20 marcas. É o
+//   derivado  — o que accentOn/accentSet/pressedFill entregam para as 20 marcas. É o
 //               que de fato chega no pixel.
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
-  accentFill,
   accentOn,
+  accentSet,
   contrast as ratio,
   dockActiveMin,
   errorInk,
@@ -114,7 +114,9 @@ function rows() {
       par("derivado", who, `marca sobre ${gn}`, accentOn(b.accent, g, UI), g, UI);
       par("derivado", who, `texto sobre ${gn}`, accentOn(b.accent, g, TEXT), g, TEXT);
     }
-    const { fill, ink } = accentFill(b.accent);
+    // mesma conta de antes: `piece` é o accentFill de src/theme.ts, agora atrás da porta
+    // nomeada — o gate mede o que a Choice e a Initials de fato desenham.
+    const { fill, ink } = accentSet(b.accent).piece;
     par("derivado", who, "tinta sobre preenchimento", ink, fill, TEXT);
     // o preenchimento tem que EXISTIR contra o chão, senão o botão é retângulo invisível
     for (const [gn, g] of GROUNDS) {

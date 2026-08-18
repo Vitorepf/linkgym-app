@@ -22,7 +22,7 @@ import { Initials } from "../../ui/Initials";
 import { MetricGrid } from "../../ui/Metric";
 import { Band, Phone } from "../../ui/Screen";
 import { Txt } from "../../ui/Txt";
-import { dateShort, formatKg, formatXp } from "../../ui/format";
+import { dateShort, formatKg, formatNum } from "../../ui/format";
 
 type Props = {
   token: string;
@@ -192,7 +192,7 @@ export function Retomada({ token, studio, needsCommitment, comeback }: Props) {
       >
         {hero ? (
           <Band rule="none">
-            <Txt role="label" tone="dim">
+            <Txt role="label">
               Sua carga mais pesada
             </Txt>
             <Txt role="title" style={styles.name}>
@@ -225,7 +225,7 @@ export function Retomada({ token, studio, needsCommitment, comeback }: Props) {
           <MetricGrid
             cells={[
               { label: "Ofensiva", value: streak, note: "recomeça na próxima" },
-              { label: "XP", value: formatXp(xp), note: "continua seu" },
+              { label: "XP", value: formatNum(xp), note: "continua seu" },
             ]}
           />
         ) : null}

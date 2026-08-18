@@ -9,7 +9,7 @@ import {
 import { accentSet, errorInk, productTheme as T } from "../../theme";
 import { useAccentMass } from "../../ui/accent";
 import { Baseline } from "../../ui/Baseline";
-import { formatXp } from "../../ui/format";
+import { formatNum } from "../../ui/format";
 import { Band, Head, Phone } from "../../ui/Screen";
 import { Txt } from "../../ui/Txt";
 
@@ -208,7 +208,7 @@ export function Progresso({ token, studio }: Props) {
                         tone={row.me ? "ink" : "muted"}
                         style={styles.xp}
                       >
-                        {formatXp(row.xp_total)}
+                        {formatNum(row.xp_total)}
                       </Txt>
                     </View>
                   ))}

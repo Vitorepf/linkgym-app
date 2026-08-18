@@ -266,11 +266,9 @@ export function Painel({ token, studio, onLeave }: Props) {
           </Pressable>
         ) : null}
 
-        <Pressable onPress={onLeave} accessibilityRole="button" style={styles.leaveRow}>
-          <Txt role="label" tone="dim">
-            Sair
-          </Txt>
-        </Pressable>
+        <View style={styles.leaveRow}>
+          <GhostCTA label="Sair" onPress={onLeave} />
+        </View>
       </ScrollView>
     </Phone>
   );
@@ -431,6 +429,7 @@ const styles = StyleSheet.create({
   linkLabel: { flex: 1 },
   leaveRow: {
     paddingHorizontal: T.pad,
-    paddingVertical: 14,
+    paddingTop: 24,
+    paddingBottom: 16,
   },
 });

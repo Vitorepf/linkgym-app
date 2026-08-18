@@ -1,14 +1,5 @@
 import * as SecureStore from "expo-secure-store";
-import type { Person, Studio } from "./api";
-
 const TOKEN_KEY = "linkgym.token";
-
-export type Session = {
-  token: string;
-  person: Person;
-  studio: Studio;
-};
-
 // ponytail: armazenamento seguro que falha não pode derrubar quem chama. O pior caso de
 // um cofre indisponível é o aluno entrar de novo na próxima abertura; o pior caso de uma
 // exceção aqui é o app não abrir. No host web nem existe implementação (o módulo

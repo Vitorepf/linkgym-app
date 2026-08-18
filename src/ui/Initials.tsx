@@ -1,5 +1,5 @@
 import { StyleSheet, View } from "react-native";
-import { accentFill, productTheme as T } from "../theme";
+import { accentSet, productTheme as T } from "../theme";
 import { initials } from "./format";
 import { Txt } from "./Txt";
 
@@ -11,7 +11,8 @@ type Props = {
 };
 
 export function Initials({ name, accent, fill, size = 34 }: Props) {
-  const ac = accentFill(accent || T.accentFallback);
+  // Peça, não massa: avatar de 34–54 px. Ver o verbete `piece` em src/theme.ts.
+  const ac = accentSet(accent || T.accentFallback).piece;
   return (
     <View
       style={[

@@ -19,7 +19,7 @@ export const productTheme = {
   divider: "#696565",
   fill: "#2d2b2b",
   // ponytail: `ok` era #7ee0a1 — verde semântico, que este produto não pode ter (é o
-  // acento da marca 19 e matiz nunca significa "bom" aqui). Colapsou em ink: cumprido é
+  // acento do time 19 e matiz nunca significa "bom" aqui). Colapsou em ink: cumprido é
   // marcado por PRESENÇA de tinta, não por cor. A chave fica porque tools/contrast.mjs
   // a lê; some quando o gate parar de pedi-la.
   ok: "#f3f2f2",
@@ -77,12 +77,6 @@ export const MOTION = {
   ease: [0.2, 0, 0, 1],
   easeOut: [0.16, 1, 0.3, 1],
 } as const;
-
-export type StudioTheme = {
-  name: string;
-  accent: string;
-  logoUrl?: string;
-};
 
 // ---------------------------------------------------------------------------
 // Cor derivada. Mora aqui, e não num src/ui/color.ts, porque este arquivo não importa
@@ -164,7 +158,7 @@ export function withAlpha(color: string, a: number): string {
 const memo = new Map<string, string>();
 const STEP = 1 / 128;
 
-/** Acento de EXIBIÇÃO. O acento cru é do personal e pode ser o próprio fundo (marca 13),
+/** Acento de EXIBIÇÃO. O acento cru é do personal e pode ser o próprio fundo (time 13),
  *  ou quase (4, 6, 10, 11, 18). Aqui matiz e saturação dele são preservados e SÓ a
  *  luminosidade anda, até o piso de contraste contra o fundo onde a marca será desenhada.
  *  `min`: 3 para traço e preenchimento, 4.5 para texto. */
@@ -186,17 +180,19 @@ export function accentOn(accent: string, ground: string = productTheme.bg, min =
   return out;
 }
 
-/** Superfície preenchida com o acento + a tinta que escreve nela. UM lugar decide; os
- *  chamadores (AccentCTA, Choice, Initials) só obedecem — era um `T.bg` chumbado em quatro
- *  arquivos, que passava só porque o fallback é um vermelho claro.
+/** O MOTOR do acento em área: superfície preenchida + a tinta que escreve nela. NÃO é
+ *  exportado — se fosse, qualquer tela entraria por aqui e pintaria área sem passar pelo
+ *  orçamento, que é exatamente o buraco que existia enquanto isto tinha `export`.
+ *  As duas portas nomeadas são `accentSet().piece` (peça pequena e repetida) e
+ *  `useAccentMass` (massa dominante da tela, contada uma por tela).
  *  Se NENHUMA das duas tintas do produto alcança o piso, quem anda é o acento. */
-export function accentFill(accent: string, min = 4.5): { fill: string; ink: string } {
+function accentFill(accent: string, min = 4.5): { fill: string; ink: string } {
   const key = `fill|${accent}|${min}`;
   const hit = memo.get(key);
   if (hit) return JSON.parse(hit) as { fill: string; ink: string };
 
   // Duas regras, uma peça. Primeiro o preenchimento tem que EXISTIR contra o chão — senão
-  // o botão da marca 13 é um retângulo invisível com texto solto em cima. `raised` é o
+  // o botão do time 13 é um retângulo invisível com texto solto em cima. `raised` é o
   // mais claro dos quatro fundos, então garantir 3:1 nele garante nos quatro, sem prop.
   const surface = accentOn(accent, productTheme.raised, 3);
   const inks: string[] = [productTheme.ink, productTheme.bg];
@@ -232,24 +228,31 @@ export function accentFill(accent: string, min = 4.5): { fill: string; ink: stri
  *  sistema como qualquer outro acento, contra o chão onde o aviso é escrito. */
 export const errorInk = accentOn(productTheme.accentFallback, productTheme.bg, 4.5);
 
-/** ORÇAMENTO DE ACENTO, metade um: os dois papéis SUBORDINADOS do acento, que qualquer
- *  elemento pode usar quantas vezes quiser porque nenhum deles é área.
- *    `text` — o acento escrevendo (4,5:1).
- *    `mark` — traço fino, marca pequena, ponteiro (3:1).
- *  O terceiro papel — o acento em MASSA, área preenchida — saiu daqui de propósito. Ele
- *  só existe via `useAccentMass` (src/ui/accent.tsx), que conta um por tela e grita se
- *  aparecer o segundo. Enquanto `fill` morava neste retorno, dezoito telas pintavam área
- *  com o acento sem ninguém contar, e a Hoje pintava três. */
+/** ORÇAMENTO DE ACENTO, metade um: os papéis do acento que NÃO são a massa dominante.
+ *    `text`  — o acento escrevendo (4,5:1). Sem limite: não é área.
+ *    `mark`  — traço fino, marca pequena, ponteiro (3:1). Sem limite: não é área.
+ *    `piece` — par preenchimento/tinta de PEÇA: elemento pequeno e REPETIDO cujo estado é
+ *              o próprio acento (o chip de 52 px da Choice, o avatar de 34–54 px da
+ *              Initials). Sem limite, e de propósito: o eixo 1 diz que pares repetidos no
+ *              mesmo tamanho ranqueiam em vez de competir. Uma peça só vira massa quando
+ *              cresce — e aí ela é a massa da tela, e o caminho é `useAccentMass`.
+ *  O papel que NÃO está aqui é a MASSA — área preenchida que domina a tela. Ela só existe
+ *  via `useAccentMass` (src/ui/accent.tsx), que conta um por tela e grita no segundo.
+ *  `accentFill` não é exportado, então "pintar área sem passar por uma destas portas" não
+ *  compila: eram Choice e Initials entrando pela porta de trás sem o gate acusar. */
 export function accentSet(accent: string, ground: string = productTheme.bg) {
   return {
     text: accentOn(accent, ground, 4.5),
     mark: accentOn(accent, ground, 3),
+    // `piece` ignora `ground` de propósito: accentFill já garante o piso contra `raised`,
+    // o mais claro dos quatro fundos, e portanto contra os quatro.
+    piece: accentFill(accent),
   };
 }
 
 /** A aba ativa do dock não pode EMPATAR com as inativas. O piso dela não é 4,5:1 (o
  *  mínimo de TEXTO): é o contraste da inativa vezes √2 — um degrau inteiro acima, tirado
- *  do próprio token e não chutado. Com 4,5 a marca 13 entregava 4,53 na ativa contra
+ *  do próprio token e não chutado. Com 4,5 o time 13 entregava 4,53 na ativa contra
  *  5,02 do muted2 das inativas: a barra ficava com a hierarquia invertida. Vive aqui
  *  porque tools/contrast.mjs mede exatamente este número. */
 export const dockActiveMin =

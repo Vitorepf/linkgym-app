@@ -1,15 +1,18 @@
 import { useEffect, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, View } from "react-native";
 import {
   progress,
   type Person,
   type ProgressPayload,
   type Studio,
 } from "../../api";
-import { accentSet, errorInk, FONT, productTheme as T } from "../../theme";
+import { errorInk, productTheme as T } from "../../theme";
+import { formatNum } from "../../ui/format";
+import { GhostCTA } from "../../ui/GhostCTA";
 import { Initials } from "../../ui/Initials";
 import { MetricGrid } from "../../ui/Metric";
-import { Band, Phone } from "../../ui/Screen";
+import { Band, Head, Phone } from "../../ui/Screen";
+import { Txt } from "../../ui/Txt";
 
 type Props = {
   token: string;
@@ -18,16 +21,34 @@ type Props = {
   onLeave: () => void;
 };
 
-const BADGES = [
-  { key: "estreia", label: "ESTREIA", mark: "1" },
-  { key: "ofensiva_4", label: "SEMANAS", mark: "4" },
+/** A tela que MAIS destoava do resto do app, e o que mudou nesta costura:
+ *    - era a única das trinta que não usava `Head`: cabeçalho próprio, com o nome em 22 px
+ *      (degrau que não existe na escala) e a linha de baixo em 13 px SEM fontFamily — ou
+ *      seja, em San Francisco/Roboto, no meio de um app inteiro em Archivo. Eram os quatro
+ *      últimos blocos com fontSize e sem família do repositório.
+ *    - tinha DUAS convenções de rótulo dentro dela mesma: um kicker acentuado e um mudo,
+ *      ambos em 11 px/1,43 — e o resto do app escreve rótulo em `Txt role="label"`
+ *      (12 px/1,3, mudo). Sobrou uma convenção, a do sistema.
+ *    - a segunda célula da grade dizia "Recorde" e desenhava `streak.current_count`: o
+ *      MESMO número da célula ao lado, com outro nome. O payload não tem recorde de
+ *      ofensiva, então a célula que mentia saiu e entrou o Protetor, que é dado real.
+ *    - a barra "Quanto falta" media o selo de 4 semanas — o MESMO selo que a fila logo
+ *      abaixo desenha, com outro nome e outra forma. A tela dizia duas vezes; ficou uma.
+ *    - "Sair" era um rótulo em caixa alta sem moldura, do tamanho e do tom dos títulos de
+ *      seção acima dele: lia como cabeçalho, não como saída. Virou o botão fantasma que o
+ *      resto do app já usa para a ação que não é a principal.
+ *
+ *  ponytail: nenhuma peça nova. Head, Band, MetricGrid, GhostCTA, Initials e Txt já
+ *  existiam — esta tela só não estava usando nenhum deles. */
+const SELOS = [
+  { key: "estreia", label: "Estreia", mark: "1" },
+  { key: "ofensiva_4", label: "Semanas", mark: "4" },
   { key: "primeiro_pr", label: "PR", mark: "PR" },
-  { key: "retomada", label: "RETOMADA", mark: "R" },
+  { key: "retomada", label: "Retomada", mark: "R" },
 ] as const;
 
 export function Perfil({ token, person, studio, onLeave }: Props) {
   const accent = studio.accent_color || T.accentFallback;
-  const A = accentSet(accent);
   const [data, setData] = useState<ProgressPayload | null>(null);
   const [error, setError] = useState("");
 
@@ -52,46 +73,47 @@ export function Perfil({ token, person, studio, onLeave }: Props) {
   const name = person.name.trim() || "Você";
   const place = data ? data.league.findIndex((row) => row.me) + 1 : 0;
   const earned = new Set((data?.badges ?? []).map((b) => b.badge_key));
-  const nextWeek = Math.max(0, 4 - (data?.streak.current_count ?? 0));
-  const weekPct = Math.min(1, (data?.streak.current_count ?? 0) / 4);
+  const streak = data?.streak.current_count ?? 0;
 
   return (
     <Phone tab>
-      <View style={styles.head}>
-        <Initials name={name} accent={accent} fill size={54} />
-        <View style={styles.headCopy}>
-          <Text style={styles.name}>{name}</Text>
-          <Text style={styles.sub}>
-            Com o {studio.name}
-            {place > 0 ? ` · ${place}º na liga` : ""}
-          </Text>
-        </View>
-      </View>
+      <Head
+        kicker={studio.name}
+        kickerMuted
+        title={name}
+        right={<Initials name={name} accent={accent} fill size={54} />}
+      />
 
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        {error ? <Text style={styles.error}>{error}</Text> : null}
+        {error ? (
+          <Txt role="body" color={errorInk} style={styles.error}>
+            {error}
+          </Txt>
+        ) : null}
 
         {data ? (
           <>
             <MetricGrid
               cells={[
                 {
-                  label: "Ofensiva atual",
-                  value: data.streak.current_count,
-                  note: "sequência",
+                  label: "Ofensiva",
+                  value: streak,
+                  note: "sessões seguidas",
                 },
                 {
-                  label: "Recorde",
-                  value: data.streak.current_count,
-                  note: "você está nele agora",
+                  label: "Protetor",
+                  value: data.streak.protector_available ? "1" : "—",
+                  note: data.streak.protector_available
+                    ? "guardado"
+                    : "gasto nesta ofensiva",
                 },
                 {
                   label: "XP total",
-                  value: data.xp_total.toLocaleString("pt-BR"),
+                  value: formatNum(data.xp_total),
                 },
                 {
                   label: "Liga",
@@ -102,60 +124,32 @@ export function Perfil({ token, person, studio, onLeave }: Props) {
             />
 
             <Band>
-              <Text style={[styles.kicker, { color: A.text }]}>Quanto falta</Text>
-              <View style={styles.goal}>
-                <View style={styles.goalRow}>
-                  <Text style={styles.goalName}>Selo · 4 semanas</Text>
-                  <Text style={styles.goalFrac}>
-                    {Math.min(4, data.streak.current_count)}/4
-                  </Text>
-                </View>
-                <View style={styles.bar}>
-                  <View
-                    style={[
-                      styles.barFill,
-                      { width: `${weekPct * 100}%`, backgroundColor: T.muted },
-                    ]}
-                  />
-                </View>
-                <Text style={styles.caption}>
-                  {nextWeek === 0
-                    ? "Selo de 4 semanas fechado."
-                    : `${nextWeek} semana${nextWeek === 1 ? "" : "s"} e ele é seu.`}
-                </Text>
-              </View>
-            </Band>
-
-            <Band>
-              <Text style={styles.kickerMuted}>Selos</Text>
-              <View style={styles.badges}>
-                {BADGES.map((badge) => {
-                  const on = earned.has(badge.key);
+              <Txt role="label">Selos</Txt>
+              <View style={styles.selos}>
+                {SELOS.map((selo) => {
+                  const on = earned.has(selo.key);
                   return (
-                    <View key={badge.key} style={styles.badgeCol}>
+                    <View key={selo.key} style={styles.seloCol}>
+                      {/* Selo não conquistado é AUSÊNCIA de tinta, nunca outro matiz:
+                          moldura vazia contra caixa cheia. */}
                       <View
                         style={[
-                          styles.badge,
-                          on ? styles.badgeOn : styles.badgeOff,
+                          styles.selo,
+                          on ? styles.seloOn : styles.seloOff,
                         ]}
                       >
-                        <Text
-                          style={[
-                            styles.badgeMark,
-                            { color: on ? T.ink : T.muted2 },
-                          ]}
-                        >
-                          {badge.mark}
-                        </Text>
+                        <Txt role="body" tone={on ? "ink" : "dim"}>
+                          {selo.mark}
+                        </Txt>
                       </View>
-                      <Text
-                        style={[
-                          styles.badgeLabel,
-                          { color: on ? T.muted : T.muted2 },
-                        ]}
+                      <Txt
+                        role="note"
+                        tone={on ? "muted" : "dim"}
+                        style={styles.seloLabel}
+                        numberOfLines={1}
                       >
-                        {badge.label}
-                      </Text>
+                        {selo.label}
+                      </Txt>
                     </View>
                   );
                 })}
@@ -164,117 +158,29 @@ export function Perfil({ token, person, studio, onLeave }: Props) {
           </>
         ) : null}
 
-        <Pressable onPress={onLeave} style={styles.leave} hitSlop={12}>
-          <Text style={styles.leaveText}>Sair</Text>
-        </Pressable>
+        <View style={styles.leave}>
+          <GhostCTA label="Sair" onPress={onLeave} />
+        </View>
       </ScrollView>
     </Phone>
   );
 }
 
 const styles = StyleSheet.create({
-  head: {
-    paddingHorizontal: T.pad,
-    paddingTop: 8,
-    paddingBottom: 18,
-    borderBottomWidth: 2,
-    borderBottomColor: T.divider,
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 14,
-  },
-  headCopy: { flex: 1, minWidth: 0 },
-  name: {
-    color: T.ink,
-    fontFamily: FONT,
-    fontSize: 22,
-    letterSpacing: -0.5,
-  },
-  sub: {
-    color: T.muted,
-    fontSize: 13,
-    marginTop: 3,
-  },
   scroll: { flex: 1 },
-  content: { flexGrow: 1, paddingBottom: 24 },
-  error: {
-    color: errorInk,
-    fontSize: 14,
-    paddingHorizontal: T.pad,
-    paddingTop: 12,
-  },
-  kicker: {
-    fontFamily: FONT,
-    fontSize: 11,
-    letterSpacing: 1.43,
-    textTransform: "uppercase",
-    marginBottom: 16,
-  },
-  kickerMuted: {
-    color: T.muted,
-    fontFamily: FONT,
-    fontSize: 11,
-    letterSpacing: 1.43,
-    textTransform: "uppercase",
-  },
-  goal: { marginTop: 4 },
-  goalRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  goalName: {
-    color: T.ink,
-    fontFamily: FONT,
-    fontSize: 14,
-  },
-  goalFrac: {
-    color: T.ink,
-    fontFamily: FONT,
-    fontSize: 14,
-    fontVariant: ["tabular-nums"],
-  },
-  bar: {
-    height: 8,
-    backgroundColor: T.fill,
-    marginTop: 8,
-  },
-  barFill: { height: 8 },
-  caption: {
-    color: T.muted,
-    fontSize: 13,
-    marginTop: 7,
-  },
-  badges: {
-    flexDirection: "row",
-    gap: 8,
-    marginTop: 14,
-  },
-  badgeCol: { flex: 1 },
-  badge: {
+  content: { flexGrow: 1, paddingBottom: 8 },
+  error: { paddingHorizontal: T.pad, paddingTop: 12 },
+
+  selos: { flexDirection: "row", gap: 8, marginTop: 14 },
+  seloCol: { flex: 1 },
+  selo: {
     aspectRatio: 1,
     alignItems: "center",
     justifyContent: "center",
   },
-  badgeOn: { backgroundColor: T.fill },
-  badgeOff: {
-    borderWidth: 2,
-    borderColor: T.fill,
-  },
-  badgeMark: { fontFamily: FONT, fontSize: 15 },
-  badgeLabel: {
-    fontSize: 9,
-    letterSpacing: 0.6,
-    marginTop: 5,
-  },
-  leave: {
-    paddingHorizontal: T.pad,
-    paddingVertical: 24,
-  },
-  leaveText: {
-    color: T.muted,
-    fontFamily: FONT,
-    fontSize: 13,
-    letterSpacing: 1.1,
-    textTransform: "uppercase",
-  },
+  seloOn: { backgroundColor: T.fill },
+  seloOff: { borderWidth: 2, borderColor: T.fill },
+  seloLabel: { marginTop: 6 },
+
+  leave: { paddingHorizontal: T.pad, paddingTop: 24, paddingBottom: 16 },
 });

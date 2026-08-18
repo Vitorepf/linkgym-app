@@ -5,6 +5,7 @@ import type {
 } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { DraftItem, FinishRecord, TodayItem } from "../api";
+import type { SessionProof } from "../offline/sessionQueue";
 
 export type SessionRoute = {
   token: string;
@@ -110,6 +111,9 @@ export type RootStackParamList = {
     xpTotal: number;
     xpGained: number;
     records: FinishRecord[];
+    /** Lido da sessão local ANTES do flush, que apaga a sessão. Opcional porque pode não
+     *  existir (sessão sem série gravada); ausente = a tela não desenha a prova. */
+    proof?: SessionProof;
     pending?: boolean;
     needsCommitment?: boolean;
   };
