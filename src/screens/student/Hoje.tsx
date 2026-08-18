@@ -16,6 +16,7 @@ export function Hoje({ token, studio, onLeave }: Props) {
   const accent = studio.accent_color || productTheme.accentFallback;
   const [data, setData] = useState<TodayPayload | null>(null);
   const [error, setError] = useState("");
+  // Task 5 persists client_id; Começar must not POST /v1/sessions.
   const [clientId, setClientId] = useState("");
 
   useEffect(() => {
@@ -45,7 +46,7 @@ export function Hoje({ token, studio, onLeave }: Props) {
   }
 
   return (
-    <Screen kicker={kicker} accent={accent} title={empty ? studio.name : undefined}>
+    <Screen kicker={kicker} accent={accent} title={studio.name}>
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}
