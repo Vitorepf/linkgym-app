@@ -1,15 +1,29 @@
 import { useFonts, Archivo_800ExtraBold } from "@expo-google-fonts/archivo";
+import { DarkTheme, NavigationContainer } from "@react-navigation/native";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { logout, me, type Person, type Studio } from "./src/api";
+import { Root } from "./src/nav/Root";
 import { AccessScreen } from "./src/screens/Access";
-import { StudioHome } from "./src/screens/StudioHome";
 import { clearToken, loadToken, saveToken } from "./src/session";
 import { productTheme } from "./src/theme";
 
 type Session = { token: string; person: Person; studio: Studio };
+
+const navTheme = {
+  ...DarkTheme,
+  colors: {
+    ...DarkTheme.colors,
+    background: productTheme.bg,
+    card: productTheme.bg,
+    text: productTheme.ink,
+    border: productTheme.divider,
+    primary: productTheme.accentFallback,
+  },
+};
 
 export default function App() {
   const [loaded] = useFonts({ Archivo_800ExtraBold });
@@ -47,35 +61,41 @@ export default function App() {
   }
 
   return (
-    <SafeAreaProvider>
-      {session ? (
-        <StudioHome
-          person={session.person}
-          studio={session.studio}
-          onLeave={async () => {
-            try {
-              await logout(session.token);
-            } catch {
-              /* still leave */
-            }
-            await clearToken();
-            setSession(null);
-          }}
-        />
-      ) : (
-        <AccessScreen
-          onEntered={async (next) => {
-            await saveToken(next.token);
-            setSession(next);
-          }}
-        />
-      )}
-      <StatusBar style="light" />
-    </SafeAreaProvider>
+    <GestureHandlerRootView style={styles.flex}>
+      <SafeAreaProvider>
+        <NavigationContainer theme={navTheme}>
+          {session ? (
+            <Root
+              token={session.token}
+              person={session.person}
+              studio={session.studio}
+              onLeave={async () => {
+                try {
+                  await logout(session.token);
+                } catch {
+                  /* still leave */
+                }
+                await clearToken();
+                setSession(null);
+              }}
+            />
+          ) : (
+            <AccessScreen
+              onEntered={async (next) => {
+                await saveToken(next.token);
+                setSession(next);
+              }}
+            />
+          )}
+        </NavigationContainer>
+        <StatusBar style="light" />
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
 
 const styles = StyleSheet.create({
+  flex: { flex: 1 },
   boot: {
     flex: 1,
     backgroundColor: productTheme.bg,
