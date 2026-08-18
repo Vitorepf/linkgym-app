@@ -25,10 +25,9 @@ type Props = {
   token: string;
   person: Person;
   studio: Studio;
-  onLeave: () => void;
 };
 
-export function Hoje({ token, studio, onLeave }: Props) {
+export function Hoje({ token, studio }: Props) {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList, "Hoje">>();
   const accent = studio.accent_color || productTheme.accentFallback;
@@ -253,8 +252,19 @@ export function Hoje({ token, studio, onLeave }: Props) {
           </>
         ) : null}
 
-        <Pressable onPress={onLeave} style={styles.leave} hitSlop={8}>
-          <Text style={styles.leaveText}>Sair</Text>
+        <Pressable
+          onPress={() => navigation.navigate("Progresso")}
+          style={styles.link}
+          hitSlop={8}
+        >
+          <Text style={styles.linkText}>Progresso</Text>
+        </Pressable>
+        <Pressable
+          onPress={() => navigation.navigate("Perfil")}
+          style={styles.link}
+          hitSlop={8}
+        >
+          <Text style={styles.linkText}>Perfil</Text>
         </Pressable>
       </ScrollView>
     </Screen>
@@ -428,12 +438,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: 8,
   },
-  leave: { marginTop: "auto", paddingTop: 40, alignSelf: "flex-start" },
-  leaveText: {
-    color: productTheme.muted,
+  link: { marginTop: 20, alignSelf: "flex-start" },
+  linkText: {
+    color: productTheme.ink,
     fontFamily: "Archivo_800ExtraBold",
-    letterSpacing: 1.2,
+    fontSize: 13,
+    letterSpacing: 1.1,
     textTransform: "uppercase",
-    fontSize: 12,
   },
 });

@@ -1,4 +1,4 @@
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { formatKg } from "../../offline/sessionQueue";
 import type { RootStackParamList } from "../../nav/types";
@@ -62,14 +62,25 @@ export function Feito({ navigation, route }: Props) {
                 )}
               </View>
             ))}
+            <Pressable
+              onPress={() => navigation.navigate("Recorde", { accent, records })}
+              style={styles.recordeLink}
+              hitSlop={8}
+            >
+              <Text style={styles.recordeLinkText}>Recorde</Text>
+            </Pressable>
           </View>
         ) : null}
 
         <PrimaryButton
           label="Seguir"
-          onPress={() =>
-            navigation.reset({ index: 0, routes: [{ name: "Hoje" }] })
-          }
+          onPress={() => {
+            if (records.length > 0) {
+              navigation.navigate("Recorde", { accent, records });
+              return;
+            }
+            navigation.reset({ index: 0, routes: [{ name: "Hoje" }] });
+          }}
         />
       </ScrollView>
     </Screen>
@@ -163,5 +174,13 @@ const styles = StyleSheet.create({
     color: productTheme.muted,
     fontSize: 15,
     marginTop: 4,
+  },
+  recordeLink: { marginTop: 16, alignSelf: "flex-start" },
+  recordeLinkText: {
+    color: productTheme.ink,
+    fontFamily: "Archivo_800ExtraBold",
+    fontSize: 13,
+    letterSpacing: 1.1,
+    textTransform: "uppercase",
   },
 });

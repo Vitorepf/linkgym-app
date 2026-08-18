@@ -7,6 +7,9 @@ import { Descanso } from "../screens/student/Descanso";
 import { Feito } from "../screens/student/Feito";
 import { Ficha } from "../screens/student/Ficha";
 import { Hoje } from "../screens/student/Hoje";
+import { Perfil } from "../screens/student/Perfil";
+import { Progresso } from "../screens/student/Progresso";
+import { Recorde } from "../screens/student/Recorde";
 import { Serie } from "../screens/student/Serie";
 import { productTheme } from "../theme";
 import type { RootStackParamList } from "./types";
@@ -56,12 +59,7 @@ export function Root({ token, person, studio, onLeave }: RootProps) {
         <>
           <Stack.Screen name="Hoje">
             {() => (
-              <Hoje
-                token={token}
-                person={person}
-                studio={studio}
-                onLeave={onLeave}
-              />
+              <Hoje token={token} person={person} studio={studio} />
             )}
           </Stack.Screen>
           <Stack.Screen
@@ -89,6 +87,26 @@ export function Root({ token, person, studio, onLeave }: RootProps) {
             component={Feito}
             options={{ animation: "slide_from_right", gestureEnabled: false }}
           />
+          <Stack.Screen
+            name="Recorde"
+            component={Recorde}
+            options={{ animation: "slide_from_right" }}
+          />
+          <Stack.Screen name="Progresso">
+            {() => (
+              <Progresso token={token} person={person} studio={studio} />
+            )}
+          </Stack.Screen>
+          <Stack.Screen name="Perfil">
+            {() => (
+              <Perfil
+                token={token}
+                person={person}
+                studio={studio}
+                onLeave={onLeave}
+              />
+            )}
+          </Stack.Screen>
         </>
       )}
     </Stack.Navigator>

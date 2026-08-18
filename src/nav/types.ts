@@ -47,4 +47,10 @@ export type RootStackParamList = {
     records: FinishRecord[];
     pending?: boolean;
   };
+  Recorde: {
+    accent: string;
+    records: FinishRecord[];
+  };
+  Progresso: undefined;
+  Perfil: undefined;
 };

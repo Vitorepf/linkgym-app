@@ -267,3 +267,33 @@ export function applyOwnerReturn(
     body: JSON.stringify({ bump_kg: bumpKg }),
   });
 }
+
+export type LeagueRow = {
+  name: string;
+  xp_total: number;
+  me: boolean;
+};
+
+export type ProgressPayload = {
+  streak: { current_count: number; protector_available: boolean };
+  xp_total: number;
+  league: LeagueRow[];
+  badges: { badge_key: string; earned_at: string }[];
+  readiness_week: { for_date: string; score: number }[];
+};
+
+export type RecordItem = {
+  exercise_name: string;
+  load_kg: number;
+  reps: number;
+  achieved_at: string;
+  history: { load_kg: number; achieved_at: string }[];
+};
+
+export function progress(token: string) {
+  return request<ProgressPayload>("/v1/progress", { token });
+}
+
+export function records(token: string) {
+  return request<{ items: RecordItem[] }>("/v1/records", { token });
+}
