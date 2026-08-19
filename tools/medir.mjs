@@ -4,6 +4,11 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync, statSync } from "node:fs";
 import { join } from "node:path";
+import { culpa as culpaHits, proibidas as proibidasHits } from "./palavras.mjs";
+import { telas } from "./cobertura.mjs";
+import { carga_perdida } from "./carga.mjs";
+import { fila } from "./fila.mjs";
+import { inclinacao_lote, toques_convite, toques_serie } from "./toques.mjs";
 const ROOT = process.env.CLAUDE_PROJECT_DIR ?? process.cwd();
 const eixo = process.argv[2];
 const ler = (p, d) => { try { return JSON.parse(readFileSync(p, "utf8")); } catch { return d; } };
@@ -37,13 +42,31 @@ const soltos = () => {
   return n;
 };
 
-const calc = { contraste, tipos, escala, soltos }[eixo];
-if (!calc) { console.error(`eixo desconhecido: ${eixo}. use: contraste, tipos, escala, soltos`); process.exit(2); }
+// culpa: palavra que vira crachá de pessoa no que o aluno lê. proibidas: as listas
+// _Avoid_ do CONTEXT.md mais "LinkGym". Os dois cospem file:line em stderr, porque
+// medidor que só devolve um numero manda ler o repo inteiro atras da causa.
+const listar = (f) => () => { const h = f(); for (const x of h) console.error(`  ${x.file}:${x.line} [${x.termo}] ${x.texto}`); return h.length; };
+const culpa = listar(culpaHits);
+const proibidas = listar(proibidasHits);
+
+const EIXOS = { contraste, tipos, escala, soltos, culpa, proibidas, toques_serie, inclinacao_lote, toques_convite, fila, telas, carga_perdida };
+const calc = EIXOS[eixo];
+if (!calc) { console.error(`eixo desconhecido: ${eixo}. use: ${Object.keys(EIXOS).join(", ")}`); process.exit(2); }
+
+// A DIREÇÃO vem de .gate/base.json, nao de suposicao. `telas` so sobe; todo o resto so
+// desce. Antes disto a catraca era menor-e-melhor cravada no codigo, e um medidor
+// maior-e-melhor teria reprovado ao melhorar e passado ao piorar — gate invertido em
+// silencio, que e pior que gate ausente.
+const base = ler(join(ROOT, ".gate/base.json"), {})[eixo];
+const maiorMelhor = base?.melhor === "maior";
+const pior = (a, b) => (maiorMelhor ? a < b : a > b);
+const otimo = (a, b) => (maiorMelhor ? Math.max(a, b) : Math.min(a, b));
+
 const atual = calc();
 const p = join(ROOT, ".gate/medidas", `${eixo}.json`);
 const antes = ler(p, null);
-const melhor = antes ? Math.min(antes.melhor, atual) : atual;
+const melhor = antes ? otimo(antes.melhor, atual) : atual;
 mkdirSync(join(ROOT, ".gate/medidas"), { recursive: true });
 writeFileSync(p, JSON.stringify({ atual, melhor }, null, 2) + "\n");
-console.log(`${eixo}: atual=${atual} melhor=${melhor}`);
-if (antes && atual > antes.melhor) { console.error(`CATRACA: ${eixo} piorou ${antes.melhor} -> ${atual}. Nao pode.`); process.exit(1); }
+console.log(`${eixo}: atual=${atual} melhor=${melhor} (${maiorMelhor ? "maior" : "menor"} e melhor)`);
+if (antes && pior(atual, antes.melhor)) { console.error(`CATRACA: ${eixo} piorou ${antes.melhor} -> ${atual}. Nao pode.`); process.exit(1); }

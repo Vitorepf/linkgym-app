@@ -2,6 +2,7 @@
 // o initialState do NavigationContainer e o JSON que o stub de rede devolve.
 // Dados de treino de verdade: nomes brasileiros, exercícios reais, cargas em kg.
 import type {
+  Cobranca,
   DraftItem,
   FinishRecord,
   MePayload,
@@ -26,6 +27,9 @@ export const ALUNA: Person = {
   name: "Ana Beatriz Nascimento Rodrigues",
   phone: "+5511987654321",
   role: "student",
+  // avatar por COR (sem foto): o shot prova o degrau do meio do Avatar sem depender de
+  // imagem de rede — o host de shots não sai para a internet.
+  avatar_color: "#2d7ef7",
 };
 
 export const PERSONAL: Person = {
@@ -55,6 +59,15 @@ function item(
     rest_seconds: rest,
     notes,
     video_url: n === 1 ? "https://media.invalido/agachamento.mp4" : null,
+    // Os dois caminhos entram no shot de propósito. O exercício 5 nunca foi feito, então
+    // vem sem referência e a tela tem que desenhar a AUSÊNCIA — se todo item tivesse
+    // histórico, as 600 montagens jamais provariam o caso do traço.
+    //
+    // O número é diferente do prescrito também de propósito: se alguém religar a
+    // referência na prescrição, o shot passa a mostrar a mesma carga duas vezes e a
+    // diferença aparece na imagem.
+    last_kg: n === 5 ? null : Math.round((kg + 5) * 2) / 2,
+    last_reps: n === 5 ? null : Number(reps) + 1 || null,
   };
 }
 
@@ -135,7 +148,7 @@ const ATTENTION: OwnerHome["attention"] = [
     id: "al-1",
     person_id: "p-marina",
     name: "Marina Okamoto",
-    reason: "Sem sessão há 9 dias",
+    reason: "student_stopped",
     decision: "Mandar retomada curta",
     rank: 1,
     days: 9,
@@ -144,7 +157,7 @@ const ATTENTION: OwnerHome["attention"] = [
     id: "al-2",
     person_id: "p-carlos",
     name: "Carlos Eduardo Lima",
-    reason: "Terra fácil duas vezes",
+    reason: "high_effort",
     decision: "Subir 2,5 kg",
     rank: 2,
   },
@@ -152,15 +165,116 @@ const ATTENTION: OwnerHome["attention"] = [
     id: "al-3",
     person_id: "p-ana",
     name: "Ana Beatriz Nascimento Rodrigues",
-    reason: "Dor no ombro relatada",
+    reason: "pain_flag",
     decision: "Trocar desenvolvimento",
     rank: 3,
   },
 ];
 
+/** A operação: leituras da Mensalidade sobre a MESMA turma de WEEK (20 alunos), com a
+ *  conta fechando — ticket = receita / com_mensalidade. Nomes reaproveitados de WEEK
+ *  para as portas (risco abre a Aluna) apontarem para gente que existe no fixture. */
+// A receita do FRED REAL, e nao um numero redondo de 5 caracteres. Com 700000 a fila de
+// numeros cabia em duas colunas na foto e cabia em uma no aparelho: `FORMA.numero.colunas`
+// recusa a segunda coluna acima de 5 caracteres, e "10.500" tem 6. A fixture escondia da
+// catraca e do critico cego exatamente o estado em que o estudio que cresce perde a dobra.
+// BR Codes reais, gerados por internal/pix/brcode.go com a chave do Fred.
+const PIX_350 = "00020126360014br.gov.bcb.pix0118fred@studio.com.br52040000530398654063350.005802BR5913FRED PERSONAL6009SAO PAULO62070503***6304";
+const PIX_300 = "00020126360014br.gov.bcb.pix0118fred@studio.com.br52040000530398654063300.005802BR5913FRED PERSONAL6009SAO PAULO62070503***6304";
+const PIX_150 = "00020126360014br.gov.bcb.pix0118fred@studio.com.br52040000530398654063150.005802BR5913FRED PERSONAL6009SAO PAULO62070503***6304";
+const PIX_219 = "00020126360014br.gov.bcb.pix0118fred@studio.com.br52040000530398654063219.005802BR5913FRED PERSONAL6009SAO PAULO62070503***6304";
+const PIX_400 = "00020126360014br.gov.bcb.pix0118fred@studio.com.br52040000530398654063400.005802BR5913FRED PERSONAL6009SAO PAULO62070503***6304";
+
+const OWNER_OPERACAO = {
+  student_count: 28,
+  com_mensalidade: 28,
+  receita_cents: 1050000,
+  ticket_cents: 37500,
+  // O mes em tres pedacos. 25 marcados x 375 = 937500 entrou; sobram os tres em aberto,
+  // e um deles (Patricia, dia 25) ainda NAO venceu — e era isso que o cartao antigo
+  // somava junto com os vencidos.
+  recebido_cents: 940000,
+  vencido_cents: 65000,
+  a_vencer_cents: 40000,
+  ultima_marcacao: "2026-08-18" as string | null,
+  month: "2026-08-01",
+  // O copia_e_cola vem PRONTO do servidor, com o valor daquela pessoa dentro. Sao BR Codes
+  // de verdade, montados por internal/pix — o que a foto mostra e o que o banco leria.
+  em_aberto: [
+    { bond_id: "b-marina", person_id: "p-marina", name: "Marina Okamoto", amount_cents: 35000, due_day: 10, vencido_ha: 9, copia_e_cola: PIX_350 },
+    { bond_id: "b-rafa", person_id: "p-rafa", name: "Rafael Souza", amount_cents: 30000, due_day: 15, vencido_ha: 4, copia_e_cola: PIX_300 },
+    { bond_id: "b-patricia", person_id: "p-patricia", name: "Patrícia Salgado", amount_cents: 40000, due_day: 25, vencido_ha: -6, copia_e_cola: PIX_400 },
+  ],
+  pix: { configurado: true, chave: "fred@studio.com.br", nome: "Fred Personal", cidade: "Sao Paulo" },
+  // O que ele vende fora da mensalidade e ainda nao recebeu.
+  a_entregar: [
+    {
+      id: "c-1", bond_id: "b-marina", person_id: "p-marina", name: "Marina Okamoto",
+      descricao: "Avaliação física", valor_cents: 15000, criada_em: "2026-08-14",
+      recebida_em: null, copia_e_cola: PIX_150,
+    },
+    {
+      id: "c-2", bond_id: "b-rafa", person_id: "p-rafa", name: "Rafael Souza",
+      descricao: "Whey 900g", valor_cents: 21900, criada_em: "2026-08-17",
+      recebida_em: null, copia_e_cola: PIX_219,
+    },
+  ] as Cobranca[],
+  // Tres sinais DIFERENTES, que e o ponto: a fila antiga dizia "N dias sem treinar" para
+  // todo mundo, e o mesmo numero nao significa a mesma coisa para quem treinava 4x e para
+  // quem treina 1x. Aqui cada linha traz o motivo conferivel e a acao daquele motivo.
+  risco: [
+    {
+      person_id: "p-marina",
+      bond_id: "b-marina",
+      name: "Marina Okamoto",
+      phone: "+5511900000031",
+      motivo: "R$ 350 em aberto há 9 dias, e 12 dias sem treinar",
+      acao: "recebi" as const,
+      sinal: "dinheiro_e_sumico",
+      amount_cents: 35000,
+    },
+    {
+      person_id: "p-patricia",
+      bond_id: "b-patricia",
+      name: "Patrícia Salgado",
+      phone: "+5511900000032",
+      motivo: "Treinava 4× por semana. Fez 1 nas últimas duas.",
+      acao: "mandar" as const,
+      sinal: "queda_contra_a_linha",
+      amount_cents: 0,
+    },
+    {
+      person_id: "p-diego",
+      bond_id: "b-diego",
+      name: "Diego Albuquerque",
+      phone: "+5511900000033",
+      motivo: "Você não publica para Diego há 24 dias.",
+      acao: "publicar" as const,
+      sinal: "silencio_do_personal",
+      amount_cents: 0,
+    },
+  ],
+  sem_combinado: [] as { bond_id: string; person_id: string; name: string }[],
+};
+
+/** Os alunos sem valor combinado — o estado que a fixture cheia nunca produzia, porque ela
+ *  cravava com_mensalidade === student_count. A faixa que aponta para a tela do Combinado
+ *  NUNCA entrava em foto nenhuma, e por isso nem a catraca nem o critico cego viram que ela
+ *  prometia uma porta inexistente. */
+const SEM_COMBINADO = [
+  { bond_id: "b-ana", person_id: "p-ana", name: "Ana Beatriz Nascimento Rodrigues" },
+  { bond_id: "b-bruno", person_id: "p-bruno", name: "Bruno Tavares" },
+  { bond_id: "b-carla", person_id: "p-carla", name: "Carla Reis" },
+  { bond_id: "b-davi", person_id: "p-davi", name: "Davi Monteiro" },
+  { bond_id: "b-elis", person_id: "p-elis", name: "Elis Prado" },
+];
+
 const OWNER_HOME: OwnerHome = {
   greeting: "Bom treino",
-  student_count: 34,
+  // O MESMO conjunto de WEEK: na API os dois números saem da mesma consulta (bonds
+  // ativos). Enquanto o Painel dizia 34 e a turma listava 20, o número era só enfeite —
+  // agora ele é uma porta e abre a lista que ele conta.
+  student_count: WEEK.length,
   fio: {
     prescribed: 28,
     done: 19,
@@ -180,7 +294,9 @@ const OWNER_HOME: OwnerHome = {
 
 const OWNER_STUDENT: OwnerStudent = {
   person_id: "p-ana",
+  bond_id: "b-ana",
   name: "Ana Beatriz Nascimento Rodrigues",
+  combinado: { amount_cents: 37500, due_day: 5 },
   last_effort: 2,
   last_loads: [
     { exercise_name: "Levantamento terra", load_kg: 127.5 },
@@ -222,7 +338,10 @@ const DRAFT: DraftItem[] = ITEMS.map((it, i) => ({
   planned_sets: it.planned_sets,
   planned_reps: it.planned_reps,
   load_kg: it.load_kg,
-  load_source: i === 0 ? "history" : i === 1 ? "history" : i === 5 ? "starter" : "manual",
+  // Os QUATRO valores aparecem, senao o shot nunca desenha o estado novo e o rodape
+  // "de onde sairam as N cargas" nunca e conferido somando certo.
+  load_source:
+    i === 0 ? "history" : i === 1 ? "prescription" : i === 5 ? "starter" : "manual",
 }));
 
 const PROGRESS: ProgressPayload = {
@@ -269,6 +388,7 @@ function todayPayload(time: Time, over: Partial<TodayPayload> = {}): TodayPayloa
     coach_line: "Hoje é dia de terra. Vai com calma na primeira.",
     debut: false,
     comeback: null,
+    cumprido: false,
     ...over,
   };
 }
@@ -294,7 +414,6 @@ function session(time: Time): SessionRoute {
   return {
     token: TOKEN,
     timeName: time.name,
-    accent: time.accent_color,
     localId: "cs-shot-0001",
     prescriptionId: "pr-1",
     items: ITEMS,
@@ -316,6 +435,13 @@ export function params(screen: string, time: Time): object | undefined {
       return chrome;
     case "Aluna":
       return { ...chrome, personId: ALUNA.id };
+    // O lote: e nele que a tela e julgada, porque uma linha sozinha nao mostra a decisao
+    // que a tela toma (a caixa de edicao sobre NOMES, e nao um formulario por pessoa).
+    case "Combinado":
+      return {
+        ...chrome,
+        pessoas: SEM_COMBINADO.map((p) => ({ bond_id: p.bond_id, name: p.name })),
+      };
     case "Base":
       return { ...chrome, personId: ALUNA.id, personName: ALUNA.name };
     case "Ajustar":
@@ -344,7 +470,6 @@ export function params(screen: string, time: Time): object | undefined {
     case "Feito":
       return {
         timeName: time.name,
-        accent: time.accent_color,
         ofensivaCount: 214,
         xpTotal: 18740,
         xpGained: 40,
@@ -366,7 +491,6 @@ export function directProps(
 ): Record<string, unknown> {
   if (kind === "Criacao") {
     return {
-      accent: time.accent_color,
       timeName: time.name,
       busy: false,
       error: "",
@@ -378,7 +502,6 @@ export function directProps(
   return {
     token: TOKEN,
     timeName: time.name,
-    accent: time.accent_color,
     prescriptionId: "pr-1",
     from: ITEMS[4],
     items: ITEMS,
@@ -398,8 +521,11 @@ const STUDENT: Pick<Fixture, "role" | "onboardingComplete" | "commitmentComplete
 };
 
 export const FIXTURES: Record<string, Fixture> = {
-  // ---- personal (8)
+  // ---- personal (9)
   Painel: { ...OWNER, tab: "Painel" },
+  Turma: { ...OWNER, tab: "Fichas" },
+  Operacao: { ...OWNER, tab: "Operacao" },
+  PerfilTime: { ...OWNER, tab: "PerfilTime" },
   Atencao: { ...OWNER, route: { name: "Atencao" } },
   Aluna: { ...OWNER, route: { name: "Aluna" } },
   Base: { ...OWNER, route: { name: "Base" } },
@@ -411,17 +537,25 @@ export const FIXTURES: Record<string, Fixture> = {
   // ---- aluno (17)
   Estreia: { ...STUDENT, debut: true, commitmentComplete: false, route: { name: "Estreia" } },
   Hoje: { ...STUDENT, tab: "Hoje" },
+  // O estado ACESO do contador, coberto nas 20 marcas: com o dia cumprido o mesmo desenho
+  // troca de saturação, e é justamente aí que um acento hostil (marca 13, igual ao fundo)
+  // teria chance de sumir.
+  HojeCumprido: { ...STUDENT, tab: "Hoje", api: { "/v1/today": "cumprido" } },
   Ficha: { ...STUDENT, route: { name: "Ficha" } },
   FichaTab: { ...STUDENT, tab: "MinhaFicha" },
   Serie: { ...STUDENT, route: { name: "Serie" } },
   Descanso: { ...STUDENT, route: { name: "Descanso" } },
+  DescansoVirada: { ...STUDENT, route: { name: "Descanso" } },
   Feito: { ...STUDENT, route: { name: "Feito" } },
   Pronto: { ...STUDENT, onboardingComplete: false, route: { name: "Pronto" } },
   Progresso: { ...STUDENT, tab: "Progresso" },
   Recorde: { ...STUDENT, route: { name: "Recorde" } },
-  Retomada: {
+  // A Retomada deixou de ser rota: virou faixa sobre a Hoje. A tela coberta continua
+  // sendo UMA na catraca `telas`, agora no estado que importa — a faixa E o dia atras
+  // dela na mesma imagem.
+  HojeRetomada: {
     ...STUDENT,
-    route: { name: "Retomada" },
+    tab: "Hoje",
     api: {
       "/v1/today": "comeback",
     },
@@ -438,6 +572,31 @@ export const FIXTURES: Record<string, Fixture> = {
   // ---- estados difíceis (é onde o app é julgado)
   HojeVazio: { ...STUDENT, tab: "Hoje", api: { "/v1/today": "vazio" } },
   AtencaoVazio: { ...OWNER, route: { name: "Atencao" }, api: { "/v1/owner/attention": { items: [] } } },
+  OperacaoVazia: {
+    ...OWNER,
+    tab: "Operacao",
+    api: {
+      "/v1/owner/operacao": {
+        ...OWNER_OPERACAO,
+        em_aberto: [],
+        risco: [],
+      },
+    },
+  },
+  // O estado que a fixture cheia escondia: parte da turma sem combinado, e a porta para a
+  // tela que resolve isso desenhada no rodape.
+  OperacaoSemCombinado: {
+    ...OWNER,
+    tab: "Operacao",
+    api: {
+      "/v1/owner/operacao": {
+        ...OWNER_OPERACAO,
+        com_mensalidade: OWNER_OPERACAO.student_count - SEM_COMBINADO.length,
+        sem_combinado: SEM_COMBINADO,
+      },
+    },
+  },
+  Combinado: { ...OWNER, route: { name: "Combinado" } },
   ProgressoZero: {
     ...STUDENT,
     tab: "Progresso",
@@ -484,6 +643,10 @@ export function apiRoutes(
     [/^\/v1\/today\/prontidao$/, { score: 84, energy: 4, soreness: 2, sleep: 4, label: "pronta" }],
     [/^\/v1\/today$/, todayPayload(time)],
     [/^\/v1\/owner\/home$/, OWNER_HOME],
+    [/^\/v1\/owner\/operacao$/, OWNER_OPERACAO],
+    [/^\/v1\/owner\/mensalidades\/[^/]+\/pagar$/, { ok: true }],
+    [/^\/v1\/owner\/time$/, { ok: true }],
+    [/^\/v1\/media\/presign$/, { object_key: "avatar/p-ana/x.jpg", upload_url: "http://localhost:9000/none" }],
     [/^\/v1\/owner\/attention\/[^/]+\/apply$/, { ok: true }],
     [/^\/v1\/owner\/attention$/, { items: ATTENTION }],
     [/^\/v1\/owner\/returns\/[^/]+\/apply$/, { ok: true }],
@@ -528,10 +691,13 @@ export function apiRoutes(
 
   const named: Record<string, unknown> = {
     comeback: todayPayload(time, {
-      prescription: null,
-      ofensiva: { current_count: 0, protector_available: false },
-      comeback: { id: "cb-1", minutes: 18, coach_line: "Volta curta. O acervo não foi embora." },
+      // A ficha de hoje FICA. Quem faltou ontem tem treino hoje, e a faixa se sobrepõe a
+      // ele em vez de substituí-lo — se a fixture viesse sem prescrição, o shot provaria
+      // o contrário do que o desenho promete.
+      ofensiva: { current_count: 4, protector_available: false },
+      comeback: { id: "cb-1", minutes: 18, coach_line: "Sua carga e seus recordes continuam aí." },
     }),
+    cumprido: todayPayload(time, { cumprido: true, ofensiva: { current_count: 13, protector_available: true } }),
     vazio: todayPayload(time, {
       prescription: null,
       prontidao: { score: 0, energy: 0, soreness: 0, sleep: 0, label: "" },

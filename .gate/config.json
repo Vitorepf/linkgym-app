@@ -1,10 +1,150 @@
 {
-  "eixos": ["oficio", "operacao", "ritual"],
-  "protegidos": ["tools/gate.mjs", "tools/medir.mjs", "tools/contrast.mjs", ".claude/hooks/stop-gate.mjs", ".gate/config.json"],
+  "eixos": [
+    "contraste",
+    "escala",
+    "soltos",
+    "telas",
+    "portas",
+    "culpa",
+    "proibidas",
+    "toques_serie",
+    "inclinacao_lote",
+    "toques_convite",
+    "fila",
+    "carga_perdida",
+    "ritmo"
+  ],
+  "protegidos": [
+    ".claude/hooks/stop-gate.mjs",
+    ".gate/config.json",
+    "tools/brands.mjs",
+    "tools/carga.mjs",
+    "tools/cobertura.mjs",
+    "tools/contrast.mjs",
+    "tools/fila.mjs",
+    "tools/gate.mjs",
+    "tools/medir.mjs",
+    "tools/palavras.mjs",
+    "tools/shots.mjs",
+    "tools/taps.mjs",
+    "tools/toques.mjs"
+  ],
   "checks": [
-    { "nome": "tipos",     "cmd": "npx",  "args": ["tsc", "--noEmit"], "timeout_s": 120 },
-    { "nome": "contraste", "cmd": "node", "args": ["tools/medir.mjs", "contraste"] },
-    { "nome": "escala",    "cmd": "node", "args": ["tools/medir.mjs", "escala"] },
-    { "nome": "soltos",    "cmd": "node", "args": ["tools/medir.mjs", "soltos"] }
+    {
+      "nome": "tipos",
+      "cmd": "npx",
+      "args": [
+        "tsc",
+        "--noEmit"
+      ],
+      "timeout_s": 120
+    },
+    {
+      "nome": "contraste",
+      "cmd": "node",
+      "args": [
+        "tools/medir.mjs",
+        "contraste"
+      ]
+    },
+    {
+      "nome": "escala",
+      "cmd": "node",
+      "args": [
+        "tools/medir.mjs",
+        "escala"
+      ]
+    },
+    {
+      "nome": "soltos",
+      "cmd": "node",
+      "args": [
+        "tools/medir.mjs",
+        "soltos"
+      ]
+    },
+    {
+      "nome": "culpa",
+      "cmd": "node",
+      "args": [
+        "tools/medir.mjs",
+        "culpa"
+      ]
+    },
+    {
+      "nome": "proibidas",
+      "cmd": "node",
+      "args": [
+        "tools/medir.mjs",
+        "proibidas"
+      ]
+    },
+    {
+      "nome": "toques_serie",
+      "cmd": "node",
+      "args": [
+        "tools/medir.mjs",
+        "toques_serie"
+      ],
+      "timeout_s": 420
+    },
+    {
+      "nome": "inclinacao_lote",
+      "cmd": "node",
+      "args": [
+        "tools/medir.mjs",
+        "inclinacao_lote"
+      ],
+      "timeout_s": 420
+    },
+    {
+      "nome": "toques_convite",
+      "cmd": "node",
+      "args": [
+        "tools/medir.mjs",
+        "toques_convite"
+      ],
+      "timeout_s": 420
+    },
+    {
+      "nome": "fila",
+      "cmd": "node",
+      "args": [
+        "tools/medir.mjs",
+        "fila"
+      ],
+      "timeout_s": 120
+    },
+    {
+      "nome": "telas",
+      "cmd": "node",
+      "args": [
+        "tools/medir.mjs",
+        "telas"
+      ],
+      "timeout_s": 120
+    },
+    {
+      "nome": "carga_perdida",
+      "cmd": "node",
+      "args": [
+        "tools/medir.mjs",
+        "carga_perdida"
+      ],
+      "timeout_s": 60
+    },
+    {
+      "nome": "ritmo",
+      "cmd": "node",
+      "args": [
+        "tools/medir-ritmo.mjs"
+      ],
+      "timeout_s": 180
+    }
+  ],
+  "eixos_gosto": [
+    "oficio",
+    "operacao",
+    "ritual"
   ]
 }

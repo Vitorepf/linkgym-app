@@ -1,6 +1,54 @@
 {
-  "contraste": { "valor": 0, "melhor": "menor" },
-  "escala":    { "valor": 2, "melhor": "menor" },
-  "soltos":    { "valor": 0, "melhor": "menor" },
-  "telas":     { "valor": 25, "melhor": "maior" }
+  "contraste": {
+    "valor": 0,
+    "melhor": "menor"
+  },
+  "escala": {
+    "valor": 2,
+    "melhor": "menor"
+  },
+  "soltos": {
+    "valor": 0,
+    "melhor": "menor"
+  },
+  "telas": {
+    "valor": 25,
+    "melhor": "maior"
+  },
+  "portas": {
+    "valor": 4,
+    "melhor": "menor"
+  },
+  "culpa": {
+    "valor": 0,
+    "melhor": "menor"
+  },
+  "proibidas": {
+    "valor": 0,
+    "melhor": "menor"
+  },
+  "toques_serie": {
+    "valor": 2,
+    "melhor": "menor"
+  },
+  "inclinacao_lote": {
+    "valor": 0.0526,
+    "melhor": "menor"
+  },
+  "toques_convite": {
+    "valor": 32,
+    "melhor": "menor"
+  },
+  "fila": {
+    "valor": 6,
+    "melhor": "menor"
+  },
+  "carga_perdida": {
+    "valor": 0,
+    "melhor": "menor"
+  },
+  "ritmo": {
+    "valor": 41.9,
+    "melhor": "menor"
+  }
 }

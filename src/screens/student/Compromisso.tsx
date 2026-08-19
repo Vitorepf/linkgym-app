@@ -1,14 +1,16 @@
 import { useState } from "react";
 import { StyleSheet, View } from "react-native";
 import Animated from "react-native-reanimated";
-import { putCommitment, type Time } from "../../api";
-import { productTheme as T } from "../../theme";
+import {
+  configDoTime, putCommitment, type Time } from "../../api";
+import { neutroSobre } from "../../theme";
 import { AccentCTA } from "../../ui/AccentCTA";
 import { Choice } from "../../ui/Choice";
 import { Figure } from "../../ui/Figure";
 import { Initials } from "../../ui/Initials";
 import { useTone } from "../../ui/motion";
 import { Band, DockFooter, Head, Phone } from "../../ui/Screen";
+import { estilos, useTema } from "../../ui/tema";
 import { Txt } from "../../ui/Txt";
 
 type Days = 2 | 3 | 4 | 5 | 6;
@@ -27,7 +29,12 @@ const WEEK = [0, 1, 2, 3, 4, 5, 6];
  *  ponytail: `useTone` já é a linguagem de estado do app (tom no MESMO elemento, na UI
  *  thread). Varredura escalonada seria um hook novo para 40 ms de charme. Não vale. */
 function Barra({ on }: { on: boolean }) {
-  const tone = useTone(on, T.fill, T.ink);
+  const styles = usarEstilos();
+  const { T, FORMA } = useTema();
+  // A semana inteira mora na Band levantada do herói: a barra APAGADA é um degrau contado
+  // a partir daquele fundo, não do chão. Com `T.fill` ela separava 8,3 de L* em vez de
+  // 14,9 — o "extra" que a tela promete desenhar quase não estava desenhado.
+  const tone = useTone(on, neutroSobre(FORMA.veuComposto, T), T.ink);
   return <Animated.View style={[styles.bar, tone]} />;
 }
 
@@ -41,19 +48,14 @@ function Barra({ on }: { on: boolean }) {
  *  O número carrega a unidade num nível próprio (`de 7`), então ele nunca é trivia: a
  *  semana é a referência real contra a qual o combinado está sendo lido. Sete é a semana,
  *  não um número inventado para parecer baseline. */
-function Piso({
-  days,
-  line,
-  final: last,
-}: {
-  days: Days | null;
-  line: string;
-  final?: boolean;
-}) {
+function Piso({ days, line }: { days: Days | null; line: string }) {
+  const styles = usarEstilos();
   return (
-    // ponytail: `Band` não estica, e o herói precisa de flex:1 para não sobrar buraco no
-    // terço inferior. Então ele carrega o próprio piso e a própria régua.
-    <View style={[styles.hero, last && styles.heroFinal]}>
+    // A Band ESTICA agora (`grow`), então o herói parou de carregar o próprio flex, a
+    // própria margem e o próprio traço: ele é uma superfície, e o que sobrava embaixo dele
+    // — 78pt de chão nu — virou respiro interno com dono.
+    <Band raised grow rule="none">
+      <View style={styles.heroBody}>
       <View>
         <View style={styles.legend}>
           <Txt role="label">Combinado</Txt>
@@ -76,13 +78,18 @@ function Piso({
           {line}
         </Txt>
       </View>
-    </View>
+      </View>
+    </Band>
   );
 }
 
 export function Compromisso({ token, time, onDone }: Props) {
-  const accent = time.accent_color || T.accentFallback;
-  const [days, setDays] = useState<Days | null>(null);
+  const styles = usarEstilos();
+  // o palpite do personal (config do Time) pré-seleciona; o compromisso segue do aluno.
+  const padrao = configDoTime(time).dias_padrao;
+  const [days, setDays] = useState<Days | null>(
+    padrao >= 2 && padrao <= 6 ? (padrao as Days) : null,
+  );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [receipt, setReceipt] = useState(false);
@@ -110,10 +117,10 @@ export function Compromisso({ token, time, onDone }: Props) {
   if (receipt) {
     return (
       <Phone>
-        <Head kicker="Combinado" title={`${time.name} já sabe.`} accent={accent} />
-        <Piso days={days} line={line} final />
+        <Head kicker="Combinado" title={`${time.name} já sabe.`} />
+        <Piso days={days} line={line} />
         <DockFooter>
-          <AccentCTA label="Seguir" onPress={onDone} accent={accent} />
+          <AccentCTA label="Seguir" onPress={onDone} />
         </DockFooter>
       </Phone>
     );
@@ -121,7 +128,7 @@ export function Compromisso({ token, time, onDone }: Props) {
 
   return (
     <Phone>
-      <Head kicker="1 pergunta" title="Quantos dias na semana ruim?" accent={accent} />
+      <Head kicker="1 pergunta" title="Quantos dias na semana ruim?" />
       <Band>
         <View style={styles.days}>
           {DAYS.map((n) => (
@@ -130,7 +137,6 @@ export function Compromisso({ token, time, onDone }: Props) {
               label={String(n)}
               selected={days === n}
               flex
-              accent={accent}
               onPress={() => setDays(n)}
             />
           ))}
@@ -167,30 +173,22 @@ export function Compromisso({ token, time, onDone }: Props) {
           onPress={() => void send()}
           disabled={days === null}
           busy={busy}
-          accent={accent}
         />
       </DockFooter>
     </Phone>
   );
 }
 
-const styles = StyleSheet.create({
-  days: { flexDirection: "row", gap: 8 },
-  hero: {
-    flex: 1,
-    paddingHorizontal: T.pad,
-    paddingVertical: 24,
-    gap: 26,
-    justifyContent: "center",
-    borderBottomWidth: 2,
-    borderBottomColor: T.divider,
-  },
-  heroFinal: { justifyContent: "flex-end", borderBottomWidth: 0 },
-  legend: { flexDirection: "row", justifyContent: "space-between" },
-  week: { flexDirection: "row", gap: 6, marginTop: 10 },
-  bar: { flex: 1, height: 64 },
-  line: { marginTop: 14 },
-  witness: { flexDirection: "row", alignItems: "center", gap: 12 },
-  witnessCopy: { flex: 1, minWidth: 0 },
-  error: { marginBottom: 10 },
-});
+const usarEstilos = estilos(({ SPACE }) =>
+  StyleSheet.create({
+    days: { flexDirection: "row", gap: SPACE.hair },
+    heroBody: { gap: SPACE.room },
+    legend: { flexDirection: "row", justifyContent: "space-between" },
+    week: { flexDirection: "row", gap: SPACE.hair, marginTop: SPACE.tight },
+    bar: { flex: 1, height: 64 },
+    line: { marginTop: SPACE.tight },
+    witness: { flexDirection: "row", alignItems: "center", gap: SPACE.tight },
+    witnessCopy: { flex: 1, minWidth: 0 },
+    error: { marginBottom: SPACE.tight },
+  }),
+);

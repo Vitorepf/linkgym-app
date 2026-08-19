@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-// node tools/shots.mjs [--brands=0,3,7] [--screens=Hoje,Painel] [--out=DIR] [--no-build]
+// node tools/shots.mjs [--brands=0,3,7] [--screens=Hoje,Painel] [--out=DIR] [--no-build] [--check]
+// --check não escreve PNG e grava .gate/telas.json: é a fonte da catraca `telas`.
 // Exporta o app para web uma vez, sobe um servidor estático do dist e tira um PNG por
 // (tela, marca) numa PÁGINA NOVA do Chrome. Página nova = estado limpo.
 //
@@ -7,13 +8,14 @@
 // package.json não é tocado. Sobrescreva com PLAYWRIGHT_DIR=... se o cache mudar.
 // O browser é o Chrome do sistema (channel "chrome"), então nada é baixado.
 import { execFileSync } from "node:child_process";
-import { createReadStream, existsSync, mkdirSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { createReadStream, existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { createRequire } from "node:module";
 import { homedir } from "node:os";
 import { dirname, extname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { BRANDS } from "./brands.mjs";
+import { impressaoDoCodigo } from "./toques.mjs";
 
 export const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 export const WEB_DIR = join(ROOT, "tools/out/web");
@@ -159,6 +161,7 @@ async function main() {
     : BRANDS.map((_, i) => i);
   const out = resolve(ROOT, arg("out", "tools/out/shots"));
   const noBuild = process.argv.includes("--no-build");
+  const check = process.argv.includes("--check");
 
   const unknown = screens.filter((s) => !known.includes(s));
   if (unknown.length) throw new Error(`tela sem fixture: ${unknown.join(", ")}`);
@@ -181,7 +184,7 @@ async function main() {
       const context = await browser.newContext(PHONE);
       for (const screen of screens) {
         const { page, problems } = await openShot(context, base, screen, b);
-        await page.screenshot({ path: join(dir, `${screen}.png`), animations: "disabled" });
+        if (!check) await page.screenshot({ path: join(dir, `${screen}.png`), animations: "disabled" });
         await page.close();
         done += 1;
         if (problems.length) {
@@ -198,7 +201,20 @@ async function main() {
     server.close();
   }
 
-  console.log(`\n${done} shots em ${out}`);
+  if (check) {
+    // A catraca conta TELA QUE MONTOU EM TODA MARCA. Uma tela que passa em 19 e some na
+    // marca 13 (acento igual ao fundo) não conta — meia cobertura não é cobertura.
+    const quebradas = new Set(failures.map((f) => f.screen));
+    const inteiras = screens.filter((s2) => !quebradas.has(s2));
+    mkdirSync(join(ROOT, ".gate"), { recursive: true });
+    writeFileSync(join(ROOT, ".gate/telas.json"), JSON.stringify({
+      telas: inteiras.length, testadas: screens.length, marcas: brands.length,
+      quebradas: failures.map((f) => ({ tela: f.screen, marca: f.brand, problemas: f.problems })),
+      codigo: impressaoDoCodigo(),
+    }, null, 2) + "\n");
+    console.log(`\ngravei .gate/telas.json — ${inteiras.length}/${screens.length} tela(s) inteira(s) em ${brands.length} marca(s)`);
+  }
+  console.log(`\n${done} ${check ? "montagens verificadas" : `shots em ${out}`}`);
   if (failures.length) {
     console.log(`REPROVADO: ${failures.length} par(es) tela x marca com problema.`);
     for (const f of failures) {

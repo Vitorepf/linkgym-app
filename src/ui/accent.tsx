@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useRef, type ReactNode } from "react";
-import { accentSet, productTheme as T } from "../theme";
+import { useTema } from "./tema";
 
 /** ORÇAMENTO DE ACENTO, metade dois.
  *
@@ -43,6 +43,10 @@ export function AccentBudget({ children }: { children: ReactNode }) {
  *  são três retângulos cheios, que é exatamente a queixa. */
 export function useAccentMass(who: string, accent?: string, claim = true) {
   const slot = useContext(Ctx);
+  // O par vem do TEMA VIVO. Enquanto vinha do módulo, o botão desligado de um chão claro
+  // era um bloco quase preto no meio da tela branca: o token neutro estava congelado no
+  // carvão e nenhuma alavanca de aparência o alcançava.
+  const { T, massa } = useTema();
   useEffect(() => {
     if (!slot || !claim) return;
     slot.holders.push(who);
@@ -56,7 +60,10 @@ export function useAccentMass(who: string, accent?: string, claim = true) {
       if (i >= 0) slot.holders.splice(i, 1);
     };
   }, [slot, who, claim]);
-  return claim
-    ? accentSet(accent || T.accentFallback).piece
-    : { fill: T.fill, ink: T.ink };
+  // A massa tem motor próprio (`accentMassa`): ela guarda o MATIZ da marca e ganha anel
+  // quando o preenchimento não se separa do chão — o contrário de repintar a marca de
+  // alguém para ela caber na régua. Quem não reivindica devolve o par neutro, e o anel
+  // dele existe pelo mesmo motivo: no chão claro, `fill` mede 1,2:1 contra `bg`.
+  if (claim) return massa(accent);
+  return { fill: T.fill, ink: T.ink, ring: T.divider };
 }

@@ -1,42 +1,67 @@
-import { useState, type ComponentProps } from "react";
+import { useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
   ScrollView,
   StyleSheet,
-  TextInput,
   View,
 } from "react-native";
-import { ApiError, requestCode, verify, type Person, type Time } from "../api";
-import { errorInk, FONT, productTheme as T } from "../theme";
+import {
+  aparenciaDoTime,
+  ApiError,
+  requestCode,
+  verify,
+  type Person,
+  type Time,
+} from "../api";
 import { AccentCTA } from "../ui/AccentCTA";
+import { Campo } from "../ui/Campo";
 import { GhostCTA } from "../ui/GhostCTA";
-import { Initials } from "../ui/Initials";
+import { Avatar } from "../ui/Avatar";
 import { Band, DockFooter, Head, Phone } from "../ui/Screen";
+import { estilos, TemaDoTime, useTema } from "../ui/tema";
 import { Txt } from "../ui/Txt";
 
+/** Os 4 do seed de desenvolvimento (../linkgym-api/internal/seed/dev.go). O papel entra
+ *  no rótulo porque a diferença que importa aqui é qual porta abre: o Fred cai no Painel,
+ *  os outros três caem no Hoje. */
 const DEV_PEOPLE = [
-  { name: "Fred", phone: "11900000001" },
-  { name: "Vitor", phone: "11900000002" },
-  { name: "Huan", phone: "11900000003" },
-  { name: "Jose", phone: "11900000004" },
+  { name: "Fred", role: "personal", phone: "11900000001" },
+  { name: "Vitor", role: "aluno", phone: "11900000002" },
+  { name: "Huan", role: "aluno", phone: "11900000003" },
+  { name: "Jose", role: "aluno", phone: "11900000004" },
 ];
 
 type Step = "phone" | "otp";
 
 /** A barra de passos do eixo 3: o caminho inteiro fica visível em TODOS os passos, então
- *  quem está na porta sabe quanto falta sem tocar em nada. Dois passos, e é o fim. */
-const STEPS: { key: Step; label: string }[] = [
-  { key: "phone", label: "Telefone e convite" },
-  { key: "otp", label: "Código de 4 dígitos" },
-];
+ *  quem está na porta sabe quanto falta sem tocar em nada.
+ *
+ *  EM DESENVOLVIMENTO O CAMINHO É UM PASSO SÓ. Sem convite, sem código: o número e
+ *  "Entrar". A API já entrega isso — com ENV=development ela devolve o código fixo 0000
+ *  (internal/auth/service.go:93), e pessoa que já existe entra com convite vazio. O que
+ *  cobrava dois passos era esta tela, não o servidor.
+ *
+ *  EM PRODUÇÃO CONTINUAM SENDO DOIS, e o convite continua obrigatório: o CONTEXT.md diz
+ *  que Convite é a ÚNICA porta de entrada do aluno, e é a produção que a catraca
+ *  toques_convite mede (5 toques, 27 teclas). O atalho vive inteiro dentro de `__DEV__`,
+ *  que o bundle de produção elimina — não existe env, flag de runtime ou caminho de
+ *  código que faça este atalho aparecer para uma pessoa de verdade. */
+const STEPS: { key: Step; label: string }[] = __DEV__
+  ? [{ key: "phone", label: "Telefone" }]
+  : [
+      { key: "phone", label: "Telefone" },
+      { key: "otp", label: "Código de 4 dígitos" },
+    ];
 
 type Props = {
   onEntered: (session: { token: string; person: Person; time: Time }) => void;
 };
 
 export function AccessScreen({ onEntered }: Props) {
+  const styles = usarEstilos();
+  const { T, FORMA, errorInk } = useTema();
   const [phone, setPhone] = useState("");
   const [invite, setInvite] = useState("");
   const [otp, setOtp] = useState("");
@@ -92,6 +117,11 @@ export function AccessScreen({ onEntered }: Props) {
   const now = step === "phone" ? 1 : 2;
 
   return (
+    // A PORTA COM A CARA DO ESTÚDIO. `App.tsx` só monta o tema com a sessão, e aqui a
+    // sessão ainda não existe — então esta era a única tela do app que TODO aluno via, de
+    // todo personal, sempre em preto. É o momento em que ele decide se aquilo é o app do
+    // Fred ou mais um app. O convite já traz o Time; a aparência dele entra aqui.
+    <TemaDoTime aparencia={aparenciaDoTime(time)}>
     <Phone>
       <KeyboardAvoidingView
         style={styles.flex}
@@ -105,14 +135,20 @@ export function AccessScreen({ onEntered }: Props) {
           title="Entrar"
           body={
             step === "phone"
-              ? "Sem convite não há aluno. Quem já entrou uma vez deixa o convite em branco."
+              ? __DEV__
+                ? "Dev: número e Entrar. Ou toque num dos quatro abaixo."
+                : "Coloque o seu número. Se o seu personal já te chamou por ele, é só isso."
               : // O número aparece de volta, do jeito que foi digitado: quem errou um
                 // dígito descobre AQUI, e não depois de esperar uma mensagem que nunca
                 // chega. A causa do passo mora na tela, não atrás de um toque.
                 `Os 4 dígitos foram para o ${phone}.`
           }
           accent={accent}
-          right={time ? <Initials name={time.name} size={34} /> : undefined}
+          right={
+            time ? (
+              <Avatar url={time.logo_url} name={time.name} size={34} />
+            ) : undefined
+          }
         />
         <ScrollView
           style={styles.flex}
@@ -130,7 +166,9 @@ export function AccessScreen({ onEntered }: Props) {
                 campo, erro, ação. */}
             {step === "phone" ? (
               <>
-                <Field
+                <Campo
+                  rotulo
+                  style={styles.campo}
                   label="Telefone"
                   value={phone}
                   onChangeText={setPhone}
@@ -139,17 +177,29 @@ export function AccessScreen({ onEntered }: Props) {
                   keyboardType="phone-pad"
                   autoComplete="tel"
                 />
-                <Field
-                  label="Convite"
-                  value={invite}
-                  onChangeText={setInvite}
-                  hint="Só na primeira vez. Quem já entrou uma vez deixa em branco"
-                  placeholder="Convite (só na primeira vez)"
-                  autoCapitalize="characters"
-                />
+                {/* O CONVITE DEIXOU DE SER A PORTA. Quando o personal chamou o aluno pelo
+                    número, o número já está liberado e este campo fica vazio — é o que
+                    `resolverConvite` faz na API. Ele continua aqui, e continua visível,
+                    porque o convite ABERTO (o story, o cartaz na parede) não tem telefone
+                    para liberar: quem recebeu um código precisa de onde digitá-lo.
+                    O campo some em dev, onde não há convite nenhum. */}
+                {__DEV__ ? null : (
+                  <Campo
+                    rotulo
+                    style={styles.campo}
+                    label="Convite"
+                    value={invite}
+                    onChangeText={setInvite}
+                    hint="Só se você recebeu um código. Quem foi chamado pelo número deixa em branco"
+                    placeholder="Convite (só se você tiver um)"
+                    autoCapitalize="characters"
+                  />
+                )}
               </>
             ) : (
-              <Field
+              <Campo
+                rotulo
+                style={styles.campo}
                 label="Código"
                 value={otp}
                 onChangeText={setOtp}
@@ -179,17 +229,20 @@ export function AccessScreen({ onEntered }: Props) {
 
           {__DEV__ ? (
             <Band rule="none">
-              <Txt role="label">Dev · OTP 0000</Txt>
+              <Txt role="label">Dev · um toque entra</Txt>
               <View style={styles.chips}>
                 {DEV_PEOPLE.map((p) => (
                   <Pressable
                     key={p.phone}
                     onPress={() => void enterAs(p.phone)}
                     accessibilityRole="button"
-                    accessibilityLabel={`Entrar como ${p.name}`}
+                    accessibilityLabel={`Entrar como ${p.name}, ${p.role}`}
                     style={styles.chip}
                   >
                     <Txt role="body">{p.name}</Txt>
+                    <Txt role="label" tone="dim">
+                      {p.role}
+                    </Txt>
                   </Pressable>
                 ))}
               </View>
@@ -227,8 +280,8 @@ export function AccessScreen({ onEntered }: Props) {
         <DockFooter>
           {step === "phone" ? (
             <AccentCTA
-              label="Enviar"
-              onPress={() => void sendCode()}
+              label={__DEV__ ? "Entrar" : "Enviar"}
+              onPress={() => void (__DEV__ ? enterAs(phone) : sendCode())}
               disabled={busy || phone.length < 10}
               busy={busy}
               accent={accent}
@@ -244,6 +297,7 @@ export function AccessScreen({ onEntered }: Props) {
               />
               <View style={styles.ghost}>
                 <GhostCTA
+                  fundo={FORMA.folha.chrome.composto}
                   label="Trocar número"
                   onPress={() => {
                     setTime(null);
@@ -258,26 +312,7 @@ export function AccessScreen({ onEntered }: Props) {
         </DockFooter>
       </KeyboardAvoidingView>
     </Phone>
-  );
-}
-
-/** Rótulo visível + campo, sempre nessa ordem e sempre com o mesmo nome nos dois canais.
- *  Existe porque a tela tem três campos e o par rótulo/nome acessível não pode divergir
- *  em nenhum deles — essa divergência já foi apontada como defeito real aqui. */
-type FieldProps = ComponentProps<typeof TextInput> & { label: string; hint: string };
-
-function Field({ label, hint, style, ...rest }: FieldProps) {
-  return (
-    <View style={styles.field}>
-      <Txt role="label">{label}</Txt>
-      <TextInput
-        {...rest}
-        accessibilityLabel={label}
-        accessibilityHint={hint}
-        placeholderTextColor={T.muted}
-        style={[styles.input, style]}
-      />
-    </View>
+    </TemaDoTime>
   );
 }
 
@@ -285,7 +320,7 @@ function messageFor(e: unknown): string {
   if (e instanceof ApiError) {
     switch (e.code) {
       case "convite_obrigatorio":
-        return "Primeira vez: precisa do convite do personal.";
+        return "Este número ainda não foi chamado. Peça ao seu personal para te chamar por ele.";
       case "convite_invalido":
         return "Esse convite não bate com o telefone.";
       case "codigo_invalido":
@@ -297,52 +332,45 @@ function messageFor(e: unknown): string {
   return "Não deu para falar com a API. Ela está no ar?";
 }
 
-const styles = StyleSheet.create({
-  flex: { flex: 1 },
-  // O corpo desce para o alcance do polegar: campos e caminho encostam na ação, e o ar
-  // sobra em UMA folga só, embaixo do cabeçalho, em vez de virar um retângulo cercado de
-  // filete no meio da tela. Era 400 px de nada no terço de baixo.
-  content: { flexGrow: 1, justifyContent: "flex-end", paddingBottom: 8 },
-  field: { marginBottom: 14 },
-  input: {
-    color: T.ink,
-    fontFamily: FONT,
-    fontSize: 18,
-    minHeight: 52,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    marginTop: 6,
-    borderWidth: 2,
-    borderColor: T.divider,
-  },
-  error: { marginTop: 4 },
-  chips: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 12 },
-  chip: {
-    borderWidth: 2,
-    borderColor: T.divider,
-    paddingHorizontal: 14,
-    minHeight: 44,
-    justifyContent: "center",
-  },
-  spine: {
-    borderTopWidth: 2,
-    borderTopColor: T.divider,
-    paddingHorizontal: T.pad,
-  },
-  stepRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 14,
-    paddingVertical: 20,
-  },
-  stepRule: { borderTopWidth: 1, borderTopColor: T.hairline },
-  mark: {
-    width: 14,
-    height: 14,
-    borderWidth: 2,
-    borderColor: T.divider,
-    flexShrink: 0,
-  },
-  markOn: { backgroundColor: T.ink, borderColor: T.ink },
-  ghost: { marginTop: 10 },
-});
+const usarEstilos = estilos(({ T, FORMA, SPACE }) =>
+  StyleSheet.create({
+    flex: { flex: 1 },
+    // O corpo desce para o alcance do polegar: campos e caminho encostam na ação, e o ar
+    // sobra em UMA folga só, embaixo do cabeçalho, em vez de virar um retângulo cercado de
+    // filete no meio da tela. Era 400 px de nada no terço de baixo.
+    content: { flexGrow: 1, justifyContent: "flex-end", paddingBottom: 8 },
+    campo: { marginBottom: SPACE.tight },
+    error: { marginTop: 4 },
+    chips: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 12 },
+    chip: {
+      borderWidth: FORMA.borda,
+      borderRadius: FORMA.raioAcao,
+      borderColor: T.divider,
+      paddingHorizontal: 14,
+      minHeight: FORMA.alturaMinima,
+      justifyContent: "center",
+    },
+    spine: {
+      borderTopWidth: FORMA.borda,
+      borderTopColor: T.divider,
+      paddingHorizontal: T.pad,
+    },
+    stepRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 14,
+      paddingVertical: 20,
+    },
+    stepRule: { borderTopWidth: FORMA.fio, borderTopColor: T.hairline },
+    mark: {
+      width: 14,
+      height: 14,
+      borderWidth: FORMA.borda,
+      borderRadius: FORMA.raioEm(14),
+      borderColor: T.divider,
+      flexShrink: 0,
+    },
+    markOn: { backgroundColor: T.ink, borderColor: T.ink },
+    ghost: { marginTop: 10 },
+  }),
+);

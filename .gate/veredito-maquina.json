@@ -1,0 +1,12 @@
+{
+  "tipo": "veredito",
+  "estado": "estagnado",
+  "motivo": "gate devolveu saida identica em 4 bloqueios seguidos; a falha nao e consertavel por dentro do loop — dono: humano do repo",
+  "ts": "2026-08-19T18:34:30.188Z",
+  "tetos": {
+    "MAX": 40,
+    "REPETICOES": 4,
+    "PARADO": 6
+  },
+  "liberado_por": null
+}

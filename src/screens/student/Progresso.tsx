@@ -1,16 +1,18 @@
 import { useEffect, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import {
+  configDoTime,
   progress,
   type Person,
   type ProgressPayload,
   type Time,
 } from "../../api";
-import { accentSet, errorInk, productTheme as T } from "../../theme";
 import { useAccentMass } from "../../ui/accent";
 import { Baseline } from "../../ui/Baseline";
+import { Figure } from "../../ui/Figure";
 import { formatNum } from "../../ui/format";
-import { Band, Head, Phone } from "../../ui/Screen";
+import { Band, Head, neutroNaBand, Phone, useFimDaRolagem } from "../../ui/Screen";
+import { estilos, useTema } from "../../ui/tema";
 import { Txt } from "../../ui/Txt";
 
 type Props = {
@@ -31,10 +33,26 @@ const SELOS: Record<string, string> = {
 const BAR = 62;
 
 export function Progresso({ token, time }: Props) {
-  const A = accentSet(time.accent_color);
+  const styles = usarEstilos();
+  const fim = useFimDaRolagem();
+  const { T, acento, errorInk, secundaria } = useTema();
+  const A = acento();
+  // A SEGUNDA COR, no mesmo papel que ela já tem sob o medidor da Hoje (ui/Baseline):
+  // SEGUNDA SÉRIE. A semana tem duas — HOJE, que é o dado, e os dias que passaram, que
+  // são a referência contra a qual ele se lê (e de onde sai a média que a Baseline
+  // desenha logo abaixo, nesta mesma cor). Até aqui as duas se distinguiam só por degrau
+  // de cinza. O matiz não diz "bom" nem "ruim": diz "esta é a OUTRA".
+  // A cor da MARCA (a primária) não entra: a massa dela é da ação, e o gráfico não
+  // disputa com ela. Decisão do dono, e é por isso que aqui está a segunda cor.
+  // `piece` e não `mark` porque a barra é peça pequena e REPETIDA que pinta área: ele
+  // garante o piso contra o fundo difícil da paleta, logo contra os quatro. A Band desta
+  // tela pousa no chão hoje e pode passar a `raised` — o gráfico não pode depender de
+  // qual dos dois é.
+  const referencia = acento(secundaria).piece.fill;
+  const cfg = configDoTime(time);
   // O ÚNICO elemento em ÁREA da tela. A Ofensiva é o número do ritual; tudo o mais aqui
   // é neutro, inclusive a barra de hoje e a linha da liga.
-  const hero = useAccentMass("Ofensiva", time.accent_color);
+  const hero = useAccentMass("Ofensiva");
   const [data, setData] = useState<ProgressPayload | null>(null);
   const [error, setError] = useState("");
 
@@ -69,8 +87,9 @@ export function Progresso({ token, time }: Props) {
 
   const league = data?.league ?? [];
   const me = league.findIndex((row) => row.me);
-  // Estreante: só existe a Ofensiva. Então ela ocupa a tela inteira, em vez de deixar
-  // dois terços de preto que não separam nada.
+  // Estreante: só existe a Ofensiva. O que a acompanha são os dois fatos reais do começo
+  // (XP e Protetor), em superfícies que dividem a sobra da tela — não um herói engordado
+  // com dois terços de massa que não dizem nada.
   const solo = !selos.length && !week.length && !league.length;
 
   return (
@@ -78,7 +97,7 @@ export function Progresso({ token, time }: Props) {
       <Head kicker={time.name} title="Progresso" kickerMuted />
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, fim]}
         showsVerticalScrollIndicator={false}
       >
         {error ? (
@@ -89,13 +108,7 @@ export function Progresso({ token, time }: Props) {
 
         {data ? (
           <>
-            <View
-              style={[
-                styles.hero,
-                solo && styles.solo,
-                { backgroundColor: hero.fill },
-              ]}
-            >
+            <View style={[styles.hero, { backgroundColor: hero.fill }]}>
               <Txt role="label" color={hero.ink}>
                 Ofensiva
               </Txt>
@@ -116,7 +129,28 @@ export function Progresso({ token, time }: Props) {
               ) : null}
             </View>
 
-            {selos.length ? (
+            {solo ? (
+              <>
+                {cfg.xp ? (
+                <Band raised grow rule="none">
+                  <Figure
+                    label="XP"
+                    value={data.xp_total}
+                    note={`Cada sessão fechada com ${time.name} soma.`}
+                  />
+                </Band>
+                ) : null}
+                <Band raised grow rule="none">
+                  <Figure
+                    label="Protetor"
+                    value={0}
+                    note="Abre com a ofensiva e segura o primeiro dia sem sessão."
+                  />
+                </Band>
+              </>
+            ) : null}
+
+            {cfg.selos && selos.length ? (
               <Band>
                 <Txt role="label">Selos · {selos.length}</Txt>
                 <View style={styles.selos}>
@@ -146,9 +180,12 @@ export function Progresso({ token, time }: Props) {
                               styles.bar,
                               {
                                 height: Math.max(4, (d.score / 100) * BAR),
-                                // hoje é o último da fila: POSIÇÃO e tom, nunca matiz.
+                                // TRÊS canais, e nenhum sozinho: POSIÇÃO (hoje é o
+                                // último da fila), TOM (a tinta é o degrau mais alto do
+                                // chão, e o medidor exige 5 de L* contra a referência) e
+                                // matiz. Tire a cor e a leitura fica inteira.
                                 backgroundColor:
-                                  i === week.length - 1 ? T.ink : T.divider,
+                                  i === week.length - 1 ? T.ink : referencia,
                               },
                             ]}
                           />
@@ -176,7 +213,7 @@ export function Progresso({ token, time }: Props) {
               </Band>
             ) : null}
 
-            {league.length ? (
+            {cfg.liga !== "off" && league.length ? (
               <Band rule="none">
                 <Txt role="label">
                   {me >= 0 ? `Liga · ${me + 1}º de ${league.length}` : "Liga"}
@@ -201,7 +238,11 @@ export function Progresso({ token, time }: Props) {
                         numberOfLines={1}
                         style={styles.name}
                       >
-                        {row.me ? "Você" : row.name}
+                        {row.me
+                          ? "Você"
+                          : cfg.liga === "anonima"
+                            ? `Aluno ${i + 1}`
+                            : row.name}
                       </Txt>
                       <Txt
                         role="body"
@@ -222,47 +263,54 @@ export function Progresso({ token, time }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  scroll: { flex: 1 },
-  content: { flexGrow: 1, paddingBottom: 8 },
-  error: { paddingHorizontal: T.pad, paddingTop: 12 },
+const usarEstilos = estilos((tema) => {
+  const { T } = tema;
+  // O selo e a linha "Você" pousam DENTRO da Band, não no chão: o degrau é contado a
+  // partir do fundo dela. Hoje isso é exatamente `T.fill`; no dia em que a Band for
+  // levantada os dois continuam existindo em vez de sumirem no próprio fundo.
+  const degrau = neutroNaBand(tema);
+  return StyleSheet.create({
+    scroll: { flex: 1 },
+    content: { flexGrow: 1 },
+    error: { paddingHorizontal: T.pad, paddingTop: 12 },
 
-  hero: {
-    paddingHorizontal: T.pad,
-    paddingTop: 20,
-    paddingBottom: 20,
-  },
-  solo: { flexGrow: 1 },
-  heroProse: { marginTop: 8 },
-  heroState: { marginTop: 8 },
+    hero: {
+      paddingHorizontal: T.pad,
+      paddingTop: 20,
+      paddingBottom: 20,
+    },
+    heroProse: { marginTop: 8 },
+    heroState: { marginTop: 8 },
 
-  selos: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 12 },
-  selo: {
-    backgroundColor: T.fill,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-  },
+    selos: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 12 },
+    selo: {
+      backgroundColor: degrau,
+      paddingHorizontal: 10,
+      paddingVertical: 7,
+    },
 
-  week: { flexDirection: "row", gap: 6, marginTop: 16 },
-  day: { flex: 1, alignItems: "center" },
-  dayBar: { height: BAR, alignSelf: "stretch", justifyContent: "flex-end" },
-  bar: { alignSelf: "stretch" },
-  dayNum: { marginTop: 6, letterSpacing: 0 },
-  legend: { marginTop: 4 },
+    week: { flexDirection: "row", gap: 6, marginTop: 16 },
+    day: { flex: 1, alignItems: "center" },
+    dayBar: { height: BAR, alignSelf: "stretch", justifyContent: "flex-end" },
+    bar: { alignSelf: "stretch" },
+    dayNum: { marginTop: 6, letterSpacing: 0 },
+    legend: { marginTop: 4 },
 
-  league: { marginTop: 6 },
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    paddingVertical: 7,
-  },
-  rowMe: {
-    backgroundColor: T.raised,
-    marginHorizontal: -T.pad,
-    paddingHorizontal: T.pad,
-  },
-  rank: { width: 16 },
-  name: { flex: 1, minWidth: 0 },
-  xp: { fontVariant: ["tabular-nums"] },
+    league: { marginTop: 6 },
+    row: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+      paddingVertical: 7,
+    },
+    rowMe: {
+      backgroundColor: degrau,
+      marginHorizontal: -T.pad,
+      paddingHorizontal: T.pad,
+    },
+    // 22: dois dígitos de rank ("10") quebravam em duas linhas com 16.
+    rank: { width: 22 },
+    name: { flex: 1, minWidth: 0 },
+    xp: { fontVariant: ["tabular-nums"] },
+  });
 });

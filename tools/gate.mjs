@@ -1,71 +1,156 @@
 #!/usr/bin/env node
-// gate.mjs — o único lugar com direito de dizer "passou".
+// gate.mjs — o unico lugar com direito de dizer "passou".
+//   node tools/gate.mjs           roda as checagens
+//   node tools/gate.mjs --lock    (HUMANO) trava arquivo NOVO. Nunca relegitima alterado.
+// exit 0 = ok   1 = reprova / veto   2 = integridade quebrada
 //
-//   node tools/gate.mjs           roda as checagens de .gate/config.json
-//   node tools/gate.mjs --lock    (HUMANO) grava .gate/lock.json com o sha256 dos protegidos
-//
-// exit 0 = mecânica ok   1 = checagem reprovou ou veto de estado   2 = integridade quebrada
+// PRINCIPIO: ausencia de protecao e integridade QUEBRADA, nunca "nada a conferir".
+// Todo registro vive tambem em .gate/ledger.jsonl, append-only, ancorado no git.
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 const ROOT = process.env.CLAUDE_PROJECT_DIR ?? process.cwd();
 const DIR = join(ROOT, ".gate");
 const CFG = join(DIR, "config.json");
 const LOCK = join(DIR, "lock.json");
+const LEDGER = join(DIR, "ledger.jsonl");
 const ESTADO = join(DIR, "estado.json");
+const BASE = join(DIR, "base.json");
+const VM = join(DIR, "veredito-maquina.json");
 const SEIS = ["em_andamento", "aprovado", "aguardando_humano", "bloqueado", "esgotado", "estagnado"];
 
 const sha = (p) => createHash("sha256").update(readFileSync(p)).digest("hex");
 const ler = (p, d) => { try { return JSON.parse(readFileSync(p, "utf8")); } catch { return d; } };
-const morre = (msg, code) => { console.error(msg); process.exit(code); };
+// parse de LINHA, nao de caminho. Usar ler() aqui foi o bug que matou a catraca duas vezes.
+const pl = (l) => { try { return JSON.parse(l); } catch { return null; } };
+const linhas = (p) => { try { return readFileSync(p, "utf8").trim().split("\n").filter(Boolean).map(pl).filter(Boolean); } catch { return []; } };
+const morre = (m, c) => { console.error(m); process.exit(c); };
 
 if (!existsSync(CFG)) morre("GATE: SEM-CONFIG · falta .gate/config.json", 2);
 const cfg = ler(CFG, null);
-if (!cfg) morre("GATE: CONFIG-ILEGIVEL · .gate/config.json não é JSON válido", 2);
+if (!cfg) morre("GATE: CONFIG-ILEGIVEL · .gate/config.json nao e JSON valido", 2);
 const checks = cfg.checks ?? [];
-const eixos = cfg.eixos ?? [];
+const eixos = cfg.eixos ?? [];            // medidos: o NUMERO decide
+const gosto = cfg.eixos_gosto ?? [];      // sem numero possivel: o CRITICO decide
 const protegidos = cfg.protegidos ?? [];
 
-// A régua inclui o arquivo que define a régua. Sem isto, reescrever config.json
-// com {"protegidos":[],"checks":[]} zerava o gate inteiro numa linha.
-for (const obrigatorio of [".gate/config.json", "tools/gate.mjs", ".claude/hooks/stop-gate.mjs"]) {
-  if (!protegidos.includes(obrigatorio)) protegidos.push(obrigatorio);
+// A regua inclui tudo que define a regua — inclusive o que aponta a direcao dela.
+for (const obrig of [".gate/config.json", ".gate/base.json", "tools/gate.mjs", ".claude/hooks/stop-gate.mjs"]) {
+  if (!protegidos.includes(obrig)) protegidos.push(obrig);
+}
+// Medidor citado em checks se auto-protege. Esquecer de listar nao e brecha.
+// Todo caminho citado em checks vira protegido — inclusive fixture e corpus.
+// Encolher a ENTRADA do medidor sem tocar no medidor era exit 0 com aprovado.
+for (const c of checks) for (const a of c.args ?? []) {
+  if (typeof a === "string" && !a.startsWith("-") && existsSync(join(ROOT, a)) && !protegidos.includes(a)) protegidos.push(a);
 }
 
+const ledger = linhas(LEDGER);
+const travadoAntes = Object.assign({}, ...ledger.filter((r) => r.tipo === "lock").map((r) => r.hashes ?? {}));
+
+// Ancora final: o ledger tem que ser append-only de verdade. Quem o reescreve, o git ve.
+// O ledger e append-only. Verificar so o worktree era inerte em CI, onde ele vem limpo:
+// bastava commitar a remocao. Confere worktree E historico commitado.
+const git = (args) => { try { return execFileSync("git", args, { cwd: ROOT, stdio: "pipe" }).toString(); } catch { return null; } };
+const remWorktree = () => {
+  for (const alvo of ["HEAD", ...(git(["merge-base", "origin/HEAD", "HEAD"])?.trim() ? [git(["merge-base", "origin/HEAD", "HEAD"]).trim()] : [])]) {
+    const n = git(["diff", "--numstat", alvo, "--", ".gate/ledger.jsonl"])?.trim();
+    if (n) { const r = Number(n.split(/\s+/)[1] ?? 0); if (r > 0) return `${r} contra ${alvo.slice(0, 12)}`; }
+  }
+  return null;
+};
+const remHistoria = () => {
+  const log = git(["log", "--numstat", "--format=%H", "--", ".gate/ledger.jsonl"]);
+  if (!log) return null;
+  let total = 0;
+  for (const l of log.split("\n")) { const m = l.match(/^(\d+)\s+(\d+)\s+\.gate\/ledger\.jsonl/); if (m) total += Number(m[2]); }
+  return total > 0 ? `${total} ao longo da historia` : null;
+};
+const rem = remWorktree() ?? remHistoria();
+if (rem) morre(`GATE: INTEGRIDADE · .gate/ledger.jsonl teve linha(s) REMOVIDA(s): ${rem}.\nO ledger e append-only. Reescreve-lo ou commitar a remocao e adulteracao.`, 2);
+
 if (process.argv.includes("--lock")) {
-  const l = {};
+  const antes = { ...travadoAntes, ...(ler(LOCK, {}) ?? {}) };
+  const l = { ...antes };
+  const alterados = [];
   for (const rel of protegidos) {
     const p = join(ROOT, rel);
     if (!existsSync(p)) morre(`GATE: LOCK · protegido inexistente: ${rel}`, 2);
-    l[rel] = sha(p);
+    const h = sha(p);
+    if (antes[rel] && antes[rel] !== h) { alterados.push(rel); continue; }
+    l[rel] = h;
+  }
+  if (alterados.length) {
+    morre(`GATE: LOCK RECUSADO · ja travados e alterados: ${alterados.join(", ")}\n--lock e ADITIVO: trava arquivo novo, nunca relegitima medidor alterado.\nMudar a regua e decisao humana e se faz apagando a entrada do lock A MAO — e isso aparece no git diff.`, 2);
   }
   mkdirSync(DIR, { recursive: true });
   writeFileSync(LOCK, JSON.stringify(l, null, 2) + "\n");
-  console.log(`GATE: LOCK gravado · ${protegidos.length} arquivo(s) protegido(s)`);
+  appendFileSync(LEDGER, JSON.stringify({ tipo: "lock", hashes: l, ts: new Date().toISOString() }) + "\n");
+  console.log(`GATE: LOCK gravado · ${Object.keys(l).length} arquivo(s)`);
   process.exit(0);
 }
 
-if (!checks.length) morre("GATE: SEM-CHECKS · config sem nenhuma checagem não mede nada", 2);
-if (!eixos.length) morre("GATE: SEM-EIXOS · config sem eixo não tem o que julgar", 2);
+if (!checks.length) morre("GATE: SEM-CHECKS · config sem checagem nao mede nada", 2);
+if (!eixos.length && !gosto.length) morre("GATE: SEM-EIXOS · config sem eixo nao tem o que julgar", 2);
+// Eixo medido sem medidor e eixo que ninguem julga. A doutrina ja dizia; agora o gate cobra.
+for (const e of eixos) if (!(e in (ler(BASE, {}) ?? {}))) morre(`GATE: SEM-MEDIDOR · eixo "${e}" esta em eixos mas nao em base.json.\nEixo medido sem numero nao abre. Mova para eixos_gosto se nao houver numero possivel.`, 2);
 
-// Integridade: quem mexe na régua perde o direito de dizer que passou.
+// Apagar o lock nao cria linha de base nova: o ledger lembra.
 const lock = ler(LOCK, null);
-if (!lock) morre("GATE: SEM-LOCK · o humano roda `node tools/gate.mjs --lock`", 2);
+if (!lock) {
+  if (ledger.some((r) => r.tipo === "lock")) morre("GATE: INTEGRIDADE · .gate/lock.json sumiu mas o ledger registra travas anteriores.", 2);
+  morre("GATE: SEM-LOCK · o humano roda `node tools/gate.mjs --lock`", 2);
+}
+for (const [rel, h] of Object.entries(travadoAntes)) {
+  if (lock[rel] !== h && protegidos.includes(rel)) morre(`GATE: INTEGRIDADE · .gate/lock.json difere do ledger em ${rel}.`, 2);
+}
 for (const rel of protegidos) {
   const p = join(ROOT, rel);
   if (!existsSync(p)) morre(`GATE: INTEGRIDADE · ${rel} sumiu`, 2);
-  if (sha(p) !== lock[rel]) {
-    morre(`GATE: INTEGRIDADE · ${rel} não bate com .gate/lock.json — a régua foi trocada.\nRestaure o arquivo. Adulterar o medidor não é permissão para parar.`, 2);
-  }
+  if (!lock[rel]) morre(`GATE: INTEGRIDADE · ${rel} nao esta travado. Rode --lock.`, 2);
+  if (sha(p) !== lock[rel]) morre(`GATE: INTEGRIDADE · ${rel} nao bate com o lock. A regua foi trocada.`, 2);
+}
+
+// Catraca: historico append-only, numerico, e AND — nenhum eixo pode piorar.
+const base = ler(BASE, null);
+if (!base || !Object.keys(base).length) morre("GATE: SEM-BASE · falta .gate/base.json. Sem linha de base, melhora e opiniao.", 2);
+const catraca = {};
+for (const [e, b] of Object.entries(base)) {
+  const hp = join(DIR, "medidas", `${e}.jsonl`);
+  const ip = join(DIR, "medidas", `${e}.json`);
+  // Medidor que so escreve <eixo>.json (qualquer script legado) tem o historico completado
+  // aqui. O gate e a autoridade: assim a catraca funciona com medidor que nao conhece o jsonl.
+  try {
+    // So ACRESCENTA a historico existente. Criar do zero e passo de instalacao —
+    // senao apagar o .jsonl viraria reparo silencioso e a catraca zerava.
+    if (existsSync(ip) && existsSync(hp) && statSync(ip).mtimeMs > statSync(hp).mtimeMs) {
+      const at = ler(ip, {}).atual;
+      if (typeof at === "number" && Number.isFinite(at)) appendFileSync(hp, JSON.stringify({ atual: at, ts: new Date().toISOString(), via: "gate" }) + "\n");
+    }
+  } catch {}
+  const vals = linhas(hp).map((x) => x.atual);
+  if (!vals.length) morre(`GATE: INTEGRIDADE · .gate/medidas/${e}.jsonl vazio ou ausente. Apagar historico nao cria linha de base nova.`, 2);
+  const ruins = vals.filter((v) => typeof v !== "number" || !Number.isFinite(v));
+  if (ruins.length) morre(`GATE: INTEGRIDADE · .gate/medidas/${e}.jsonl tem ${ruins.length} valor(es) nao-numerico(s). Historico envenenado desliga a catraca.`, 2);
+  const maior = b.melhor === "maior";
+  const ruido = Number(b.ruido ?? 0);
+  // min() cru deixa um outlier de sorte virar teto permanente: numa serie que melhora
+  // de 100 para 95, um 94 acidental reprova as quatro rodadas seguintes. O melhor sai
+  // da MEDIANA de janelas de 3, e a regressao so conta acima da banda de ruido.
+  const med3 = [];
+  for (let i = 0; i + 2 < vals.length; i++) { const w = [vals[i], vals[i + 1], vals[i + 2]].sort((x, y) => x - y); med3.push(w[1]); }
+  // A base declarada entra no pool: sem ela, um valor ruim repetido 3x vira a propria
+// mediana e apaga a linha de base. A catraca so pode ficar mais dura, nunca mais frouxa.
+const pool = (med3.length ? med3 : vals).concat(typeof b?.valor === "number" ? [b.valor] : []);
+  catraca[e] = { atual: vals.at(-1), melhor: maior ? Math.max(...pool) : Math.min(...pool), maior, base: b.valor, ruido };
 }
 
 const falhas = [];
 for (const c of checks) {
-  try {
-    execFileSync(c.cmd, c.args ?? [], { cwd: ROOT, stdio: "pipe", timeout: (c.timeout_s ?? 60) * 1000 });
-  } catch (e) {
+  try { execFileSync(c.cmd, c.args ?? [], { cwd: ROOT, stdio: "pipe", timeout: (c.timeout_s ?? 60) * 1000 }); }
+  catch (e) {
     const cauda = `${e.stdout ?? ""}${e.stderr ?? ""}`.toString().trim().split("\n").slice(-8).join("\n");
     falhas.push(`  [${c.nome}] ${c.cmd} ${(c.args ?? []).join(" ")}\n${cauda || e.message}`);
   }
@@ -73,60 +158,67 @@ for (const c of checks) {
 
 const st = ler(ESTADO, {}) ?? {};
 const estado = st.estado ?? "ausente";
-
 if (falhas.length) morre(`GATE: REPROVA ${falhas.length}/${checks.length} · estado=${estado}\n${falhas.join("\n")}`, 1);
+if (estado !== "ausente" && !SEIS.includes(estado)) morre(`GATE: VETO · estado="${estado}" nao e um dos seis`, 1);
 
-if (estado !== "ausente" && !SEIS.includes(estado)) {
-  morre(`GATE: VETO · estado="${estado}" não é um dos seis: ${SEIS.join(", ")}`, 1);
+// Veredito da maquina: some do vm.json, sobra no ledger.
+const vmLedger = ledger.filter((r) => r.tipo === "veredito").at(-1);
+const vm = ler(VM, null) ?? vmLedger;
+if (vmLedger && !ler(VM, null)) morre(`GATE: INTEGRIDADE · .gate/veredito-maquina.json sumiu mas o ledger registra "${vmLedger.estado}".`, 2);
+if (vm && vm.estado !== estado && vm.liberado_por !== "humano") {
+  morre(`GATE: VETO · a maquina gravou "${vm.estado}" e o arquivo diz "${estado}".\nSobrescrever veredito da maquina exige humano: "liberado_por":"humano" com motivo.`, 1);
 }
 
-// O gate não vota "aprovado". Ele veta um "aprovado" sem lastro.
+if (["aguardando_humano", "bloqueado", "estagnado", "esgotado"].includes(estado) && (st.motivo ?? "").length < 20) {
+  morre(`GATE: VETO · estado=${estado} exige motivo com 20+ caracteres nomeando a decisao e o dono`, 1);
+}
+
 if (estado === "aprovado") {
+  // Eixo SPEC. A barra responde "tao bom quanto quem"; a spec responde "era isso mesmo".
+  // Sem ela o loop entrega algo excelente que ninguem pediu.
+  const spec = st.spec;
+  if (typeof spec !== "string" || !spec.length) morre(`GATE: VETO · aprovado sem "spec": aponte o arquivo que diz o que foi pedido.`, 1);
+  if (!existsSync(join(ROOT, spec))) morre(`GATE: VETO · spec citada nao existe em disco: ${spec}`, 1);
+
   const v = st.vereditos ?? {};
-  const semVeredito = eixos.filter((e) => !["venceu", "empatou"].includes(v[e]?.resultado));
-  if (semVeredito.length) morre(`GATE: VETO · aprovado sem veredito venceu|empatou em: ${semVeredito.join(", ")}`, 1);
+  // O critico cego julga so o que numero nenhum julga. Onde ha medidor, a catraca decide —
+  // e critico de LLM em cima de numero e imposto puro.
+  const falta = (f, p) => { const r = gosto.filter(f); if (r.length) morre(`GATE: VETO · ${p}: ${r.join(", ")}`, 1); };
+  falta((e) => !["venceu", "empatou"].includes(v[e]?.resultado), "aprovado sem veredito venceu|empatou");
+  falta((e) => !v[e]?.referencia || !v[e]?.artefato, "veredito sem caminho de referencia E artefato");
+  falta((e) => !existsSync(join(ROOT, v[e].referencia)) || !existsSync(join(ROOT, v[e].artefato)), "caminho citado nao existe em disco");
+  falta((e) => join(ROOT, v[e].referencia) === join(ROOT, v[e].artefato), "referencia e artefato sao o mesmo arquivo");
+  falta((e) => v[e].refutado === true, "veredito DESCARTADO pelo refutador");
+  falta((e) => v[e].na_barra !== true, "veredito sem na_barra=true");
 
-  const semLastro = eixos.filter((e) => !v[e]?.referencia || !v[e]?.artefato);
-  if (semLastro.length) morre(`GATE: VETO · veredito sem caminho de referência E de artefato em: ${semLastro.join(", ")}\nVeredito sem caminho de arquivo é opinião.`, 1);
-
-  const fantasma = eixos.filter((e) => !existsSync(join(ROOT, v[e].referencia)) || !existsSync(join(ROOT, v[e].artefato)));
-  if (fantasma.length) morre(`GATE: VETO · caminho citado no veredito não existe em disco: ${fantasma.join(", ")}`, 1);
-
-  const mesmo = eixos.filter((e) => join(ROOT, v[e].referencia) === join(ROOT, v[e].artefato));
-  if (mesmo.length) morre(`GATE: VETO · referência e artefato são o mesmo arquivo em: ${mesmo.join(", ")}`, 1);
-
-  // Terceira camada: veredito refutado nao conta, e veredito fora da barra nao conta.
-  const refutados = eixos.filter((e) => v[e].refutado === true);
-  if (refutados.length) morre(`GATE: VETO · veredito DESCARTADO pelo refutador em: ${refutados.join(", ")}`, 1);
-  const foraDaBarra = eixos.filter((e) => v[e].na_barra !== true);
-  if (foraDaBarra.length) morre(`GATE: VETO · veredito sem na_barra=true em: ${foraDaBarra.join(", ")}\nUm veredito pode ser verdadeiro e invalido: julgar fora da medida declarada nao vale.`, 1);
-
-  // Nenhum número duro se moveu = o crítico aprovou sozinho. É a falha documentada.
-  const base = ler(join(DIR, "base.json"), null);
-  if (!base || !Object.keys(base).length) {
-    morre("GATE: VETO · falta .gate/base.json com a linha de base da Fase 0.\nSem linha de base, melhora é opinião.", 1);
+  // O critico cego era PARAGRAFO: aprovado passava com historico.json inexistente e
+  // nenhum critico tendo rodado. Agora o veredito carrega evidencia EXECUTAVEL.
+  const vhist = ler(join(DIR, "historico.json"), null);
+  if (gosto.length && (!Array.isArray(vhist) || !vhist.length)) {
+    morre(`GATE: VETO · .gate/historico.json ausente ou vazio: nenhum veredito foi registrado.\nAprovado sem critico que rodou e opiniao com JSON em volta.`, 1);
   }
-  const agora = st.medidores ?? {};
-  const moveu = Object.entries(base).filter(([k, b]) => {
-    const n = agora[k];
-    return typeof n === "number" && (b.melhor === "maior" ? n > b.valor : n < b.valor);
-  });
-  if (!moveu.length) {
-    morre(`GATE: VETO · nenhum medidor saiu da linha de base: ${Object.keys(base).join(", ")}\nCrítico dizendo "venceu" com todo número parado foi exatamente o que falhou. Meça ou não aprove.`, 1);
-  }
-
-  // 11 críticos de contexto fresco erraram na mesma direção por 3 rodadas.
-  const hist = ler(join(DIR, "historico.json"), []);
-  for (const e of eixos) {
-    const dir = hist.filter((r) => r?.[e]?.resultado === "perdeu").slice(-3);
-    if (dir.length === 3 && new Set(dir.map((r) => r[e].motivo)).size === 1) {
-      morre(`GATE: VETO · eixo ${e}: 3 reprovações seguidas com o MESMO motivo ("${dir[0][e].motivo}").\nConfira contra o medidor antes de obedecer de novo — o errado pode ser o crítico.`, 1);
+  falta((e) => !vhist.some((r) => r?.[e]?.resultado === v[e].resultado), "veredito de aprovado sem entrada correspondente no historico");
+  falta((e) => typeof v[e].comando_refutacao !== "string" || v[e].comando_refutacao.length < 5, "veredito sem comando_refutacao executavel");
+  for (const e of gosto) {
+    try { execFileSync("/bin/sh", ["-c", v[e].comando_refutacao], { cwd: ROOT, stdio: "pipe", timeout: 120000 }); }
+    catch (err) {
+      const cauda = `${err.stdout ?? ""}${err.stderr ?? ""}`.toString().trim().split("\n").slice(-5).join("\n");
+      morre(`GATE: VETO · a refutacao do eixo ${e} nao passou:\n  ${v[e].comando_refutacao}\n${cauda || err.message}\nVeredito cuja propria refutacao falha nao vale.`, 1);
     }
   }
-}
 
-if (["aguardando_humano", "bloqueado", "estagnado"].includes(estado) && (st.motivo ?? "").length < 20) {
-  morre(`GATE: VETO · estado=${estado} exige motivo com 20+ caracteres nomeando a decisão e o dono`, 1);
+  // AND, nao OR: nenhum medidor pode ter piorado, e pelo menos um tem que ter melhorado.
+  const piores = Object.entries(catraca).filter(([, c]) => (c.maior ? c.atual < c.base - c.ruido : c.atual > c.base + c.ruido));
+  if (piores.length) morre(`GATE: VETO · medidor pior que a linha de base: ${piores.map(([e, c]) => `${e} ${c.base}->${c.atual}`).join(", ")}`, 1);
+  const moveu = Object.entries(catraca).filter(([, c]) => (c.maior ? c.atual > c.base : c.atual < c.base));
+  if (!moveu.length) morre(`GATE: VETO · nenhum medidor saiu da linha de base: ${Object.keys(catraca).join(", ")}\nCritico dizendo "venceu" com todo numero parado foi exatamente o que falhou.`, 1);
+
+  for (const e of gosto) {
+    const dir = (vhist ?? []).filter((r) => r?.[e]?.resultado === "perdeu").slice(-3);
+    if (dir.length === 3 && new Set(dir.map((r) => r[e].motivo)).size === 1) {
+      morre(`GATE: VETO · eixo ${e}: 3 reprovacoes seguidas com o MESMO motivo. Confira contra o medidor — o errado pode ser o critico.`, 1);
+    }
+  }
 }
 
 console.log(`GATE: MECANICA-OK ${checks.length}/${checks.length} · estado=${estado}`);

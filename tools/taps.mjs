@@ -1,5 +1,7 @@
 #!/usr/bin/env node
-// node tools/taps.mjs [--no-build] [--flow=1,2,3]
+// node tools/taps.mjs [--no-build] [--flow=1,2,3] [--json]
+// Com --json grava .gate/toques.json, que é a fonte das catracas toques_serie,
+// inclinacao_lote e toques_convite. Sem --json só imprime, como sempre.
 // Conta toques e cronometra os fluxos que a Fase 3 vai medir. Dirige o build web com
 // playwright e interage de verdade. O contador NÃO é um número escrito à mão: um
 // init-script instala um interceptador em fase de captura na janela, antes de qualquer
@@ -11,10 +13,11 @@
 // comparado por regex sem caixa. O chassi põe rótulo em caixa alta por textTransform —
 // no DOM continua "Sair" e na tela lê-se "SAIR" —, então comparar caixa é comparar CSS,
 // e CSS é justamente o que o redesenho troca.
-import { existsSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
-import { buildWeb, loadPlaywright, PHONE, serve, WEB_DIR } from "./shots.mjs";
+import { buildWeb, loadPlaywright, PHONE, ROOT, serve, WEB_DIR } from "./shots.mjs";
+import { impressaoDoCodigo } from "./toques.mjs";
 
 const COUNTER = `(() => {
   const c = { taps: 0, keys: 0 };
@@ -71,6 +74,17 @@ async function flow1(context, base, { lote }) {
     // Aba do personal. O rótulo é caixa alta por estilo; o nome acessível é o que importa.
     await tap(page, button(page, /fichas/i));
     steps.push("Painel -> aba Fichas");
+
+    // ESCOLHER A PESSOA. A aba Fichas montava a Base sem personId e a Base caia no
+    // primeiro nome da semana: abria a ficha de um aluno ARBITRARIO. Agora ela lista a
+    // turma, e escolher e o primeiro ato de prescrever — entao o medidor escolhe tambem,
+    // porque o toque existe de verdade e ele conta. O medidor segue o produto; nunca o
+    // contrario.
+    await tap(page, button(page, /ana beatriz/i));
+    steps.push("Fichas -> escolheu a pessoa");
+
+    await tap(page, button(page, /publicar a (primeira|próxima) ficha/i));
+    steps.push("Aluna -> Base");
 
     if (await page.getByText(/não deu para achar o modelo/i).count()) {
       throw new Error("Base não achou o modelo (ver src/screens/owner/Base.tsx)");
@@ -131,46 +145,63 @@ async function flow1(context, base, { lote }) {
 }
 
 // ---------------------------------------------------------------- fluxo 2
-// Aluno registra uma série do dia.
+// Aluno registra uma série do dia — o CICLO EM REGIME, não a primeira fatia.
+//
+// A versão anterior media 2 toques: entrar na Série e tocar "Fiz essa série". Parava no
+// waitFor do descanso e ia embora. Um crítico cego mostrou o buraco: `Descanso.tsx` trava
+// as DUAS saídas em `disabled={!effort}` (linhas 217 e 227), então entre uma série e a
+// seguinte existe obrigatoriamente uma palavra de esforço mais um avanço. O medidor
+// enxergava a fatia mais barata que existe e declarava o custo da série.
+//
+// Agora a conta começa quando a tela de Série está pronta e termina quando a PRÓXIMA está
+// pronta. É esse número que a pessoa paga 18 vezes num treino.
 async function flow2(context, base) {
+  const flow = "2 · aluno registra uma série do dia (ciclo em regime)";
   const { page, errors } = await open(context, base, "Hoje");
   const t0 = Date.now();
   const steps = [];
   try {
-    // O botão do dia: "Começar", "Começar leve" ou "Continuar", conforme a prontidão.
     await tap(page, button(page, /começar|continuar/i));
+    const confirmar = () => button(page, /fiz essa série/i);
+    await confirmar().waitFor({ state: "visible", timeout: 15000 });
     steps.push("Hoje -> Serie");
 
-    await tap(page, button(page, /fiz essa série/i));
-    // A série entrou: o app abre o descanso, que se anuncia pela acessibilidade.
-    await page
-      .getByLabel(/descanso/i)
-      .first()
-      .waitFor({ state: "visible", timeout: 15000 });
-    steps.push("série registrada (abre o descanso)");
+    // Marco zero: a entrada no treino é custo de uma vez, não de cada série.
+    const entrada = await count(page);
 
-    const c = await count(page);
+    await tap(page, confirmar());
+    const avancar = button(page, /próxima série|pular descanso|terminar sessão/i);
+    await avancar.waitFor({ state: "visible", timeout: 15000 });
+    steps.push("registrou a série (abre o descanso)");
+
+    // A palavra de esforço agora é POR EXERCÍCIO. Entre séries do mesmo exercício ela nem
+    // aparece; na virada do exercício ela aparece e trava as saídas. O medidor não pode
+    // supor nenhum dos dois — pergunta à tela e cobra o toque quando ele existe.
+    if (await page.getByText(/como foi esse exercício/i).count()) {
+      await tap(page, button(page, /no ponto/i));
+      steps.push("palavra de esforço (virada de exercício: destrava as saídas)");
+    } else {
+      steps.push("mesma série do exercício: descanso é só descanso, nenhuma pergunta");
+    }
+
+    await tap(page, avancar);
+    await confirmar().waitFor({ state: "visible", timeout: 15000 });
+    steps.push("chegou na série seguinte, pronta para registrar");
+
+    const fim = await count(page);
     return {
-      flow: "2 · aluno registra uma série do dia",
+      flow,
       status: "ok",
-      taps: c.taps,
-      keys: c.keys,
+      taps: fim.taps - entrada.taps,
+      keys: fim.keys - entrada.keys,
+      entrada: entrada.taps,
       ms: Date.now() - t0,
       steps,
       errors,
     };
   } catch (err) {
     const c = await count(page).catch(() => ({ taps: 0, keys: 0 }));
-    return {
-      flow: "2 · aluno registra uma série do dia",
-      status: "incompleto",
-      taps: c.taps,
-      keys: c.keys,
-      ms: Date.now() - t0,
-      steps,
-      travou: err.message,
-      errors,
-    };
+    return { flow, status: "incompleto", taps: c.taps, keys: c.keys, ms: Date.now() - t0, steps, travou: err.message, errors };
   } finally {
     await page.close();
   }
@@ -284,6 +315,27 @@ async function main() {
         `(${(dTap / dAluno).toFixed(2)} por aluno).`,
     );
     console.log("");
+  }
+
+  if (process.argv.includes("--json")) {
+    // O artefato guarda o CRU de cada fluxo, nunca só o total: quando a catraca reprovar,
+    // quem for consertar precisa saber se subiu toque ou tecla, e em qual perna.
+    const s2 = results.find((r) => r.flow.startsWith("2 ") && r.status === "ok");
+    const c3 = results.find((r) => r.flow.startsWith("3 ") && r.status === "ok");
+    const incompleto = results.filter((r) => r.status !== "ok").map((r) => r.flow);
+    mkdirSync(join(ROOT, ".gate"), { recursive: true });
+    writeFileSync(join(ROOT, ".gate/toques.json"), JSON.stringify({
+      serie: s2 ? { toques: s2.taps, teclas: s2.keys, entrada: s2.entrada ?? null } : null,
+      lote: um && turma ? {
+        um: { toques: um.taps, alunos: um.alunos },
+        turma: { toques: turma.taps, alunos: turma.alunos },
+        inclinacao: Number(((turma.taps - um.taps) / (turma.alunos - um.alunos)).toFixed(4)),
+      } : null,
+      convite: c3 ? { toques: c3.taps, teclas: c3.keys } : null,
+      incompleto,
+      codigo: impressaoDoCodigo(),
+    }, null, 2) + "\n");
+    console.log("gravei .gate/toques.json");
   }
 
   const incompletos = results.filter((r) => r.status === "incompleto");

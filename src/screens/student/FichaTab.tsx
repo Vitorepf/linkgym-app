@@ -10,10 +10,10 @@ import {
   type TodayPayload,
 } from "../../api";
 import type { RootStackParamList } from "../../nav/types";
-import { accentSet, productTheme as T } from "../../theme";
 import { GhostCTA } from "../../ui/GhostCTA";
 import { IconChevron } from "../../ui/Icons";
-import { Band, Head, Phone } from "../../ui/Screen";
+import { Band, Head, Phone, useFimDaRolagem } from "../../ui/Screen";
+import { estilos, useTema } from "../../ui/tema";
 import { Txt } from "../../ui/Txt";
 import { Figure } from "../../ui/Figure";
 import { dateShort, formatKg, plannedSets, weekdayShort } from "../../ui/format";
@@ -38,8 +38,10 @@ type Prescription = TodayPayload["prescription"];
  *  do herói em uma linha muda; três células de 41px seriam área grande carregando pouco —
  *  o defeito que esta tela existe para não ter. */
 export function FichaTab({ token, time }: Props) {
-  const ac = time.accent_color || T.accentFallback;
-  const A = accentSet(ac);
+  const styles = usarEstilos();
+  const fim = useFimDaRolagem();
+  const { T, acento } = useTema();
+  const A = acento();
   const nav = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [pres, setPres] = useState<Prescription>(null);
   const [error, setError] = useState("");
@@ -71,7 +73,6 @@ export function FichaTab({ token, time }: Props) {
         kicker={time.name}
         kickerMuted
         title={pres?.name || "Nada para hoje"}
-        accent={ac}
         right={
           pres?.for_date ? (
             <Txt role="label" tone="dim" style={styles.stamp}>
@@ -82,7 +83,7 @@ export function FichaTab({ token, time }: Props) {
       />
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, fim]}
         showsVerticalScrollIndicator={false}
       >
         {error ? (
@@ -128,7 +129,6 @@ export function FichaTab({ token, time }: Props) {
                     item,
                     items: rows,
                     timeName: time.name,
-                    accent: ac,
                     token,
                     prescriptionId: pres.id,
                   });
@@ -208,39 +208,46 @@ function say(item: TodayItem): string {
 
 const CHEV = 16;
 
-const styles = StyleSheet.create({
-  scroll: { flex: 1 },
-  content: { flexGrow: 1 },
-  stamp: { paddingTop: 2 },
-  said: { marginBottom: 16 },
-  colHead: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingHorizontal: T.pad,
-    paddingBottom: 8,
-    borderBottomWidth: 2,
-    borderBottomColor: T.divider,
-  },
-  colName: { flex: 1 },
-  colKg: { width: 100, textAlign: "right" },
-  row: {
-    paddingHorizontal: T.pad,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: T.hairline,
-  },
-  // A última linha não fecha com régua própria: quem fecha a lista é a barra de abas.
-  last: { borderBottomWidth: 0 },
-  line: { flexDirection: "row", alignItems: "baseline", gap: 8 },
-  name: { flex: 1 },
-  kg: { width: 70, textAlign: "right", fontVariant: ["tabular-nums"] },
-  chev: { width: CHEV },
-  chevPad: { paddingBottom: 2 },
-  meta: { marginTop: 2 },
-  notes: {
-    marginTop: 10,
-    paddingLeft: 10,
-    borderLeftWidth: 2,
-  },
-});
+const usarEstilos = estilos(({ T }) =>
+  StyleSheet.create({
+    scroll: { flex: 1 },
+    content: { flexGrow: 1 },
+    stamp: { paddingTop: 2 },
+    said: { marginBottom: 16 },
+    colHead: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      paddingHorizontal: T.pad,
+      paddingBottom: 8,
+      borderBottomWidth: 2,
+      borderBottomColor: T.divider,
+    },
+    colName: { flex: 1 },
+    colKg: { width: 100, textAlign: "right" },
+    // A linha CRESCE: com 3 exercícios a sobra da tela se divide entre as linhas em vez de
+    // virar um buraco órfão embaixo da lista; com 6+ o conteúdo enche e o flexGrow é inerte.
+    // O fixture dos shots tem 6 — o buraco só aparecia com dado real no aparelho.
+    row: {
+      paddingHorizontal: T.pad,
+      paddingVertical: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: T.hairline,
+      flexGrow: 1,
+      justifyContent: "center",
+    },
+    // A última linha não fecha com régua própria: quem fecha a lista é a barra de abas.
+    last: { borderBottomWidth: 0 },
+    line: { flexDirection: "row", alignItems: "baseline", gap: 8 },
+    name: { flex: 1 },
+    kg: { width: 70, textAlign: "right", fontVariant: ["tabular-nums"] },
+    chev: { width: CHEV },
+    chevPad: { paddingBottom: 2 },
+    meta: { marginTop: 2 },
+    notes: {
+      marginTop: 10,
+      paddingLeft: 10,
+      borderLeftWidth: 2,
+    },
+  }),
+);

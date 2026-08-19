@@ -4,7 +4,6 @@ import { useFocusEffect } from "@react-navigation/native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { applyOwnerReturn, ownerReturns, type OwnerReturn } from "../../api";
 import type { RootStackParamList } from "../../nav/types";
-import { accentSet, errorInk, productTheme as T } from "../../theme";
 import { AccentCTA } from "../../ui/AccentCTA";
 import { Choice } from "../../ui/Choice";
 import { Figure } from "../../ui/Figure";
@@ -14,6 +13,7 @@ import { MetricGrid } from "../../ui/Metric";
 import { Band, DockFooter, Head, Phone } from "../../ui/Screen";
 import { Txt } from "../../ui/Txt";
 import { formatKg } from "../../ui/format";
+import { estilos, useTema } from "../../ui/tema";
 
 type Bump = 2.5 | 0 | -2.5;
 
@@ -68,8 +68,10 @@ function hourOf(iso: string): string {
 }
 
 export function Retorno({ route }: Props) {
-  const { token, timeName, accent } = route.params;
-  const A = accentSet(accent, T.raised);
+  const styles = usarEstilos();
+  const { T, acento, errorInk } = useTema();
+  const { token, timeName } = route.params;
+  const A = acento(undefined, T.raised);
   const [items, setItems] = useState<OwnerReturn[]>([]);
   const [bumpFor, setBumpFor] = useState<Record<string, Bump>>({});
   const [focusId, setFocusId] = useState<string | null>(null);
@@ -121,7 +123,6 @@ export function Retorno({ route }: Props) {
       <Head
         kicker={timeName}
         kickerMuted
-        accent={accent}
         title={
           loaded
             ? items.length === 1
@@ -227,7 +228,6 @@ export function Retorno({ route }: Props) {
                     label={kg(b)}
                     selected={bump === b}
                     flex
-                    accent={accent}
                     onPress={() =>
                       setBumpFor((prev) => ({ ...prev, [head.alert_id]: b }))
                     }
@@ -271,7 +271,6 @@ export function Retorno({ route }: Props) {
           <AccentCTA
             label={`Aplicar ${kg(bump)} kg`}
             meta={first(head.name)}
-            accent={accent}
             check
             quiet
             busy={busy === head.alert_id}
@@ -284,39 +283,41 @@ export function Retorno({ route }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  scroll: { flex: 1 },
-  content: { flexGrow: 1, paddingBottom: 24 },
-  error: { paddingHorizontal: T.pad, paddingTop: 12 },
-  emptyLine: { marginTop: 8 },
-  who: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    marginBottom: 12,
-  },
-  name: { flex: 1, minWidth: 0 },
-  why: { marginTop: 8 },
-  swap: {
-    marginHorizontal: T.pad,
-    marginTop: 14,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderLeftWidth: 3,
-    backgroundColor: T.raised,
-  },
-  swapLine: { marginTop: 2 },
-  bumps: { flexDirection: "row", gap: 8 },
-  queue: { paddingTop: 8 },
-  queueHead: { paddingHorizontal: T.pad, paddingBottom: 6 },
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    paddingHorizontal: T.pad,
-    paddingVertical: 13,
-    borderTopWidth: 1,
-    borderTopColor: T.hairline,
-  },
-  rowName: { flex: 1, minWidth: 0 },
-});
+const usarEstilos = estilos(({ T }) =>
+  StyleSheet.create({
+    scroll: { flex: 1 },
+    content: { flexGrow: 1, paddingBottom: 24 },
+    error: { paddingHorizontal: T.pad, paddingTop: 12 },
+    emptyLine: { marginTop: 8 },
+    who: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+      marginBottom: 12,
+    },
+    name: { flex: 1, minWidth: 0 },
+    why: { marginTop: 8 },
+    swap: {
+      marginHorizontal: T.pad,
+      marginTop: 14,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      borderLeftWidth: 3,
+      backgroundColor: T.raised,
+    },
+    swapLine: { marginTop: 2 },
+    bumps: { flexDirection: "row", gap: 8 },
+    queue: { paddingTop: 8 },
+    queueHead: { paddingHorizontal: T.pad, paddingBottom: 6 },
+    row: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+      paddingHorizontal: T.pad,
+      paddingVertical: 13,
+      borderTopWidth: 1,
+      borderTopColor: T.hairline,
+    },
+    rowName: { flex: 1, minWidth: 0 },
+  }),
+);

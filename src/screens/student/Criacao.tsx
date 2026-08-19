@@ -8,13 +8,13 @@ import Animated, {
   useSharedValue,
   withSpring,
 } from "react-native-reanimated";
-import { errorInk, productTheme as T } from "../../theme";
 import { AccentCTA } from "../../ui/AccentCTA";
 import { Choice } from "../../ui/Choice";
 import { Entity } from "../../ui/Entity";
 import { Figure } from "../../ui/Figure";
 import { formatKg } from "../../ui/format";
 import { HoldTick } from "../../ui/HoldTick";
+import { estilos, useTema } from "../../ui/tema";
 import { Txt } from "../../ui/Txt";
 
 export type Body = {
@@ -26,7 +26,6 @@ export type Body = {
 type Beat = "sex" | "height" | "weight";
 
 type Props = {
-  accent: string;
   /** nome do time. `timeName` é o nome da prop no chamador (src/api.ts `Time`), não
    *  vocabulário de tela: aqui dentro ele só aparece como o nome, nunca como tipo. */
   timeName: string;
@@ -47,7 +46,6 @@ const WEIGHT_START = 70;
 const SPRING = { damping: 16, stiffness: 140, mass: 0.8 };
 
 export function Criacao({
-  accent,
   timeName,
   busy,
   error,
@@ -55,6 +53,8 @@ export function Criacao({
   onBack,
   onSend,
 }: Props) {
+  const styles = usarEstilos();
+  const { T, errorInk } = useTema();
   const reduce = useReducedMotion();
   const [beat, setBeat] = useState<Beat>("sex");
   const [sex, setSex] = useState<"male" | "female" | null>(null);
@@ -202,7 +202,7 @@ export function Criacao({
       <GestureDetector gesture={pan}>
         <Animated.View
           collapsable={false}
-          style={styles.canvas}
+          style={[styles.canvas, beat === "sex" && styles.canvasCenter]}
           accessible={beat !== "sex"}
           accessibilityRole="adjustable"
           accessibilityLabel={measure}
@@ -220,7 +220,7 @@ export function Criacao({
               inteiro no botão (o orçamento é de UM elemento pintando área por tela). Este
               corpo é da Pessoa. De quebra, some o pior caso do time 13 — acento igual ao
               fundo desenhava uma figura invisível. */}
-          <View style={styles.stage}>
+          <View style={[styles.stage, beat === "sex" && styles.stageSeed]}>
             <Entity
               accent={T.divider}
               stance={stance}
@@ -237,13 +237,11 @@ export function Criacao({
           <Choice
             label="Masculino"
             selected={sex === "male"}
-            accent={accent}
             onPress={() => morphSex("male")}
           />
           <Choice
             label="Feminino"
             selected={sex === "female"}
-            accent={accent}
             onPress={() => morphSex("female")}
           />
         </View>
@@ -271,7 +269,6 @@ export function Criacao({
       <AccentCTA
         label={beat === "weight" ? `Enviar para ${timeName}` : "Continuar"}
         onPress={next}
-        accent={accent}
         disabled={!canGo}
         busy={busy}
         block
@@ -294,29 +291,42 @@ function clamp(n: number, min: number, max: number) {
   return Math.min(max, Math.max(min, n));
 }
 
-const styles = StyleSheet.create({
-  why: { marginTop: 10 },
-  // A figura PISA no chão logo acima do controle, em vez de boiar no meio de um vazio:
-  // o terço inferior fica com número, controle e ação, que é onde o dedo está.
-  canvas: {
-    flex: 1,
-    justifyContent: "flex-end",
-  },
-  stage: {
-    transform: [{ scale: 1.5 }],
-    transformOrigin: "bottom",
-    marginBottom: 14,
-  },
-  sex: { marginTop: 8, gap: 8 },
-  stepper: {
-    flexDirection: "row",
-    borderTopWidth: 2,
-    borderBottomWidth: 2,
-    borderColor: T.divider,
-  },
-  error: { marginBottom: 8 },
-  back: {
-    alignSelf: "flex-start",
-    paddingVertical: 16,
-  },
-});
+const usarEstilos = estilos(({ T, SPACE }) =>
+  StyleSheet.create({
+    why: { marginTop: 10 },
+    // O palco tem CHÃO: superfície própria, sangrando até a borda (o -T.pad desfaz a margem
+    // do contêiner — os dois montadores usam T.pad). O vazio em volta da figura vira respiro
+    // interno do palco, não buraco de ninguém.
+    canvas: {
+      flex: 1,
+      justifyContent: "flex-end",
+      marginHorizontal: -T.pad,
+      marginTop: SPACE.step,
+      backgroundColor: T.raised,
+    },
+    // No tempo da pergunta a figura ainda é semente: centrada no palco, não encolhida no pé
+    // dele — era o buraco único de 437pt da tela.
+    canvasCenter: { justifyContent: "center" },
+    // ponytail: a semente mora no PÉ da caixa de 280px do palco (src/ui/Entity.tsx); este
+    // margin compensa a caixa para que a semente — e não a caixa — caia no centro. Ajustar
+    // se a altura do palco da Entity mudar.
+    stageSeed: { marginBottom: 220 },
+    stage: {
+      transform: [{ scale: 1.5 }],
+      transformOrigin: "bottom",
+      marginBottom: 14,
+    },
+    sex: { marginTop: 8, gap: 8 },
+    stepper: {
+      flexDirection: "row",
+      borderTopWidth: 2,
+      borderBottomWidth: 2,
+      borderColor: T.divider,
+    },
+    error: { marginBottom: 8 },
+    back: {
+      alignSelf: "flex-start",
+      paddingVertical: 16,
+    },
+  }),
+);

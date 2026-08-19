@@ -1,0 +1,169 @@
+{
+  "kits": 210,
+  "testadas": 228,
+  "quebradas": [
+    {
+      "kit": "Ferro",
+      "tela": "Operacao",
+      "problemas": [
+        "montagem sinalizou \"error\"",
+        "erro do React: Cannot read properties of undefined (reading 'length')",
+        "console: TypeError: Cannot read properties of undefined (reading 'length')\n    at _e.Operacao (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:1302:2422)\n    at Ha (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:45858)\n    at Ku (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:73867)\n    at fi (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:84286)\n    at mc (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:117767)\n    at fc (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:116838)\n    at cc (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:116680)\n    at Js (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:113812)\n    at $c (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:125105)\n    at MessagePort.q (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:739:1531)"
+      ]
+    },
+    {
+      "kit": "Ferro",
+      "tela": "OperacaoVazia",
+      "problemas": [
+        "montagem sinalizou \"error\"",
+        "erro do React: Cannot read properties of undefined (reading 'length')",
+        "console: TypeError: Cannot read properties of undefined (reading 'length')\n    at _e.Operacao (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:1302:2422)\n    at Ha (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:45858)\n    at Ku (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:73867)\n    at fi (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:84286)\n    at mc (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:117767)\n    at fc (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:116838)\n    at cc (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:116680)\n    at Js (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:113812)\n    at $c (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:125105)\n    at MessagePort.q (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:739:1531)"
+      ]
+    },
+    {
+      "kit": "Ferro",
+      "tela": "OperacaoSemCombinado",
+      "problemas": [
+        "montagem sinalizou \"error\"",
+        "erro do React: Cannot read properties of undefined (reading 'length')",
+        "console: TypeError: Cannot read properties of undefined (reading 'length')\n    at _e.Operacao (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:1302:2422)\n    at Ha (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:45858)\n    at Ku (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:73867)\n    at fi (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:84286)\n    at mc (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:117767)\n    at fc (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:116838)\n    at cc (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:116680)\n    at Js (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:113812)\n    at $c (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:125105)\n    at MessagePort.q (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:739:1531)"
+      ]
+    },
+    {
+      "kit": "Clinica",
+      "tela": "Operacao",
+      "problemas": [
+        "montagem sinalizou \"error\"",
+        "erro do React: Cannot read properties of undefined (reading 'length')",
+        "console: TypeError: Cannot read properties of undefined (reading 'length')\n    at _e.Operacao (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:1302:2422)\n    at Ha (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:45858)\n    at Ku (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:73867)\n    at fi (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:84286)\n    at mc (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:117767)\n    at fc (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:116838)\n    at cc (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:116680)\n    at Js (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:113812)\n    at $c (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:125105)\n    at MessagePort.q (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:739:1531)"
+      ]
+    },
+    {
+      "kit": "Clinica",
+      "tela": "OperacaoVazia",
+      "problemas": [
+        "montagem sinalizou \"error\"",
+        "erro do React: Cannot read properties of undefined (reading 'length')",
+        "console: TypeError: Cannot read properties of undefined (reading 'length')\n    at _e.Operacao (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:1302:2422)\n    at Ha (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:45858)\n    at Ku (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:73867)\n    at fi (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:84286)\n    at mc (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:117767)\n    at fc (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:116838)\n    at cc (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:116680)\n    at Js (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:113812)\n    at $c (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:125105)\n    at MessagePort.q (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:739:1531)"
+      ]
+    },
+    {
+      "kit": "Clinica",
+      "tela": "OperacaoSemCombinado",
+      "problemas": [
+        "montagem sinalizou \"error\"",
+        "erro do React: Cannot read properties of undefined (reading 'length')",
+        "console: TypeError: Cannot read properties of undefined (reading 'length')\n    at _e.Operacao (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:1302:2422)\n    at Ha (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:45858)\n    at Ku (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:73867)\n    at fi (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:84286)\n    at mc (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:117767)\n    at fc (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:116838)\n    at cc (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:116680)\n    at Js (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:113812)\n    at $c (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:125105)\n    at MessagePort.q (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:739:1531)"
+      ]
+    },
+    {
+      "kit": "Boutique",
+      "tela": "Operacao",
+      "problemas": [
+        "montagem sinalizou \"error\"",
+        "erro do React: Cannot read properties of undefined (reading 'length')",
+        "console: TypeError: Cannot read properties of undefined (reading 'length')\n    at _e.Operacao (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:1302:2422)\n    at Ha (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:45858)\n    at Ku (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:73867)\n    at fi (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:84286)\n    at mc (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:117767)\n    at fc (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:116838)\n    at cc (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:116680)\n    at Js (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:113812)\n    at $c (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:125105)\n    at MessagePort.q (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:739:1531)"
+      ]
+    },
+    {
+      "kit": "Boutique",
+      "tela": "OperacaoVazia",
+      "problemas": [
+        "montagem sinalizou \"error\"",
+        "erro do React: Cannot read properties of undefined (reading 'length')",
+        "console: TypeError: Cannot read properties of undefined (reading 'length')\n    at _e.Operacao (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:1302:2422)\n    at Ha (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:45858)\n    at Ku (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:73867)\n    at fi (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:84286)\n    at mc (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:117767)\n    at fc (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:116838)\n    at cc (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:116680)\n    at Js (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:113812)\n    at $c (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:125105)\n    at MessagePort.q (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:739:1531)"
+      ]
+    },
+    {
+      "kit": "Boutique",
+      "tela": "OperacaoSemCombinado",
+      "problemas": [
+        "montagem sinalizou \"error\"",
+        "erro do React: Cannot read properties of undefined (reading 'length')",
+        "console: TypeError: Cannot read properties of undefined (reading 'length')\n    at _e.Operacao (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:1302:2422)\n    at Ha (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:45858)\n    at Ku (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:73867)\n    at fi (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:84286)\n    at mc (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:117767)\n    at fc (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:116838)\n    at cc (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:116680)\n    at Js (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:113812)\n    at $c (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:125105)\n    at MessagePort.q (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:739:1531)"
+      ]
+    },
+    {
+      "kit": "Vitrine",
+      "tela": "Operacao",
+      "problemas": [
+        "montagem sinalizou \"error\"",
+        "erro do React: Cannot read properties of undefined (reading 'length')",
+        "console: TypeError: Cannot read properties of undefined (reading 'length')\n    at _e.Operacao (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:1302:2422)\n    at Ha (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:45858)\n    at Ku (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:73867)\n    at fi (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:84286)\n    at mc (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:117767)\n    at fc (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:116838)\n    at cc (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:116680)\n    at Js (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:113812)\n    at $c (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:125105)\n    at MessagePort.q (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:739:1531)"
+      ]
+    },
+    {
+      "kit": "Vitrine",
+      "tela": "OperacaoVazia",
+      "problemas": [
+        "montagem sinalizou \"error\"",
+        "erro do React: Cannot read properties of undefined (reading 'length')",
+        "console: TypeError: Cannot read properties of undefined (reading 'length')\n    at _e.Operacao (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:1302:2422)\n    at Ha (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:45858)\n    at Ku (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:73867)\n    at fi (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:84286)\n    at mc (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:117767)\n    at fc (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:116838)\n    at cc (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:116680)\n    at Js (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:113812)\n    at $c (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:125105)\n    at MessagePort.q (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:739:1531)"
+      ]
+    },
+    {
+      "kit": "Vitrine",
+      "tela": "OperacaoSemCombinado",
+      "problemas": [
+        "montagem sinalizou \"error\"",
+        "erro do React: Cannot read properties of undefined (reading 'length')",
+        "console: TypeError: Cannot read properties of undefined (reading 'length')\n    at _e.Operacao (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:1302:2422)\n    at Ha (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:45858)\n    at Ku (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:73867)\n    at fi (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:84286)\n    at mc (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:117767)\n    at fc (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:116838)\n    at cc (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:116680)\n    at Js (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:113812)\n    at $c (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:125105)\n    at MessagePort.q (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:739:1531)"
+      ]
+    },
+    {
+      "kit": "Garagem",
+      "tela": "Operacao",
+      "problemas": [
+        "montagem sinalizou \"error\"",
+        "erro do React: Cannot read properties of undefined (reading 'length')",
+        "console: TypeError: Cannot read properties of undefined (reading 'length')\n    at _e.Operacao (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:1302:2422)\n    at Ha (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:45858)\n    at Ku (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:73867)\n    at fi (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:84286)\n    at mc (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:117767)\n    at fc (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:116838)\n    at cc (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:116680)\n    at Js (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:113812)\n    at $c (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:125105)\n    at MessagePort.q (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:739:1531)"
+      ]
+    },
+    {
+      "kit": "Garagem",
+      "tela": "OperacaoVazia",
+      "problemas": [
+        "montagem sinalizou \"error\"",
+        "erro do React: Cannot read properties of undefined (reading 'length')",
+        "console: TypeError: Cannot read properties of undefined (reading 'length')\n    at _e.Operacao (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:1302:2422)\n    at Ha (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:45858)\n    at Ku (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:73867)\n    at fi (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:84286)\n    at mc (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:117767)\n    at fc (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:116838)\n    at cc (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:116680)\n    at Js (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:113812)\n    at $c (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:125105)\n    at MessagePort.q (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:739:1531)"
+      ]
+    },
+    {
+      "kit": "Garagem",
+      "tela": "OperacaoSemCombinado",
+      "problemas": [
+        "montagem sinalizou \"error\"",
+        "erro do React: Cannot read properties of undefined (reading 'length')",
+        "console: TypeError: Cannot read properties of undefined (reading 'length')\n    at _e.Operacao (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:1302:2422)\n    at Ha (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:45858)\n    at Ku (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:73867)\n    at fi (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:84286)\n    at mc (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:117767)\n    at fc (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:116838)\n    at cc (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:116680)\n    at Js (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:113812)\n    at $c (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:125105)\n    at MessagePort.q (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:739:1531)"
+      ]
+    },
+    {
+      "kit": "Sereno",
+      "tela": "Operacao",
+      "problemas": [
+        "montagem sinalizou \"error\"",
+        "erro do React: Cannot read properties of undefined (reading 'length')",
+        "console: TypeError: Cannot read properties of undefined (reading 'length')\n    at _e.Operacao (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:1302:2422)\n    at Ha (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:45858)\n    at Ku (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:73867)\n    at fi (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:84286)\n    at mc (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:117767)\n    at fc (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:116838)\n    at cc (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:116680)\n    at Js (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:113812)\n    at $c (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:125105)\n    at MessagePort.q (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:739:1531)"
+      ]
+    },
+    {
+      "kit": "Sereno",
+      "tela": "OperacaoVazia",
+      "problemas": [
+        "montagem sinalizou \"error\"",
+        "erro do React: Cannot read properties of undefined (reading 'length')",
+        "console: TypeError: Cannot read properties of undefined (reading 'length')\n    at _e.Operacao (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:1302:2422)\n    at Ha (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:45858)\n    at Ku (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:73867)\n    at fi (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:84286)\n    at mc (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:117767)\n    at fc (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:116838)\n    at cc (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:116680)\n    at Js (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:113812)\n    at $c (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:125105)\n    at MessagePort.q (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:739:1531)"
+      ]
+    },
+    {
+      "kit": "Sereno",
+      "tela": "OperacaoSemCombinado",
+      "problemas": [
+        "montagem sinalizou \"error\"",
+        "erro do React: Cannot read properties of undefined (reading 'length')",
+        "console: TypeError: Cannot read properties of undefined (reading 'length')\n    at _e.Operacao (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:1302:2422)\n    at Ha (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:45858)\n    at Ku (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:73867)\n    at fi (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:84286)\n    at mc (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:117767)\n    at fc (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:116838)\n    at cc (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:116680)\n    at Js (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:113812)\n    at $c (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:727:125105)\n    at MessagePort.q (http://127.0.0.1:63856/_expo/static/js/web/index-8e1d60b11a5b3cef3ba6f4c7ff10b94a.js:739:1531)"
+      ]
+    }
+  ],
+  "codigo": "7485e20308874e12a8088e40171be6f18721f426ac0617e1ee08b0a62ca53bc1"
+}

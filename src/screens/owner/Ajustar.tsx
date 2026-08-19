@@ -3,13 +3,13 @@ import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { patchPrescriptionItem, type DraftItem } from "../../api";
 import type { RootStackParamList } from "../../nav/types";
-import { accentSet, errorInk, productTheme as T } from "../../theme";
 import { AccentCTA } from "../../ui/AccentCTA";
 import { Figure } from "../../ui/Figure";
 import { TrendMark } from "../../ui/Icons";
 import { DockFooter, Head, Phone } from "../../ui/Screen";
 import { Txt } from "../../ui/Txt";
 import { formatKg } from "../../ui/format";
+import { estilos, useTema } from "../../ui/tema";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Ajustar">;
 
@@ -21,20 +21,25 @@ const STEP = 2.5;
  *  carga proposta diz de onde veio, na linha, sem toque nenhum. */
 function fromLabel(src: DraftItem["load_source"], who: string): string {
   if (src === "history") return `última de ${who}`;
+  if (src === "prescription") return `da última ficha de ${who}`;
   if (src === "starter") return "partida do modelo";
   return "posta à mão";
 }
 
 function fromProse(src: DraftItem["load_source"], who: string): string {
   if (src === "history") return `É a carga da última série que ${who} fez neste exercício.`;
+  if (src === "prescription")
+    return `Veio da última ficha de ${who}. O corpo dele ainda não fez este exercício.`;
   if (src === "starter") return `${who} ainda não levantou isto. Carga de partida do modelo.`;
   return "Carga posta à mão. O histórico deste corpo não entrou.";
 }
 
 export function Ajustar({ navigation, route }: Props) {
-  const { token, timeName, accent, prescriptionId, personId, personName } =
+  const styles = usarEstilos();
+  const { T, acento, errorInk } = useTema();
+  const { token, timeName, prescriptionId, personId, personName } =
     route.params;
-  const A = accentSet(accent, T.raised);
+  const A = acento(undefined, T.raised);
   const who = personName.trim().split(/\s+/)[0] || "o aluno";
 
   const [items, setItems] = useState<DraftItem[]>(route.params.items);
@@ -107,14 +112,16 @@ export function Ajustar({ navigation, route }: Props) {
   const focused = items.find((it) => it.id === focusedId) ?? items[0];
   const drift = (it: DraftItem) => it.load_kg - (proposed.get(it.id) ?? it.load_kg);
 
-  const tally = { history: 0, starter: 0, manual: 0 };
+  // O quarto valor entra aqui tambem: sem ele, tally["prescription"] era undefined + 1 =
+  // NaN, e o rodape "de onde sairam as N cargas" parava de fechar a conta na tela.
+  const tally = { history: 0, prescription: 0, starter: 0, manual: 0 };
   items.forEach((it) => {
     tally[drift(it) !== 0 ? "manual" : it.load_source] += 1;
   });
 
   return (
     <Phone>
-      <Head kicker={personName} title="Confere e ajusta" kickerMuted accent={accent} />
+      <Head kicker={personName} title="Confere e ajusta" kickerMuted />
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}
@@ -215,8 +222,8 @@ export function Ajustar({ navigation, route }: Props) {
         <View style={styles.foot}>
           <Txt role="label">de onde saíram as {items.length} cargas</Txt>
           <Txt role="body" style={styles.footLine}>
-            {tally.history} da última · {tally.starter} de partida · {tally.manual} à
-            mão
+            {tally.history} do corpo · {tally.prescription} da última ficha ·{" "}
+            {tally.starter} de partida · {tally.manual} à mão
           </Txt>
           <Txt role="note" tone="dim" style={styles.footNote}>
             Nenhum campo abriu em branco. Você confere, não digita.
@@ -227,7 +234,6 @@ export function Ajustar({ navigation, route }: Props) {
         <AccentCTA
           label="Publicar"
           meta={`${items.length} exercícios`}
-          accent={accent}
           onPress={() => {
             void (async () => {
               try {
@@ -236,7 +242,6 @@ export function Ajustar({ navigation, route }: Props) {
                 navigation.navigate("Publicar", {
                   token,
                   timeName,
-                  accent,
                   prescriptionId,
                   personId,
                   personName,
@@ -252,56 +257,60 @@ export function Ajustar({ navigation, route }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  scroll: { flex: 1 },
-  content: { flexGrow: 1 },
-  error: { paddingHorizontal: T.pad, paddingTop: 12 },
-  hero: {
-    paddingHorizontal: T.pad,
-    paddingVertical: 18,
-    backgroundColor: T.raised,
-    borderLeftWidth: 3,
-    borderBottomWidth: 2,
-    borderBottomColor: T.divider,
-  },
-  stepper: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    marginTop: 6,
-  },
-  // O quadrado do ± perdeu o acento de propósito: ele não é o elemento dominante da tela
-  // (o dominante é o número da carga, e a massa do acento é do Publicar).
-  sq: {
-    width: 56,
-    height: 56,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 2,
-    borderColor: T.divider,
-    backgroundColor: T.fill,
-    flexShrink: 0,
-  },
-  loadBlock: { flex: 1 },
-  prose: { marginTop: 10 },
-  drift: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 10 },
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: T.pad,
-    paddingVertical: 18,
-    borderBottomWidth: 1,
-    borderBottomColor: T.hairline,
-  },
-  rowBody: { flex: 1, minWidth: 0 },
-  rowFrom: { flexDirection: "row", alignItems: "center", gap: 5 },
-  rowLoad: { fontVariant: ["tabular-nums"] },
-  foot: {
-    paddingHorizontal: T.pad,
-    paddingTop: 24,
-    paddingBottom: 22,
-  },
-  footLine: { marginTop: 6 },
-  footNote: { marginTop: 6 },
-});
+const usarEstilos = estilos(({ T, FORMA }) =>
+  StyleSheet.create({
+    scroll: { flex: 1 },
+    content: { flexGrow: 1 },
+    error: { paddingHorizontal: T.pad, paddingTop: 12 },
+    hero: {
+      paddingHorizontal: T.pad,
+      paddingVertical: 18,
+      backgroundColor: T.raised,
+      borderRadius: FORMA.raio,
+      borderLeftWidth: FORMA.borda + 1,
+      borderBottomWidth: FORMA.borda,
+      borderBottomColor: T.divider,
+    },
+    stepper: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+      marginTop: 6,
+    },
+    // O quadrado do ± perdeu o acento de propósito: ele não é o elemento dominante da tela
+    // (o dominante é o número da carga, e a massa do acento é do Publicar).
+    sq: {
+      width: 56,
+      height: 56,
+      alignItems: "center",
+      justifyContent: "center",
+      borderWidth: FORMA.borda,
+      borderRadius: FORMA.raioAcao,
+      borderColor: T.divider,
+      backgroundColor: T.fill,
+      flexShrink: 0,
+    },
+    loadBlock: { flex: 1 },
+    prose: { marginTop: 10 },
+    drift: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 10 },
+    row: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      paddingHorizontal: T.pad,
+      paddingVertical: 18,
+      borderBottomWidth: FORMA.fio,
+      borderBottomColor: T.hairline,
+    },
+    rowBody: { flex: 1, minWidth: 0 },
+    rowFrom: { flexDirection: "row", alignItems: "center", gap: 5 },
+    rowLoad: { fontVariant: ["tabular-nums"] },
+    foot: {
+      paddingHorizontal: T.pad,
+      paddingTop: 24,
+      paddingBottom: 22,
+    },
+    footLine: { marginTop: 6 },
+    footNote: { marginTop: 6 },
+  }),
+);

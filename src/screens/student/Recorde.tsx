@@ -3,11 +3,12 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { FinishRecord } from "../../api";
 import { studentHomeTarget } from "../../nav/StudentTabs";
 import type { RootStackParamList } from "../../nav/types";
-import { productTheme as T } from "../../theme";
 import { AccentCTA } from "../../ui/AccentCTA";
 import { Figure } from "../../ui/Figure";
 import { formatKg } from "../../ui/format";
-import { DockFooter, Head, Phone } from "../../ui/Screen";
+import { Band, DockFooter, Head, Phone } from "../../ui/Screen";
+import { estilos } from "../../ui/tema";
+import { Troca } from "../../ui/Troca";
 import { Txt } from "../../ui/Txt";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Recorde">;
@@ -26,7 +27,8 @@ type Props = NativeStackScreenProps<RootStackParamList, "Recorde">;
  *  94%), então a âncora nasceria colada na borda direita — o teto que o próprio arquivo
  *  declara. A baseline vira o rótulo sob o número, com o número dito. */
 export function Recorde({ navigation, route }: Props) {
-  const { accent, records, needsCommitment } = route.params;
+  const styles = usarEstilos();
+  const { records, needsCommitment } = route.params;
   // O herói é o MAIOR número da lista, não o primeiro: com a ordem do servidor, um PR de
   // 127,5 podia cair na lista de baixo com 62,5 no corpo mega. Hierarquia invertida.
   const [top, ...rest] = [...records].sort((a, b) => b.load_kg - a.load_kg);
@@ -35,44 +37,73 @@ export function Recorde({ navigation, route }: Props) {
   const baseline =
     before === null ? "Primeiro neste exercício" : `Antes: ${formatKg(before)} kg`;
 
+  // O número de AGORA. Ele é quem manda no layout da troca — a caixa tem a altura dele do
+  // primeiro ao último quadro, e o rótulo não anda quando a substituição acontece.
+  const agora = top ? (
+    <Figure
+      role="mega"
+      value={formatKg(top.load_kg)}
+      unit="kg"
+      dir={before === null ? undefined : "up"}
+      labelBelow
+      label={baseline}
+      note={gain === null ? undefined : `+${formatKg(gain)} kg`}
+    />
+  ) : null;
+
   return (
     <Phone>
       <Head
         kicker="Recorde"
         title={top ? top.exercise_name : "Nada novo hoje"}
-        accent={accent}
       />
 
-      {/* O vazio é dividido em dois: o número flutua no meio da folga e a lista + o botão
-          ficam ancorados embaixo. Uma folga só, de um lado, lê como terço perdido. */}
-      <View style={styles.grow} />
+      {/* O vazio era dividido em dois — e os dois ficavam no chão nu, 194pt e 189pt sem
+          dono, com o número boiando entre eles. Agora a folga é o respiro INTERNO da
+          superfície do recorde: mesmo pixel vazio, com dono e com fundo. */}
+      <Band raised grow rule="none">
+        {top ? (
+          <View
+            accessible
+            accessibilityLabel={`${formatKg(top.load_kg)} quilos. ${baseline}.`}
+          >
+            {/* A CONQUISTA É O NÚMERO TROCANDO DE LUGAR CONSIGO MESMO. O teto anterior —
+                `previous_kg`, lido de personal_records, não estimado — abre a tela em corpo
+                mega e é SUBSTITUÍDO pelo de agora. A tela dizia a mesma coisa com os dois
+                números parados, um em mega e o outro em rótulo: o fato estava lá, o momento
+                não. Sem recorde anterior não há troca — primeira vez no exercício não ganha
+                teatro inventado, e o rótulo abaixo do número segue dizendo o fato inteiro
+                para quem chegou depois da animação ou desligou movimento. */}
+            {before === null ? (
+              agora
+            ) : (
+              <Troca
+                antes={
+                  <Figure
+                    role="mega"
+                    value={formatKg(before)}
+                    unit="kg"
+                    labelBelow
+                    label="Seu recorde até hoje"
+                  />
+                }
+                depois={agora}
+              />
+            )}
+          </View>
+        ) : null}
 
-      {top ? (
-        <View
-          style={styles.hero}
-          accessible
-          accessibilityLabel={`${formatKg(top.load_kg)} quilos. ${baseline}.`}
-        >
-          <Figure
-            role="mega"
-            value={formatKg(top.load_kg)}
-            unit="kg"
-            dir={before === null ? undefined : "up"}
-            labelBelow
-            label={baseline}
-            note={gain === null ? undefined : `+${formatKg(gain)} kg`}
-          />
-        </View>
-      ) : null}
-
-      <Txt role="body" tone="muted" style={styles.copy}>
-        O corpo lembra. Este recorde é seu — ele não fica para trás.
-      </Txt>
-
-      <View style={styles.grow} />
+        {/* Um recorde não zera com a ausência — ele é o único patrimônio do produto que a
+            Retomada não toca. E quem monta a sessão RECEBE este número hoje
+            (`ReturnItem.Records`, internal/owner/service.go:121): é fato do sistema, dito
+            pelo produto. Nada aqui é assinado por ele. */}
+        <Txt role="body" tone="muted" style={styles.copy}>
+          Este recorde é seu e não zera. Quem monta sua sessão vê isso hoje.
+        </Txt>
+      </Band>
 
       {rest.length > 0 ? (
-        <View style={styles.also}>
+        <Band raised rule="none">
           <Txt role="label">Também hoje</Txt>
           {rest.map((row) => {
             const older = olderLoad(row);
@@ -90,7 +121,7 @@ export function Recorde({ navigation, route }: Props) {
               </View>
             );
           })}
-        </View>
+        </Band>
       ) : null}
 
       <DockFooter>
@@ -109,7 +140,6 @@ export function Recorde({ navigation, route }: Props) {
               routes: [studentHomeTarget],
             });
           }}
-          accent={accent}
         />
       </DockFooter>
     </Phone>
@@ -123,24 +153,16 @@ function olderLoad(row: FinishRecord | undefined): number | null {
   return row.previous_kg;
 }
 
-const styles = StyleSheet.create({
-  grow: { flex: 1 },
-  hero: { paddingHorizontal: T.pad },
-  copy: { paddingHorizontal: T.pad, marginTop: 20 },
-  also: {
-    paddingHorizontal: T.pad,
-    paddingTop: 16,
-    // a última linha não pode raspar o dock: folga própria, não a do botão.
-    paddingBottom: 16,
-    borderTopWidth: 1,
-    borderTopColor: T.hairline,
-  },
-  row: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    justifyContent: "space-between",
-    gap: 12,
-    marginTop: 12,
-  },
-  rowName: { flex: 1, minWidth: 0 },
-});
+const usarEstilos = estilos(({ SPACE }) =>
+  StyleSheet.create({
+    copy: { marginTop: SPACE.room },
+    row: {
+      flexDirection: "row",
+      alignItems: "flex-start",
+      justifyContent: "space-between",
+      gap: SPACE.tight,
+      marginTop: SPACE.tight,
+    },
+    rowName: { flex: 1, minWidth: 0 },
+  }),
+);

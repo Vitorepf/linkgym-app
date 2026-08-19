@@ -3,15 +3,15 @@ import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import Animated from "react-native-reanimated";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { draftFromLast, listModels, ownerStudent, ownerWeek } from "../../api";
+import { draftFromLast, listModels, ownerStudent } from "../../api";
 import type { OwnerStudent } from "../../api";
 import type { RootStackParamList } from "../../nav/types";
-import { accentSet, errorInk, productTheme as T } from "../../theme";
 import { AccentCTA } from "../../ui/AccentCTA";
 import { Figure } from "../../ui/Figure";
 import { IconCheck } from "../../ui/Icons";
 import { useTone } from "../../ui/motion";
 import { DockFooter, Head, Phone } from "../../ui/Screen";
+import { estilos, useTema } from "../../ui/tema";
 import { Txt } from "../../ui/Txt";
 import { formatKg } from "../../ui/format";
 
@@ -21,9 +21,10 @@ type Load = OwnerStudent["last_loads"][number];
 type Props = {
   token: string;
   timeName: string;
-  accent: string;
-  personId?: string;
-  personName?: string;
+  /** Quem. Era opcional, e o opcional virava `week.items[0]` — a tela abria a ficha de
+   *  quem calhasse de vir primeiro na semana. Rota empilhada, pessoa obrigatória. */
+  personId: string;
+  personName: string;
 };
 
 /** Uma origem. Seleção é TOM no mesmo elemento mais um traço à esquerda — nunca um matiz
@@ -42,6 +43,8 @@ function Origem({
   mark: string;
   onPress: () => void;
 }) {
+  const styles = usarEstilos();
+  const { T } = useTema();
   const tone = useTone(selected, T.bg, T.raised);
   return (
     <Pressable
@@ -71,18 +74,12 @@ function Origem({
   );
 }
 
-export function Base({
-  token,
-  timeName,
-  accent,
-  personId: initialPersonId,
-  personName: initialPersonName,
-}: Props) {
-  const A = accentSet(accent, T.raised);
+export function Base({ token, timeName, personId, personName }: Props) {
+  const styles = usarEstilos();
+  const { T, acento, errorInk } = useTema();
+  const A = acento(undefined, T.raised);
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const [personId, setPersonId] = useState(initialPersonId ?? "");
-  const [personName, setPersonName] = useState(initialPersonName ?? "");
   const [modelId, setModelId] = useState("");
   // O NOME do modelo vem do servidor. A tela não pode chumbar um nome de Modelo — nem
   // para achar nem para escrever —, senão carrega no código a palavra que o modelo tiver.
@@ -94,9 +91,11 @@ export function Base({
 
   const load = useCallback(async () => {
     try {
-      const [models, week] = await Promise.all([
+      // A CAUSA na tela: os números que este corpo já carrega, antes do toque. Sem esta
+      // chamada a escolha é uma pergunta sem evidência — que é o defeito da barra.
+      const [models, student] = await Promise.all([
         listModels(token),
-        ownerWeek(token),
+        ownerStudent(token, personId),
       ]);
       const modelo = models.items[0];
       if (!modelo) {
@@ -105,20 +104,12 @@ export function Base({
       }
       setModelId(modelo.id);
       setModelName(modelo.name);
-      const first = week.items[0];
-      const pid = initialPersonId || first?.person_id || "";
-      setPersonId(pid);
-      setPersonName(initialPersonName || first?.name || "");
-      setError("");
-      if (!pid) return;
-      // A CAUSA na tela: os números que este corpo já carrega, antes do toque. Sem esta
-      // chamada a escolha é uma pergunta sem evidência — que é o defeito da barra.
-      const student = await ownerStudent(token, pid);
       setLoads(student.last_loads);
+      setError("");
     } catch {
       setError("Não deu para abrir a ficha.");
     }
-  }, [token, initialPersonId, initialPersonName]);
+  }, [token, personId]);
 
   useFocusEffect(
     useCallback(() => {
@@ -127,7 +118,7 @@ export function Base({
   );
 
   async function start(from: From) {
-    if (busy || !modelId || !personId) return;
+    if (busy || !modelId) return;
     setBusy(true);
     try {
       const draft = await draftFromLast(token, modelId, personId, from);
@@ -135,7 +126,6 @@ export function Base({
       navigation.navigate("Ajustar", {
         token,
         timeName,
-        accent,
         prescriptionId: draft.draft_id,
         personId,
         personName,
@@ -158,7 +148,6 @@ export function Base({
         kicker={personName || "Nova ficha"}
         title="De onde a gente parte?"
         kickerMuted
-        accent={accent}
       />
       <ScrollView
         style={styles.scroll}
@@ -242,9 +231,8 @@ export function Base({
         <AccentCTA
           label="Continuar"
           meta={keeps ? `${total} cargas` : "carga de partida"}
-          accent={accent}
           busy={busy}
-          disabled={!personId || !modelId}
+          disabled={!modelId}
           onPress={() => void start(picked)}
         />
       </DockFooter>
@@ -252,50 +240,55 @@ export function Base({
   );
 }
 
-const styles = StyleSheet.create({
-  scroll: { flex: 1 },
-  content: { flexGrow: 1, paddingBottom: 8 },
-  error: { paddingHorizontal: T.pad, paddingTop: 12 },
-  row: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 14,
-    paddingHorizontal: T.pad,
-    paddingVertical: 28,
-    borderBottomWidth: 1,
-    borderBottomColor: T.hairline,
-    borderLeftWidth: 3,
-  },
-  check: {
-    width: 22,
-    height: 22,
-    marginTop: 3,
-    borderWidth: 2,
-    borderColor: T.ink,
-    alignItems: "center",
-    justifyContent: "center",
-    flexShrink: 0,
-  },
-  checkOn: { backgroundColor: T.ink },
-  rowBody: { flex: 1, minWidth: 0 },
-  rowNote: { marginTop: 4 },
-  evidence: {
-    flex: 1,
-    justifyContent: "space-between",
-    paddingHorizontal: T.pad,
-    paddingTop: 32,
-  },
-  empty: { marginTop: 8 },
-  list: { marginTop: 26, borderTopWidth: 2, borderTopColor: T.divider },
-  load: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingVertical: 24,
-    borderBottomWidth: 1,
-    borderBottomColor: T.hairline,
-  },
-  loadName: { flex: 1, minWidth: 0 },
-  kg: { fontVariant: ["tabular-nums"] },
-  out: { textDecorationLine: "line-through" },
-});
+const usarEstilos = estilos(({ T, FORMA }) =>
+  StyleSheet.create({
+    scroll: { flex: 1 },
+    content: { flexGrow: 1, paddingBottom: 8 },
+    error: { paddingHorizontal: T.pad, paddingTop: 12 },
+    row: {
+      flexDirection: "row",
+      alignItems: "flex-start",
+      gap: 14,
+      paddingHorizontal: T.pad,
+      paddingVertical: 28,
+      borderBottomWidth: FORMA.fio,
+      borderBottomColor: T.hairline,
+      // o traço de seleção é ÊNFASE: um degrau acima do traço forte, senão ele empata
+      // com a régua da lista e a linha escolhida deixa de se anunciar.
+      borderLeftWidth: FORMA.borda + 1,
+    },
+    check: {
+      width: 22,
+      height: 22,
+      marginTop: 3,
+      borderWidth: FORMA.borda,
+      borderRadius: FORMA.raioEm(22),
+      borderColor: T.ink,
+      alignItems: "center",
+      justifyContent: "center",
+      flexShrink: 0,
+    },
+    checkOn: { backgroundColor: T.ink },
+    rowBody: { flex: 1, minWidth: 0 },
+    rowNote: { marginTop: 4 },
+    evidence: {
+      flex: 1,
+      justifyContent: "space-between",
+      paddingHorizontal: T.pad,
+      paddingTop: 32,
+    },
+    empty: { marginTop: 8 },
+    list: { marginTop: 26, borderTopWidth: FORMA.borda, borderTopColor: T.divider },
+    load: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      paddingVertical: 24,
+      borderBottomWidth: FORMA.fio,
+      borderBottomColor: T.hairline,
+    },
+    loadName: { flex: 1, minWidth: 0 },
+    kg: { fontVariant: ["tabular-nums"] },
+    out: { textDecorationLine: "line-through" },
+  }),
+);

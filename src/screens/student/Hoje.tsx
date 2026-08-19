@@ -2,6 +2,7 @@ import { useNavigation } from "@react-navigation/native";
 import { useEffect, useRef, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import {
+  configDoTime,
   progress,
   putProntidao,
   today,
@@ -19,7 +20,6 @@ import {
   resumeCursor,
   sessionProof,
 } from "../../offline/sessionQueue";
-import { accentSet, errorInk, productTheme as T } from "../../theme";
 import { AccentCTA } from "../../ui/AccentCTA";
 import { Baseline } from "../../ui/Baseline";
 import { Figure } from "../../ui/Figure";
@@ -35,8 +35,11 @@ import {
 import { Initials } from "../../ui/Initials";
 import { MetricGrid } from "../../ui/Metric";
 import { ScaleRow } from "../../ui/ScaleRow";
-import { Band, Head, Phone } from "../../ui/Screen";
+import { Avatar } from "../../ui/Avatar";
+import { Band, Head, Phone, useFimDaRolagem } from "../../ui/Screen";
+import { estilos, useTema } from "../../ui/tema";
 import { Txt } from "../../ui/Txt";
+import { RetomadaBand } from "./Retomada";
 import { dateShort, plannedSets, weekdayLong } from "../../ui/format";
 
 type Props = {
@@ -47,9 +50,12 @@ type Props = {
 };
 
 export function Hoje({ token, time, needsCommitment }: Props) {
+  const styles = usarEstilos();
+  const fim = useFimDaRolagem();
+  const { T, acento, errorInk } = useTema();
   const navigation = useNavigation<StudentTabNavigation>();
-  const accent = time.accent_color || T.accentFallback;
-  const A = accentSet(accent);
+  const A = acento();
+  const cfg = configDoTime(time);
   const [data, setData] = useState<TodayPayload | null>(null);
   const [week, setWeek] = useState<{ for_date: string; score: number }[]>([]);
   const [error, setError] = useState("");
@@ -60,6 +66,10 @@ export function Hoje({ token, time, needsCommitment }: Props) {
   const [pendingLocal, setPendingLocal] = useState(false);
   const [resume, setResume] = useState(false);
   const [open, setOpen] = useState(false);
+  // Faixa FECHÁVEL: o X some com o aviso e o dia continua inteiro atrás. O estado é local
+  // de propósito — fechar é "agora não", não "resolvido". A Retomada segue aberta no
+  // servidor até a sessão curta ser feita, e volta na próxima abertura.
+  const [comebackOff, setComebackOff] = useState(false);
   const savingRef = useRef(false);
 
   useEffect(() => {
@@ -130,12 +140,12 @@ export function Hoje({ token, time, needsCommitment }: Props) {
     const base = {
       token,
       timeName: time.name,
-      accent,
       prescriptionId: prescription.id,
       items: prescription.items,
       ofensivaCount: data.ofensiva.current_count,
       xpTotal: data.xp_total,
       needsCommitment,
+      passoKg: cfg.passo_kg,
     };
     const existing = await loadCurrent();
     if (existing && existing.prescription_id === prescription.id) {
@@ -145,7 +155,6 @@ export function Hoje({ token, time, needsCommitment }: Props) {
         const finish = result.ok ? result.finish : undefined;
         navigation.navigate("Feito", {
           timeName: time.name,
-          accent,
           ofensivaCount:
             finish?.ofensiva.current_count ?? data.ofensiva.current_count + 1,
           xpGained: finish?.xp_gained ?? 10,
@@ -210,14 +219,39 @@ export function Hoje({ token, time, needsCommitment }: Props) {
   return (
     <Phone>
       <Head
+        marca={
+          time.logo_url ? (
+            <Avatar url={time.logo_url} name={time.name} size={34} />
+          ) : undefined
+        }
         kicker={`${weekdayLong(now)} · ${dateShort(now)}`}
         kickerMuted
-        right={<IconMark color={A.mark} />}
+        right={
+          /* CONTADOR DA OFENSIVA NO CHROME. Estava só no rodapé da rolagem (linha ~430),
+             em corpo de rótulo: custava rolar até o fim para saber o próprio número. Aqui
+             custa zero toque.
+
+             Mesma posição e MESMA FORMA nos dois estados — o que muda é a saturação: mudo
+             antes do Cumprimento do dia, aceso depois. Não pode ser cor semântica, porque
+             o único matiz da tela é o do personal e ele não significa bom nem ruim; então
+             o estado sai da SATURAÇÃO do mesmo matiz, não de outro matiz.
+
+             Ofensiva zerada não vira "0" aceso: sem contagem, fica só a marca muda. Falha
+             é AUSÊNCIA de marca. */
+          <View style={styles.streak}>
+            <IconMark color={data?.cumprido ? A.mark : T.muted} />
+            {data && data.ofensiva.current_count > 0 ? (
+              <Txt role="label" tone={data.cumprido ? "ink" : "dim"}>
+                {data.ofensiva.current_count}
+              </Txt>
+            ) : null}
+          </View>
+        }
       />
 
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, fim]}
         showsVerticalScrollIndicator={false}
       >
         {error ? (
@@ -232,6 +266,18 @@ export function Hoje({ token, time, needsCommitment }: Props) {
           <Band raised rule="none">
             <Txt role="body">Sessão neste celular. Sobe quando tiver rede.</Txt>
           </Band>
+        ) : null}
+
+        {data?.comeback && !comebackOff ? (
+          <RetomadaBand
+            token={token}
+            time={time}
+            needsCommitment={needsCommitment}
+            comeback={data.comeback}
+            ofensiva={data.ofensiva.current_count}
+            xp={data.xp_total}
+            onDismiss={() => setComebackOff(true)}
+          />
         ) : null}
 
         {data?.banner ? (
@@ -249,8 +295,11 @@ export function Hoje({ token, time, needsCommitment }: Props) {
 
         {/* O primeiro fato da tela é o que o corpo vai fazer hoje. O acento em ÁREA da tela
             inteira é o botão daqui — e a única outra tinta de acento fica na mesma faixa,
-            para o vermelho ler como UM lugar e não como três magnitudes. */}
-        <Band>
+            para o vermelho ler como UM lugar e não como três magnitudes.
+
+            Dia vazio: esta faixa e a de prontidão crescem e dividem a sobra da tela entre
+            si — era um vão de 235pt de chão nu entre as escalas e a tab bar. */}
+        <Band grow={data !== null && !prescription}>
           <View style={styles.anchorRow}>
             <IconFicha color={T.muted} size={14} />
             <Txt role="label" color={A.text}>
@@ -260,6 +309,11 @@ export function Hoje({ token, time, needsCommitment }: Props) {
           <Txt role="title" style={styles.title}>
             {prescription ? prescription.name : "Ainda não tem nada para hoje."}
           </Txt>
+          {data && !prescription ? (
+            <Txt role="body" tone="muted" style={styles.reading}>
+              Aparece aqui quando {time.name} publicar.
+            </Txt>
+          ) : null}
           {prescription ? (
             <>
               <View style={styles.stats}>
@@ -276,14 +330,13 @@ export function Hoje({ token, time, needsCommitment }: Props) {
                   onPress={() => {
                     void startLocal();
                   }}
-                  accent={accent}
                 />
               </View>
             </>
           ) : null}
         </Band>
 
-        {answered ? (
+        {cfg.prontidao && answered ? (
           <>
             <Band rule="none">
               {/* Âncora de varredura: a seção se acha pelo ícone, antes de ler a palavra. */}
@@ -344,6 +397,7 @@ export function Hoje({ token, time, needsCommitment }: Props) {
             personal. De quebra some a caixa raspando a tab bar: a única caixa com borda da
             rolagem cabe INTEIRA acima da dobra, e o que sobra abaixo dela é só texto —
             parágrafo cortado se lê como "tem mais", borda cortada se lê como defeito. */}
+        {cfg.prontidao ? (
         <Band>
           <View style={styles.anchorRow}>
             <IconPerson color={T.muted} size={14} />
@@ -363,19 +417,16 @@ export function Hoje({ token, time, needsCommitment }: Props) {
                 name="Energia"
                 value={energy}
                 onChange={setEnergy}
-                accent={accent}
               />
               <ScaleRow
                 name="Dor"
                 value={soreness}
                 onChange={setSoreness}
-                accent={accent}
               />
               <ScaleRow
                 name="Sono"
                 value={sleep}
                 onChange={setSleep}
-                accent={accent}
               />
             </View>
           ) : null}
@@ -384,14 +435,31 @@ export function Hoje({ token, time, needsCommitment }: Props) {
               Registrando
             </Txt>
           ) : null}
+          {/* Dia vazio: a prontidão ainda não virou número, então a faixa diz o que os
+              três valores formam — e a frase quebra o vão da faixa crescida. */}
+          {data && !prescription ? (
+            <Txt role="body" tone="muted" style={styles.reading}>
+              Energia, dor e sono viram sua prontidão do dia.
+            </Txt>
+          ) : null}
         </Band>
+        ) : null}
 
+        {/* A VOZ DO PERSONAL. O bloco inteiro só existe quando ele escreveu a frase ao
+            publicar: `coach_line` vem literal de prescriptions.coach_line, e sem frase a
+            API devolve vazio e nada disto é montado. Era o contrário — o servidor gerava
+            "<exercício> em <carga>. Técnica, não ego." e este bloco assinava a frase de
+            produto com o rosto e o nome de uma pessoa real.
+
+            E o rótulo perdeu "revisou sua semana" pelo mesmo motivo: ninguém revisou
+            semana nenhuma: ele publicou o dia e escreveu uma linha. Rosto, nome e data são
+            a assinatura inteira de que este slot precisa. */}
         {data?.coach_line ? (
           <Band rule="hair">
             <View style={styles.row}>
               <Initials name={time.name} size={34} />
               <View style={styles.grow}>
-                <Txt role="body">{time.name} revisou sua semana</Txt>
+                <Txt role="body">{time.name}</Txt>
                 <Txt role="note">hoje</Txt>
               </View>
             </View>
@@ -421,6 +489,7 @@ export function Hoje({ token, time, needsCommitment }: Props) {
 /** O ritmo do dia: numeral com tinta, unidade cinza um corpo abaixo. Não é Figure — a
  *  Figure começa em 41px e este par mora na linha de apoio, não no topo da hierarquia. */
 function Stat({ n, unit }: { n: number; unit: string }) {
+  const styles = usarEstilos();
   return (
     <View style={styles.stat}>
       <Txt role="body">{n}</Txt>
@@ -505,30 +574,34 @@ function ctaLabel(label: string): string {
   return "Começar";
 }
 
-const styles = StyleSheet.create({
-  scroll: { flex: 1 },
-  // O fim da rolagem não encosta na tab bar: a última faixa termina e sobra chão.
-  content: { flexGrow: 1, paddingBottom: 28 },
-  row: { flexDirection: "row", alignItems: "center", gap: 12 },
-  grow: { flex: 1, minWidth: 0 },
-  title: { marginTop: 5 },
-  stats: { flexDirection: "row", gap: 20, marginTop: 12 },
-  stat: { flexDirection: "row", alignItems: "flex-end", gap: 6 },
-  cta: { marginTop: 18 },
-  scales: { marginTop: 14 },
-  saving: { marginTop: 10 },
-  // Âncoras de varredura: ícone mudo à esquerda do rótulo da seção. Monocromático de
-  // propósito — matiz aqui é do personal e nunca significa nada.
-  anchorRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  anchored: { flexDirection: "row", gap: 8 },
-  anchorIcon: { paddingTop: 1 },
-  delta: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 6 },
-  reading: { marginTop: 10 },
-  ghost: { marginTop: 12 },
-  coachLine: {
-    marginTop: 14,
-    paddingTop: 14,
-    borderTopWidth: 1,
-    borderTopColor: T.hairline,
-  },
-});
+const usarEstilos = estilos(({ T }) =>
+  StyleSheet.create({
+    streak: { flexDirection: "row", alignItems: "center", gap: 6 },
+    scroll: { flex: 1 },
+    content: { flexGrow: 1 },
+    row: { flexDirection: "row", alignItems: "center", gap: 12 },
+    grow: { flex: 1, minWidth: 0 },
+    title: { marginTop: 5 },
+    stats: { flexDirection: "row", gap: 20, marginTop: 12 },
+    // Base comum, como na Figure: alinhar pelo fundo da caixa desalinha as duas bases,
+    // porque a sobra da entrelinha é diferente em cada degrau.
+    stat: { flexDirection: "row", alignItems: "baseline", gap: 6 },
+    cta: { marginTop: 18 },
+    scales: { marginTop: 14 },
+    saving: { marginTop: 10 },
+    // Âncoras de varredura: ícone mudo à esquerda do rótulo da seção. Monocromático de
+    // propósito — matiz aqui é do personal e nunca significa nada.
+    anchorRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+    anchored: { flexDirection: "row", gap: 8 },
+    anchorIcon: { paddingTop: 1 },
+    delta: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 6 },
+    reading: { marginTop: 10 },
+    ghost: { marginTop: 12 },
+    coachLine: {
+      marginTop: 14,
+      paddingTop: 14,
+      borderTopWidth: 1,
+      borderTopColor: T.hairline,
+    },
+  }),
+);

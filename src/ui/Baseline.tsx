@@ -1,5 +1,5 @@
 import { StyleSheet, View } from "react-native";
-import { productTheme as T } from "../theme";
+import { estilos, useTema } from "./tema";
 import { Txt } from "./Txt";
 
 /** BASELINE DE VERDADE.
@@ -32,6 +32,16 @@ const MIN = 0;
 const MAX = 100;
 
 export function Baseline({ value, label }: BaselineSpec) {
+  const styles = usarEstilos();
+  // A SEGUNDA COR ganha aqui o único papel que ela pode ter: SEGUNDA SÉRIE. Esta peça
+  // desenha a série de REFERÊNCIA (a média) ao lado da série MEDIDA (o número do dia), e
+  // até agora pintava a referência com os mesmos dois neutros que o resto da tela usa —
+  // duas séries no mesmo eixo de tom, distinguidas só por posição. O matiz aqui não
+  // significa "bom" nem "ruim": significa "esta é a outra".
+  // O chão é `raised`: é o fundo DIFÍCIL da paleta nos sete chãos, então o piso limpo
+  // contra ele está limpo contra os quatro.
+  const { T, secundaria, acento } = useTema();
+  const ref = acento(secundaria, T.raised);
   // ponytail: fora do eixo não é baseline, é ruído — some, mesmo com valor.
   if (!Number.isFinite(value) || value < MIN || value > MAX) return null;
   const t = (value - MIN) / (MAX - MIN);
@@ -48,8 +58,8 @@ export function Baseline({ value, label }: BaselineSpec) {
       </View>
       <View style={styles.rule} />
       <View style={[styles.anchor, { left: `${t * 100}%` }]}>
-        <View style={styles.tick} />
-        <Txt role="label" style={styles.num}>
+        <View style={[styles.tick, { backgroundColor: ref.mark }]} />
+        <Txt role="label" color={ref.text} style={styles.num}>
           {value}
         </Txt>
         <Txt role="label" tone="dim" numberOfLines={1}>
@@ -66,21 +76,27 @@ export function Baseline({ value, label }: BaselineSpec) {
 // rótulo na ponta em vez de centrar.
 const ANCHOR = 160;
 
-const styles = StyleSheet.create({
-  wrap: { marginTop: 14, paddingBottom: 38 },
-  axis: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingBottom: 6,
-  },
-  rule: { height: 1, backgroundColor: T.hairline },
-  anchor: {
-    position: "absolute",
-    top: 22,
-    width: ANCHOR,
-    marginLeft: -ANCHOR / 2,
-    alignItems: "center",
-  },
-  tick: { width: 2, height: 9, backgroundColor: T.divider },
-  num: { color: T.ink, letterSpacing: 0 },
-});
+const usarEstilos = estilos(({ T, FORMA }) =>
+  StyleSheet.create({
+    wrap: { marginTop: 14, paddingBottom: 38 },
+    axis: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      paddingBottom: 6,
+    },
+    // O EIXO é elemento de UI, não fio interno de bloco: é ele que dá lugar ao número, e
+    // um eixo que não se vê transforma a âncora em um traço solto no vazio. `T.hairline`
+    // media 1,23:1 contra o chão — abaixo do piso 3 —, e a espessura era 1 cravado,
+    // ignorando o traço que o personal escolheu.
+    rule: { height: FORMA.fio, backgroundColor: T.divider },
+    anchor: {
+      position: "absolute",
+      top: 22,
+      width: ANCHOR,
+      marginLeft: -ANCHOR / 2,
+      alignItems: "center",
+    },
+    tick: { width: 2, height: 9 },
+    num: { letterSpacing: 0 },
+  }),
+);

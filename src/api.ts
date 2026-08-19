@@ -1,4 +1,5 @@
 import Constants from "expo-constants";
+import { APARENCIA_PADRAO, type Aparencia } from "./theme";
 
 export function apiBaseUrl(): string {
   const env = (process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:8080").replace(
@@ -48,13 +49,73 @@ export type Person = {
   name: string;
   phone: string;
   role: string;
+  avatar_color?: string;
+  avatar_url?: string;
+};
+
+/** A config white-label do Time — o cardápio que o personal monta. Toda chave é
+ *  opcional no payload; `configDoTime` aplica os padrões de fábrica. */
+export type TimeConfig = {
+  /** A APARÊNCIA: o documento que o personal edita para o app inteiro ser dele. A cor
+   *  primária NÃO mora aqui — ela é `accent_color`, que já é coluna e já viaja no convite.
+   *  Um documento com dois donos da mesma cor é a receita de divergirem. */
+  aparencia?: Partial<Aparencia>;
+  liga?: "nomes" | "anonima" | "off";
+  selos?: boolean;
+  xp?: boolean;
+  prontidao?: boolean;
+  passo_kg?: number;
+  dias_padrao?: number;
+  boas_vindas?: string;
+  retomada?: string;
 };
 
 export type Time = {
   id: string;
   name: string;
   accent_color: string;
+  logo_url?: string;
+  config?: TimeConfig | null;
 };
+
+/** Config com os padrões de fábrica aplicados: ausência de chave = comportamento que o
+ *  app sempre teve. É a única porta de leitura — tela nenhuma lê `time.config` cru. */
+export function configDoTime(time: Time): Required<
+  Pick<TimeConfig, "liga" | "selos" | "xp" | "prontidao" | "passo_kg" | "dias_padrao">
+> &
+  Pick<TimeConfig, "boas_vindas" | "retomada"> {
+  const c = time.config ?? {};
+  return {
+    liga: c.liga ?? "nomes",
+    selos: c.selos ?? true,
+    xp: c.xp ?? true,
+    prontidao: c.prontidao ?? true,
+    passo_kg: c.passo_kg ?? 2.5,
+    dias_padrao: c.dias_padrao ?? 3,
+    boas_vindas: c.boas_vindas,
+    retomada: c.retomada,
+  };
+}
+
+/** A aparência com os padrões de fábrica aplicados e a cor primária vinda de onde ela
+ *  mora. Ausência de documento = o app de sempre, byte a byte. */
+export function aparenciaDoTime(time: Time | null | undefined): Aparencia {
+  const a = time?.config?.aparencia ?? {};
+  return {
+    ...APARENCIA_PADRAO,
+    ...a,
+    primaria: time?.accent_color || APARENCIA_PADRAO.primaria,
+  };
+}
+
+/** URL de mídia pronta para o aparelho. A API manda caminho RELATIVO (/v1/media/...):
+ *  quem serve a imagem é a própria API, no MESMO host que o app já alcança em qualquer
+ *  aparelho. A primeira versão trocava o host de uma URL presignada do MinIO — e a
+ *  assinatura SigV4 é presa ao host: quebrava com 403 e o logo sumia da tela. */
+export function mediaUrl(url?: string): string | undefined {
+  if (!url) return undefined;
+  return url.startsWith("/") ? `${apiBaseUrl()}${url}` : url;
+}
 
 export function requestCode(phone: string, inviteCode?: string) {
   return request<{ ok: boolean; dev_code?: string; time?: Time }>(
@@ -103,6 +164,11 @@ export type TodayItem = {
   rest_seconds: number | null;
   notes: string | null;
   video_url: string | null;
+  /** O que o CORPO dele fez da última vez neste exercício — série executada, não carga
+   *  prescrita. `null` quando nunca fez: a tela desenha a ausência, nunca um número
+   *  inventado. */
+  last_kg: number | null;
+  last_reps: number | null;
 };
 
 export type Prontidao = {
@@ -130,6 +196,9 @@ export type TodayPayload = {
   coach_line: string;
   debut: boolean;
   comeback: { id: string; minutes: number; coach_line: string } | null;
+  /** Cumprimento: a Sessão prescrita de hoje FECHADA. Nunca volume, carga ou percentual
+   *  do prescrito. É o que acende o contador da Ofensiva no chrome. */
+  cumprido: boolean;
 };
 
 export type OwnerHome = {
@@ -170,6 +239,217 @@ export function putProntidao(
 
 export function ownerHome(token: string) {
   return request<OwnerHome>("/v1/owner/home", { token });
+}
+
+/** As LEITURAS da Mensalidade sobre a turma (CONTEXT.md) + quem está perto de sumir.
+ *  Dinheiro em centavos: float é o bug que ninguém acha. */
+export type OwnerOperacao = {
+  student_count: number;
+  com_mensalidade: number;
+  /** O COMBINADO: preço de tabela × turma de hoje. NÃO é receita — não muda um centavo
+   *  quando ninguém paga. Chamava-se "Receita do mês" na tela, colado num "em aberto"
+   *  que dizia o contrário. */
+  receita_cents: number;
+  ticket_cents: number;
+  /** O mês em três pedaços, que somam o combinado: o que entrou, o que ainda vai vencer,
+   *  e o que passou do dia. Antes os dois últimos eram um número só. */
+  recebido_cents: number;
+  a_vencer_cents: number;
+  vencido_cents: number;
+  /** Quando o personal marcou alguma coisa pela última vez. `null` = nunca. É o que deixa
+   *  a tela distinguir "ninguém pagou" de "ele parou de marcar" — sem isso, o esquecimento
+   *  dele vira acusação de calote contra a turma inteira. */
+  ultima_marcacao: string | null;
+  /** A chave de recebimento do personal. NÃO viaja no payload do aluno: quem paga não
+   *  precisa saber a chave, e `Time` é compartilhado com o convite. */
+  pix: {
+    configurado: boolean;
+    chave: string;
+    nome: string;
+    cidade: string;
+  };
+  /** O que ele vendeu fora da mensalidade e ainda não recebeu: avaliação, whey, marmita.
+   *  Dois campos, sem catálogo — "qualquer tipo de produto" com categoria, foto, estoque e
+   *  frete são seis decisões entre o personal e o dinheiro. */
+  a_entregar: Cobranca[];
+  month: string;
+  em_aberto: {
+    bond_id: string;
+    person_id: string;
+    name: string;
+    amount_cents: number;
+    due_day: number;
+    /** dias desde o vencimento neste mês; negativo = ainda vence. */
+    vencido_ha: number;
+    /** o copia-e-cola do Pix COM o valor desta linha. Vazio = o personal ainda não
+     *  configurou a chave. É o que impede a aluna pagar R$ 300 quando o combinado é 350. */
+    copia_e_cola: string;
+  }[];
+  /** QUEM VAI SUMIR — e por quê, numa frase conferível. Nunca um score, nunca um
+   *  percentual: "78% de chance de cancelar" é infalsificável para quem lê, e o personal
+   *  ou obedece sem julgar ou ignora. Um fato ele confere contra a memória em dois
+   *  segundos, descobre que ela viajou, e a fila continua merecendo confiança. Teto de 3. */
+  risco: {
+    person_id: string;
+    bond_id: string;
+    name: string;
+    phone: string;
+    motivo: string;
+    /** o que o dedo faz nesta linha. */
+    acao: "recebi" | "pix" | "mandar" | "publicar" | "abrir";
+    /** o código do sinal que a escolheu, para o toque registrar o porquê. */
+    sinal: string;
+    amount_cents: number;
+  }[];
+  /** QUEM não tem combinado. O rodapé escrevia só o número e mandava digitar "na
+   *  pessoa" — uma porta que não existia. Número sem os nomes que o compõem não abre
+   *  nada. */
+  sem_combinado: {
+    bond_id: string;
+    person_id: string;
+    name: string;
+  }[];
+};
+
+export type Cobranca = {
+  id: string;
+  bond_id: string;
+  person_id: string;
+  name: string;
+  descricao: string;
+  valor_cents: number;
+  criada_em: string;
+  recebida_em: string | null;
+  copia_e_cola: string;
+};
+
+/** Criar o que ele vende fora da mensalidade. A resposta já traz o Pix pronto: o gesto
+ *  seguinte dele é mandar o código, e um segundo pedido no meio seria uma espera. */
+export function criarCobranca(
+  token: string,
+  body: { bond_id: string; descricao: string; valor_cents: number },
+) {
+  return request<Cobranca>("/v1/owner/cobrancas", {
+    method: "POST",
+    token,
+    body: JSON.stringify(body),
+  });
+}
+
+export function receberCobranca(token: string, id: string, desfazer = false) {
+  return request<{ ok: boolean }>(`/v1/owner/cobrancas/${id}/recebi`, {
+    method: desfazer ? "DELETE" : "POST",
+    token,
+  });
+}
+
+/** Encerrar, pausar ou reativar o vínculo. Sem isto, quem sai do estúdio continua contando,
+ *  faturando e devendo para sempre — e o erro é cumulativo mês a mês. */
+export function mudarEstadoDoVinculo(
+  token: string,
+  bondId: string,
+  estado: "active" | "paused" | "ended",
+) {
+  return request<{ ok: boolean }>(`/v1/owner/bonds/${bondId}/estado`, {
+    method: "PUT",
+    token,
+    body: JSON.stringify({ estado }),
+  });
+}
+
+export function ownerOperacao(token: string) {
+  return request<OwnerOperacao>("/v1/owner/operacao", { token });
+}
+
+export function pagarMensalidade(token: string, bondId: string) {
+  return request<{ ok: boolean }>(`/v1/owner/mensalidades/${bondId}/pagar`, {
+    method: "POST",
+    token,
+  });
+}
+
+/** O COMBINADO: valor e dia do vencimento daquele Vínculo, digitados pelo personal.
+ *
+ *  A rota existe no backend desde a migration 00006 e NENHUMA tela do app a chamava —
+ *  enquanto o rodapé da Operação mandava o personal "digitar na pessoa". Os quatro
+ *  números daquela tela são aritmética sobre este dado, então sem esta chamada a
+ *  Operação inteira era um relatório sobre algo que o app não sabia criar. */
+/** Desfazer o "Recebi". Travado em `meio = 'mao'` no servidor: pagamento de provedor não
+ *  some por toque errado. */
+export function desfazerPagamento(token: string, bondId: string) {
+  return request<{ ok: boolean }>(`/v1/owner/mensalidades/${bondId}/pagar`, {
+    method: "DELETE",
+    token,
+  });
+}
+
+export function definirMensalidade(
+  token: string,
+  bondId: string,
+  body: { amount_cents: number; due_day: number },
+) {
+  return request<{ ok: boolean }>(`/v1/owner/mensalidades/${bondId}`, {
+    method: "PUT",
+    token,
+    body: JSON.stringify(body),
+  });
+}
+
+export function patchTime(
+  token: string,
+  body: {
+    name?: string;
+    accent_color?: string;
+    logo_object_key?: string;
+    config?: TimeConfig;
+  },
+) {
+  return request<{ ok: boolean }>("/v1/owner/time", {
+    method: "PATCH",
+    token,
+    body: JSON.stringify(body),
+  });
+}
+
+/** O CONVITE: a porta do aluno, e o primeiro artefato da marca do personal que sai do
+ *  app. Telefone é opcional — sem ele o convite é aberto e serve para quem for. Com ele, a
+ *  API devolve o convite ABERTO daquele número se já houver um, em vez de empilhar
+ *  códigos: tocar duas vezes no botão manda o mesmo link. */
+export function criarConvite(token: string, phone?: string) {
+  return request<{ code: string; phone?: string; expires_at: string }>(
+    "/v1/owner/invites",
+    {
+      method: "POST",
+      token,
+      body: JSON.stringify(phone ? { phone } : {}),
+    },
+  );
+}
+
+export function presignMedia(
+  token: string,
+  kind: "avatar" | "logo",
+  contentType: string,
+) {
+  return request<{ object_key: string; upload_url: string }>(
+    "/v1/media/presign",
+    {
+      method: "POST",
+      token,
+      body: JSON.stringify({ kind, content_type: contentType }),
+    },
+  );
+}
+
+export function patchMe(
+  token: string,
+  body: { name?: string; avatar_color?: string; avatar_object_key?: string },
+) {
+  return request<MePayload>("/v1/me", {
+    method: "PATCH",
+    token,
+    body: JSON.stringify(body),
+  });
 }
 
 export type OwnerAttention = OwnerHome["attention"][number];
@@ -333,12 +613,16 @@ export function approveOwnerWeek(token: string, personIds: string[]) {
 
 export type OwnerStudent = {
   person_id: string;
+  bond_id: string;
   name: string;
   last_effort: number | null;
   last_loads: { exercise_name: string; load_kg: number }[];
   ofensiva: { current_count: number };
   suggested: string;
   commitment_text: string | null;
+  /** O combinado desta pessoa. `null` = o personal nunca digitou — e é essa ausência que
+   *  a tela usa para oferecer "Combinar o valor" em vez de desenhar um R$ 0 mentiroso. */
+  combinado: { amount_cents: number; due_day: number } | null;
 };
 
 export function ownerStudent(token: string, id: string) {
@@ -361,7 +645,11 @@ export type DraftItem = {
   planned_sets: number;
   planned_reps: string;
   load_kg: number;
-  load_source: "history" | "starter" | "manual";
+  /** De onde a carga veio. 'history' = o CORPO levantou; 'prescription' = a ficha
+   *  anterior pediu e o corpo ainda nao fez; 'starter' = chute do Modelo; 'manual' = o
+   *  personal cravou. Os quatro sao distintos de proposito: e onde o personal ve o que
+   *  ainda precisa decidir. */
+  load_source: "history" | "prescription" | "starter" | "manual";
 };
 
 export function draftFromLast(
@@ -396,10 +684,14 @@ export function patchPrescriptionItem(
   );
 }
 
+/** `coachLine` é a frase que o personal escreveu para o dia, na voz dele. Vazia é o
+ *  caso normal: o /v1/today devolve vazio e a tela do aluno não desenha bloco nenhum —
+ *  o app não assina no lugar de quem não escreveu. */
 export function publishPrescription(
   token: string,
   prescriptionId: string,
   alsoPersonIds: string[],
+  coachLine = "",
 ) {
   return request<{ ok: boolean }>("/v1/publish", {
     method: "POST",
@@ -407,6 +699,7 @@ export function publishPrescription(
     body: JSON.stringify({
       prescription_id: prescriptionId,
       also_person_ids: alsoPersonIds,
+      coach_line: coachLine,
     }),
   });
 }

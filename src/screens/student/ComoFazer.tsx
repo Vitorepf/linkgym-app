@@ -3,9 +3,9 @@ import { Linking, ScrollView, StyleSheet, View } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { cuesFor } from "../../exerciseCues";
 import type { RootStackParamList } from "../../nav/types";
-import { accentSet, productTheme as T } from "../../theme";
 import { AccentCTA } from "../../ui/AccentCTA";
 import { Band, DockFooter, Head, Phone } from "../../ui/Screen";
+import { estilos, useTema } from "../../ui/tema";
 import { Txt } from "../../ui/Txt";
 import { MaquinaOcupada } from "./MaquinaOcupada";
 
@@ -25,8 +25,10 @@ function up(s: string) {
 }
 
 export function ComoFazer({ navigation, route }: Props) {
-  const { item, items, timeName, accent, token, prescriptionId } = route.params;
-  const A = accentSet(accent);
+  const styles = usarEstilos();
+  const { acento } = useTema();
+  const { item, items, timeName, token, prescriptionId } = route.params;
+  const A = acento();
   const video = item.video_url;
   const [failed, setFailed] = useState(false);
 
@@ -40,7 +42,7 @@ export function ComoFazer({ navigation, route }: Props) {
   return (
     <Phone>
       {/* O kicker fica mudo aqui: o acento desta tela é a palavra que ensina, não o rótulo. */}
-      <Head kicker="Como fazer" kickerMuted title={item.name} accent={accent} />
+      <Head kicker="Como fazer" kickerMuted title={item.name} />
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}
@@ -52,7 +54,6 @@ export function ComoFazer({ navigation, route }: Props) {
             <View style={styles.bleed}>
               <AccentCTA
                 label="Ver vídeo"
-                accent={accent}
                 onPress={() => {
                   Linking.openURL(video).catch(() => setFailed(true));
                 }}
@@ -127,7 +128,6 @@ export function ComoFazer({ navigation, route }: Props) {
           <MaquinaOcupada
             token={token}
             timeName={timeName}
-            accent={accent}
             prescriptionId={prescriptionId}
             from={item}
             items={items}
@@ -138,7 +138,6 @@ export function ComoFazer({ navigation, route }: Props) {
         <AccentCTA
           label="Entendi"
           onPress={() => navigation.goBack()}
-          accent={accent}
           check
           quiet={!!video}
         />
@@ -147,23 +146,25 @@ export function ComoFazer({ navigation, route }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  scroll: { flex: 1 },
-  content: { paddingBottom: 8, flexGrow: 1 },
-  bleed: { paddingHorizontal: 4, paddingVertical: 8 },
-  failed: { paddingHorizontal: T.pad, paddingBottom: 12 },
-  word: { marginTop: 6 },
-  step: {
-    flexDirection: "row",
-    alignItems: "baseline",
-    gap: 14,
-    paddingHorizontal: T.pad,
-    paddingVertical: 18,
-    borderBottomWidth: 1,
-    borderBottomColor: T.hairline,
-  },
-  ord: { minWidth: 22 },
-  stepText: { flex: 1 },
-  body: { marginTop: 8 },
-  said: { marginTop: 10, paddingLeft: 12, borderLeftWidth: 2 },
-});
+const usarEstilos = estilos(({ T }) =>
+  StyleSheet.create({
+    scroll: { flex: 1 },
+    content: { paddingBottom: 8, flexGrow: 1 },
+    bleed: { paddingHorizontal: 4, paddingVertical: 8 },
+    failed: { paddingHorizontal: T.pad, paddingBottom: 12 },
+    word: { marginTop: 6 },
+    step: {
+      flexDirection: "row",
+      alignItems: "baseline",
+      gap: 14,
+      paddingHorizontal: T.pad,
+      paddingVertical: 18,
+      borderBottomWidth: 1,
+      borderBottomColor: T.hairline,
+    },
+    ord: { minWidth: 22 },
+    stepText: { flex: 1 },
+    body: { marginTop: 8 },
+    said: { marginTop: 10, paddingLeft: 12, borderLeftWidth: 2 },
+  }),
+);

@@ -11,13 +11,15 @@ import {
   type OwnerAttention,
 } from "../../api";
 import type { RootStackParamList } from "../../nav/types";
-import { errorInk, productTheme as T } from "../../theme";
 import { AccentCTA } from "../../ui/AccentCTA";
+import { Figure } from "../../ui/Figure";
 import { GhostCTA } from "../../ui/GhostCTA";
 import { IconChevron } from "../../ui/Icons";
 import { Initials } from "../../ui/Initials";
 import { Band, DockFooter, Head, Phone } from "../../ui/Screen";
+import { estilos, useTema } from "../../ui/tema";
 import { Txt } from "../../ui/Txt";
+import { whyFor } from "./Painel";
 import { weekdayLong } from "../../ui/format";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Atencao">;
@@ -34,7 +36,9 @@ type Props = NativeStackScreenProps<RootStackParamList, "Atencao">;
  *  `quiet` — mesma massa, tinta neutra, orçamento intacto. Três retângulos acentuados
  *  numa rolagem foi a queixa nº1 dos juízes, e ela nasceu exatamente aqui. */
 export function Atencao({ route }: Props) {
-  const { token, accent, timeName } = route.params;
+  const styles = usarEstilos();
+  const { T, errorInk } = useTema();
+  const { token, timeName } = route.params;
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList, "Atencao">>();
   const [items, setItems] = useState<OwnerAttention[] | null>(null);
@@ -84,7 +88,6 @@ export function Atencao({ route }: Props) {
       <Head
         kicker={`${weekdayLong()} · entre uma aula e outra`}
         title={items === null ? undefined : headline(queue.length)}
-        accent={accent}
       />
       <ScrollView
         style={styles.scroll}
@@ -100,21 +103,36 @@ export function Atencao({ route }: Props) {
         ) : null}
 
         {items === null && !error ? (
-          <Band rule="none">
+          <Band raised grow rule="none">
             <Txt role="body" tone="muted">
               Abrindo a fila…
             </Txt>
           </Band>
         ) : null}
 
+        {/* Fila vazia não é tela vazia: a evidência POR CATEGORIA, com contagem no rótulo
+            (o "5/5 Metrics" do eixo 1). Três superfícies IGUAIS — pares no mesmo peso — e
+            cada uma com `grow`: a sobra da tela é dividida entre elas e vira respiro
+            interno com dono, em vez de um buraco único entre a mensagem e o rodapé. */}
         {items !== null && queue.length === 0 && !error ? (
-          <Band rule="none">
-            <Txt role="body" tone="muted">
-              {done > 0
-                ? `${done} resolvidos. Pode voltar para a aula.`
-                : "Ninguém sumiu, ninguém marcou dor, ninguém está sem ficha."}
-            </Txt>
-          </Band>
+          <>
+            <Band raised grow rule="none">
+              <Figure label="Sumiram" value={0} />
+            </Band>
+            <Band raised grow rule="none">
+              <Figure label="Com dor" value={0} />
+            </Band>
+            <Band raised grow rule="none">
+              <Figure label="Sem ficha" value={0} />
+            </Band>
+            <Band rule="none">
+              <Txt role="body" tone="muted">
+                {done > 0
+                  ? `${done} resolvidos. Pode voltar para a aula.`
+                  : "Todo mundo está no automático."}
+              </Txt>
+            </Band>
+          </>
         ) : null}
 
         {queue.map((row, i) => (
@@ -125,7 +143,6 @@ export function Atencao({ route }: Props) {
                   token,
                   personId: row.person_id,
                   timeName,
-                  accent,
                 })
               }
               accessibilityRole="button"
@@ -137,7 +154,7 @@ export function Atencao({ route }: Props) {
                   {row.name}
                 </Txt>
                 <Txt role="note" style={styles.why}>
-                  {row.reason}
+                  {whyFor(row)}
                 </Txt>
               </View>
               <IconChevron color={T.muted2} size={16} />
@@ -148,7 +165,6 @@ export function Atencao({ route }: Props) {
               <AccentCTA
                 label={row.decision}
                 onPress={() => void apply(row.id)}
-                accent={accent}
                 busy={busy === row.id}
                 disabled={busy !== null && busy !== row.id}
                 check
@@ -181,16 +197,15 @@ export function Atencao({ route }: Props) {
             {queue.length === 0 ? (
               <AccentCTA
                 label="Revisão"
-                accent={accent}
                 onPress={() =>
-                  navigation.navigate("Revisao", { token, timeName, accent })
+                  navigation.navigate("Revisao", { token, timeName })
                 }
               />
             ) : (
               <GhostCTA
                 label="Revisão"
                 onPress={() =>
-                  navigation.navigate("Revisao", { token, timeName, accent })
+                  navigation.navigate("Revisao", { token, timeName })
                 }
               />
             )}
@@ -206,27 +221,29 @@ function headline(n: number): string {
   return n === 1 ? "1 aluno precisa de você" : `${n} alunos precisam de você`;
 }
 
-const styles = StyleSheet.create({
-  scroll: { flex: 1 },
-  content: { flexGrow: 1 },
-  row: {
-    paddingHorizontal: T.pad,
-    paddingVertical: 26,
-    borderBottomWidth: 1,
-    borderBottomColor: T.hairline,
-  },
-  who: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  whoCopy: { flex: 1, minWidth: 0 },
-  why: { marginTop: 2 },
-  act: { marginTop: 14 },
-  dockRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 14,
-  },
-  count: { flex: 1 },
-});
+const usarEstilos = estilos(({ T, SPACE }) =>
+  StyleSheet.create({
+    scroll: { flex: 1 },
+    content: { flexGrow: 1 },
+    row: {
+      paddingHorizontal: T.pad,
+      paddingVertical: SPACE.block,
+      borderBottomWidth: 1,
+      borderBottomColor: T.hairline,
+    },
+    who: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+    },
+    whoCopy: { flex: 1, minWidth: 0 },
+    why: { marginTop: 2 },
+    act: { marginTop: 14 },
+    dockRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 14,
+    },
+    count: { flex: 1 },
+  }),
+);

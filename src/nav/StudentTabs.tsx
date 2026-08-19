@@ -4,7 +4,6 @@ import { FichaTab } from "../screens/student/FichaTab";
 import { Hoje } from "../screens/student/Hoje";
 import { Perfil } from "../screens/student/Perfil";
 import { Progresso } from "../screens/student/Progresso";
-import { productTheme } from "../theme";
 import { dockTabs } from "./tabChrome";
 import type { StudentTabParamList } from "./types";
 
@@ -20,6 +19,7 @@ type Props = {
   person: Person;
   time: Time;
   needsCommitment: boolean;
+  onPersonChange: (next: Person) => void;
   onLeave: () => void;
 };
 
@@ -30,12 +30,12 @@ export function StudentTabs({
   person,
   time,
   needsCommitment,
+  onPersonChange,
   onLeave,
 }: Props) {
-  const accent = time.accent_color || productTheme.accentFallback;
 
   return (
-    <Tab.Navigator initialRouteName="Hoje" {...dockTabs(accent)}>
+    <Tab.Navigator initialRouteName="Hoje" {...dockTabs()}>
       <Tab.Screen name="Hoje">
         {() => (
           <Hoje
@@ -60,6 +60,7 @@ export function StudentTabs({
             token={token}
             person={person}
             time={time}
+            onPersonChange={onPersonChange}
             onLeave={onLeave}
           />
         )}

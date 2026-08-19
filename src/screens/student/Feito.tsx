@@ -12,13 +12,13 @@ import type { FinishRecord } from "../../api";
 import type { SessionProof } from "../../offline/sessionQueue";
 import { studentHomeTarget } from "../../nav/StudentTabs";
 import type { RootStackParamList } from "../../nav/types";
-import { accentSet, MOTION, productTheme as T } from "../../theme";
 import { useAccentMass } from "../../ui/accent";
 import { AccentCTA } from "../../ui/AccentCTA";
 import { formatKg, formatNum } from "../../ui/format";
 import { TrendMark } from "../../ui/Icons";
 import { EASE } from "../../ui/motion";
 import { DockFooter, Phone } from "../../ui/Screen";
+import { estilos, useTema } from "../../ui/tema";
 import { Txt } from "../../ui/Txt";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Feito">;
@@ -75,6 +75,7 @@ function Camada({
   ink: string;
   quiet: string;
 }) {
+  const styles = usarEstilos();
   const before = pr && pr.previous_kg > 0 && pr.previous_kg < pr.load_kg ? pr.previous_kg : null;
 
   return (
@@ -163,11 +164,7 @@ function Camada({
               <Txt role="body" color={quiet}>
                 kg
               </Txt>
-              {before === null ? null : (
-                <View style={styles.dir}>
-                  <TrendMark dir="up" color={quiet} size={11} />
-                </View>
-              )}
+              {before === null ? null : <TrendMark dir="up" color={quiet} size={11} />}
             </View>
             <Txt role="note" color={quiet} numberOfLines={2}>
               {pr.exercise_name}
@@ -186,9 +183,10 @@ function Camada({
 }
 
 export function Feito({ navigation, route }: Props) {
+  const styles = usarEstilos();
+  const { T, MOTION, acento } = useTema();
   const {
     timeName,
-    accent,
     ofensivaCount,
     xpGained,
     records,
@@ -198,8 +196,8 @@ export function Feito({ navigation, route }: Props) {
   } = route.params;
   // O acento em ÁREA desta tela é o FUNDO. É o único lugar do app onde a comemoração
   // justifica o orçamento inteiro — por isso o botão vai de par neutro (`quiet`).
-  const { fill, ink } = useAccentMass("Fundo da comemoração", accent);
-  const A = accentSet(accent, T.bg);
+  const { fill, ink } = useAccentMass("Fundo da comemoração");
+  const A = acento(undefined, T.bg);
 
   const reduce = useReducedMotion();
   const turn = useSharedValue(reduce ? 1 : 0);
@@ -225,7 +223,7 @@ export function Feito({ navigation, route }: Props) {
 
   function follow() {
     if (records.length > 0) {
-      navigation.navigate("Recorde", { accent, records, needsCommitment });
+      navigation.navigate("Recorde", { records, needsCommitment });
       return;
     }
     if (needsCommitment) {
@@ -299,6 +297,7 @@ function Prova({
   ink: string;
   quiet: string;
 }) {
+  const styles = usarEstilos();
   return (
     <View style={styles.cell}>
       <Txt role="label" color={quiet}>
@@ -309,7 +308,7 @@ function Prova({
           {value}
         </Txt>
         {unit ? (
-          <Txt role="note" color={quiet} style={styles.unit}>
+          <Txt role="note" color={quiet}>
             {unit}
           </Txt>
         ) : null}
@@ -318,24 +317,26 @@ function Prova({
   );
 }
 
-const styles = StyleSheet.create({
-  plane: { flex: 1 },
-  field: {
-    flex: 1,
-    paddingHorizontal: T.pad,
-    paddingTop: 18,
-    paddingBottom: 16,
-  },
-  rule: { height: 2, marginTop: 16 },
-  proof: { flexDirection: "row", gap: 16, paddingTop: 14 },
-  num: { fontVariant: ["tabular-nums"] },
-  unit: { paddingBottom: 2 },
-  row: { flexDirection: "row", gap: 20, paddingVertical: 16 },
-  cell: { flex: 1 },
-  line: { flexDirection: "row", alignItems: "flex-end", gap: 6 },
-  dir: { paddingBottom: 10 },
-  // O número flutua no MEIO do que sobra: folga em cima e embaixo. Uma folga só, de um
-  // lado, é o terço perdido que os juízes cobraram.
-  stage: { flex: 1, justifyContent: "center" },
-  note: { marginTop: 14 },
-});
+const usarEstilos = estilos(({ T }) =>
+  StyleSheet.create({
+    plane: { flex: 1 },
+    field: {
+      flex: 1,
+      paddingHorizontal: T.pad,
+      paddingTop: 18,
+      paddingBottom: 16,
+    },
+    rule: { height: 2, marginTop: 16 },
+    proof: { flexDirection: "row", gap: 16, paddingTop: 14 },
+    num: { fontVariant: ["tabular-nums"] },
+    row: { flexDirection: "row", gap: 20, paddingVertical: 16 },
+    cell: { flex: 1 },
+    // Mesma base, não mesmo fundo de caixa: a Figure carregava este defeito e esta tela
+    // carregava a cópia dele, com dois `paddingBottom` de compensação por cima.
+    line: { flexDirection: "row", alignItems: "baseline", gap: 6 },
+    // O número flutua no MEIO do que sobra: folga em cima e embaixo. Uma folga só, de um
+    // lado, é o terço perdido que os juízes cobraram.
+    stage: { flex: 1, justifyContent: "center" },
+    note: { marginTop: 14 },
+  }),
+);

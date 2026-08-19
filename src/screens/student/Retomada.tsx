@@ -1,78 +1,67 @@
 import { useNavigation } from "@react-navigation/native";
-import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { useEffect, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, View } from "react-native";
-import Svg, { Path } from "react-native-svg";
+import { useState } from "react";
+import { Pressable, StyleSheet, View } from "react-native";
 import {
-  completeComeback,
-  records,
-  today,
-  type Person,
-  type RecordItem,
-  type Time,
-  type TodayPayload,
-} from "../../api";
-import { studentHomeTarget, STUDENT_HOME_ROUTE } from "../../nav/StudentTabs";
-import type { RootStackParamList } from "../../nav/types";
+  configDoTime, completeComeback, today, type Time, type TodayPayload } from "../../api";
+import { studentHomeTarget } from "../../nav/StudentTabs";
+import type { StudentTabNavigation } from "../../nav/types";
 import { createSession, newLocalId } from "../../offline/sessionQueue";
-import { accentSet, productTheme as T } from "../../theme";
-import { AccentCTA } from "../../ui/AccentCTA";
 import { Figure } from "../../ui/Figure";
+import { GhostCTA } from "../../ui/GhostCTA";
+import { IconClose } from "../../ui/Icons";
 import { Initials } from "../../ui/Initials";
 import { MetricGrid } from "../../ui/Metric";
-import { Band, Phone } from "../../ui/Screen";
+import { Band } from "../../ui/Screen";
 import { Txt } from "../../ui/Txt";
-import { dateShort, formatKg, formatNum } from "../../ui/format";
+import { formatNum } from "../../ui/format";
+import { estilos, useTema } from "../../ui/tema";
 
 type Props = {
   token: string;
-  person: Person;
   time: Time;
   needsCommitment: boolean;
   comeback: NonNullable<TodayPayload["comeback"]>;
+  /** O que continua de pé. Vem do payload que a Hoje já buscou — a faixa não abre uma
+   *  segunda chamada só para se desenhar. */
+  ofensiva: number;
+  xp: number;
+  onDismiss: () => void;
 };
 
-/** A Retomada é CARTÃO, não porta trancada. A referência do eixo 3 mede o formato: faixa
- *  no topo, X para fechar, e o caminho continua rolável e clicável ATRÁS — o app não fica
- *  refém do sumiço. O CONTEXT.md diz a outra metade: Retomada não apaga PR, carga nem
- *  histórico. As duas juntas dão esta tela: o aviso ocupa uma faixa, e o resto do vidro é
- *  o acervo do corpo, com número, comparação e data.
+/** A Retomada é FAIXA DENTRO DO DIA, não porta na frente dele.
  *
- *  A tela ANTERIOR era o contrário: `18 minutos.` como título, uma frase, dois botões
- *  colados no rodapé e DOIS TERÇOS de preto vazio no meio. Nada atrás, nada para rolar,
- *  nada para conferir — e o aluno sem saída a não ser aceitar ou recusar.
+ *  Era uma tela própria na pilha (src/nav/Root.tsx), montada antes das abas, e o Root
+ *  gastava uma chamada de /v1/today só para decidir se ela apareceria — a Hoje então
+ *  buscava tudo de novo. Quem tinha sumido chegava numa tela que não era o seu dia, com o
+ *  acervo atrás em vez do treino.
  *
- *  O fato — a Ofensiva zerou — é dito UMA vez, no número, em corpo de métrica, ao lado do
- *  XP que continua inteiro. Não existe contagem de dias perdidos em corpo grande, não
- *  existe a palavra culpa, não existe tinta de erro: falha é AUSÊNCIA de marca. */
-export function Retomada({ token, time, needsCommitment, comeback }: Props) {
-  const navigation =
-    useNavigation<NativeStackNavigationProp<RootStackParamList, "Retomada">>();
-  const accent = time.accent_color || T.accentFallback;
-  const A = accentSet(accent);
+ *  Agora ela ocupa o mesmo slot da faixa de aviso da Hoje: fecha no X, e o caminho do dia
+ *  fica utilizável atrás dela o tempo todo. É o formato que a barra do eixo 3 mede —
+ *  docs/barra/eixo3-ritual-aluno/duolingo-20-ofensiva-zerada-faixa-na-home.jpg é
+ *  exatamente uma faixa fechável sobre a home, não um bloqueio.
+ *
+ *  ORDEM, e ela é a regra: primeiro o que CONTINUA DE PÉ (Ofensiva e XP, em corpo de
+ *  métrica), depois a linha do que aconteceu, em tom neutro. Nenhuma contagem de dias
+ *  perdidos, nenhuma tinta de erro, nenhum emoji. Falha é AUSÊNCIA de marca. */
+export function RetomadaBand({
+  token,
+  time,
+  needsCommitment,
+  comeback,
+  ofensiva,
+  xp,
+  onDismiss,
+}: Props) {
+  const styles = usarEstilos();
+  const { T, acento, errorInk } = useTema();
+  const navigation = useNavigation<StudentTabNavigation>();
+  const A = acento();
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
-  const [acervo, setAcervo] = useState<RecordItem[]>([]);
-  const [ofensiva, setOfensiva] = useState<number | null>(null);
-  const [xp, setXp] = useState<number | null>(null);
-
-  useEffect(() => {
-    let alive = true;
-    void (async () => {
-      try {
-        const [rec, payload] = await Promise.all([records(token), today(token)]);
-        if (!alive) return;
-        setAcervo(rec.items);
-        setOfensiva(payload.ofensiva.current_count);
-        setXp(payload.xp_total);
-      } catch {
-        /* sem acervo: nada abaixo da faixa é desenhado. Nenhum placeholder inventado. */
-      }
-    })();
-    return () => {
-      alive = false;
-    };
-  }, [token]);
+  const dePe = [
+    ...(ofensiva > 0 ? [{ label: "Ofensiva", value: formatNum(ofensiva) }] : []),
+    ...(xp > 0 ? [{ label: "XP", value: formatNum(xp) }] : []),
+  ];
 
   async function startNow() {
     if (busy) return;
@@ -83,32 +72,24 @@ export function Retomada({ token, time, needsCommitment, comeback }: Props) {
       const payload = await today(token);
       const prescription = payload.prescription;
       if (!prescription) {
-        navigation.reset({ index: 0, routes: [studentHomeTarget] });
+        onDismiss();
         return;
       }
       const session = await createSession(prescription.id, newLocalId());
-      navigation.reset({
-        index: 1,
-        routes: [
-          studentHomeTarget,
-          {
-            name: "Serie",
-            params: {
-              token,
-              timeName: time.name,
-              accent,
-              localId: session.local_id,
-              prescriptionId: prescription.id,
-              items: prescription.items,
-              itemIndex: 0,
-              setIndex: 1,
-              ofensivaCount: payload.ofensiva.current_count,
-              xpTotal: payload.xp_total,
-              needsCommitment,
-            },
-          },
-        ],
+      navigation.navigate("Serie", {
+        token,
+        timeName: time.name,
+        localId: session.local_id,
+        prescriptionId: prescription.id,
+        items: prescription.items,
+        itemIndex: 0,
+        setIndex: 1,
+        ofensivaCount: payload.ofensiva.current_count,
+        xpTotal: payload.xp_total,
+        needsCommitment,
+        passoKg: configDoTime(time).passo_kg,
       });
+      onDismiss();
     } catch {
       setFailed(true);
     } finally {
@@ -116,224 +97,86 @@ export function Retomada({ token, time, needsCommitment, comeback }: Props) {
     }
   }
 
-  // O herói é a carga mais pesada do acervo, não a primeira da lista: com a ordem do
-  // servidor um 127,5 podia cair embaixo de um 62,5 em corpo hero.
-  const hero = acervo.reduce<RecordItem | null>(
-    (best, r) => (!best || r.load_kg > best.load_kg ? r : best),
-    null,
-  );
-  const first = hero ? oldest(hero) : null;
-  const past = ledger(acervo, hero);
-
-  function openPR(r: RecordItem) {
-    navigation.navigate("Recorde", {
-      accent,
-      needsCommitment,
-      records: [
-        {
-          exercise_name: r.exercise_name,
-          load_kg: r.load_kg,
-          previous_kg: oldest(r)?.load_kg ?? 0,
-        },
-      ],
-    });
-  }
-
   return (
-    <Phone>
-      {/* A FAIXA. Desenho + uma linha + um botão, e o X. Nada mais entra aqui. */}
-      <Band accentTop accent={accent}>
-        <View style={styles.row}>
-          {/* ponytail: o desenho é a marca do personal, que já existe. Um mascote novo
-              seria arte nova para dizer o que estas duas letras já dizem. */}
-          <Initials name={time.name} size={44} />
-          <View style={styles.grow}>
-            <Txt role="label" color={A.text}>
-              Retomada
-            </Txt>
-            <Txt role="body">{time.name}</Txt>
-          </View>
-          <Pressable
-            onPress={() => navigation.navigate(STUDENT_HOME_ROUTE)}
-            hitSlop={14}
-            accessibilityRole="button"
-            accessibilityLabel="Fechar o aviso"
-          >
-            <IconClose color={T.muted} />
-          </Pressable>
-        </View>
-
-        <Txt role="body" style={styles.line}>
-          {comeback.coach_line}
-        </Txt>
-
-        <View style={styles.cta}>
-          <AccentCTA
-            label="Fazer agora"
-            meta={`${comeback.minutes} MIN`}
-            onPress={() => void startNow()}
-            busy={busy}
-            accent={accent}
-          />
-        </View>
-
-        {failed ? (
-          <Txt role="note" tone="dim" style={styles.failed}>
-            Não subiu agora. Tente de novo.
+    <Band accentTop rule="none">
+      <View style={styles.row}>
+        <Initials name={time.name} size={38} />
+        <View style={styles.grow}>
+          <Txt role="label" color={A.text}>
+            Retomada
           </Txt>
-        ) : null}
-      </Band>
+          <Txt role="body">{time.name}</Txt>
+        </View>
+        <Pressable
+          onPress={onDismiss}
+          hitSlop={14}
+          accessibilityRole="button"
+          accessibilityLabel="Fechar o aviso"
+        >
+          <IconClose color={T.muted} />
+        </Pressable>
+      </View>
 
-      {/* ATRÁS DO AVISO: o acervo, rolável e clicável. */}
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-      >
-        {hero ? (
-          <Band rule="none">
-            <Txt role="label">
-              Sua carga mais pesada
-            </Txt>
-            <Txt role="title" style={styles.name}>
-              {hero.exercise_name}
-            </Txt>
-            {/* ponytail: `src/ui/Baseline.tsx` não serve aqui, e não é esquecimento — o
-                eixo dela é min..max e a carga de partida fica a 86% do PR, onde a âncora
-                nasce fora da faixa (o teto que o próprio arquivo declara). A comparação
-                vira o rótulo sob o número, com o número dito. */}
-            <View style={styles.figure}>
-              <Figure
-                role="hero"
-                value={formatKg(hero.load_kg)}
-                unit="kg"
-                dir={first ? "up" : undefined}
-                labelBelow
-                label={
-                  first
-                    ? `Começou em ${formatKg(first.load_kg)} kg · ${dateShort(new Date(first.achieved_at))}`
-                    : `${hero.reps} repetições`
-                }
-                note={`${hero.reps} reps · ${dateShort(new Date(hero.achieved_at))}`}
-              />
-            </View>
-          </Band>
-        ) : null}
+      {/* O que continua de pé, ANTES de qualquer coisa sobre o que passou — e SÓ o que
+          continua de pé. Depois de onze dias fora a Ofensiva vale literalmente 0
+          (`current_count = 0`, internal/today/service.go), e a faixa que existe para dizer
+          o que sobrou abria com um zero em corpo de métrica: o rótulo prometia patrimônio e
+          entregava a conta do estrago. Falha é AUSÊNCIA de marca, então a célula da
+          Ofensiva simplesmente não é desenhada quando ela não está de pé. O XP, que não
+          zera, fica. Sem nenhuma das duas, a fila inteira some em vez de mostrar zeros. */}
+      {dePe.length === 0 ? null : (
+        <View style={styles.stands}>
+          {dePe.length > 1 ? (
+            <MetricGrid cells={dePe} />
+          ) : (
+            <Figure role="value" label={dePe[0].label} value={dePe[0].value} />
+          )}
+        </View>
+      )}
 
-        {/* O fato, dito UMA vez e no número — e do lado dele o que não foi embora. */}
-        {ofensiva !== null && xp !== null ? (
-          <MetricGrid
-            cells={[
-              { label: "Ofensiva", value: ofensiva, note: "recomeça na próxima" },
-              { label: "XP", value: formatNum(xp), note: "continua seu" },
-            ]}
-          />
-        ) : null}
+      <Txt role="body" style={styles.line}>
+        {/* a VOZ do personal, se ele escreveu; senão a frase do produto. O slot e as
+            regras da Retomada (ordem, zero culpa) são intocáveis — só o texto troca. */}
+        {configDoTime(time).retomada || comeback.coach_line}
+      </Txt>
 
-        {/* Utilizável, não só visível: cada linha abre o PR daquele exercício. É a linha
-            que é clicável, e não um botão a mais — navegação é linha, escolha é cartão. */}
-        {past.length ? (
-          <Band rule="none">
-            <Txt role="label">Histórico de carga ({past.length})</Txt>
-            {past.map((e) => (
-              <Pressable
-                key={`${e.name}-${e.at}`}
-                onPress={() => openPR(e.of)}
-                accessibilityRole="button"
-                style={styles.entry}
-              >
-                <View style={styles.grow}>
-                  <Txt role="body" numberOfLines={1}>
-                    {e.name}
-                  </Txt>
-                </View>
-                <Txt role="note" tone="dim">
-                  {dateShort(new Date(e.at))}
-                </Txt>
-                <Txt role="body" style={styles.kg}>
-                  {formatKg(e.kg)} kg
-                </Txt>
-              </Pressable>
-            ))}
-          </Band>
-        ) : null}
-      </ScrollView>
-    </Phone>
+      {/* NEUTRO, e a razao e o orcamento de acento: quem pinta area com o acento nesta
+          tela e o "Começar" do dia, e ele tem que continuar sendo o caminho principal —
+          o brief pede que o dia siga utilizavel ATRAS da faixa. Se a Retomada roubasse o
+          acento, o treino de hoje leria como desligado. A faixa e oferta, nao caminho.
+          O gate acusou isto sozinho na primeira montagem: "Orçamento de acento estourado".
+
+          Os minutos vao no rotulo em vez de virar prop nova no GhostCTA: uma peca de
+          src/ui nao engorda para um chamador so. */}
+      <View style={styles.cta}>
+        <GhostCTA
+          label={`Fazer agora · ${comeback.minutes} min`}
+          onPress={() => void startNow()}
+          disabled={busy}
+        />
+      </View>
+
+      {failed ? (
+        <Txt role="note" color={errorInk} style={styles.failed}>
+          Não subiu agora. Tente de novo.
+        </Txt>
+      ) : null}
+    </Band>
   );
 }
 
-/** A entrada mais antiga do exercício: é contra ela que a carga de hoje é comparada. */
-function oldest(r: RecordItem): RecordItem["history"][number] | null {
-  return r.history.reduce<RecordItem["history"][number] | null>(
-    (old, h) => (!old || h.achieved_at < old.achieved_at ? h : old),
-    null,
-  );
-}
-
-type Entry = { name: string; kg: number; at: string; of: RecordItem };
-
-/** Toda carga registrada, do mais novo para o mais velho, menos a que já está no herói.
- *  É esta lista que prova a linha do personal: o acervo não foi embora.
- *
- *  ponytail: dedupe O(n²) com findIndex. Teto conhecido: um acervo de centenas de PRs
- *  começa a custar. Upgrade quando incomodar: Set de chave `nome|data`. */
-function ledger(items: RecordItem[], hero: RecordItem | null): Entry[] {
-  return items
-    .flatMap((r) =>
-      [...r.history, { load_kg: r.load_kg, achieved_at: r.achieved_at }].map(
-        (h) => ({
-          name: r.exercise_name,
-          kg: h.load_kg,
-          at: h.achieved_at,
-          of: r,
-        }),
-      ),
-    )
-    .filter(
-      (e, i, all) =>
-        all.findIndex((o) => o.name === e.name && o.at === e.at) === i &&
-        !(hero && e.name === hero.exercise_name && e.at === hero.achieved_at),
-    )
-    .sort((a, b) => b.at.localeCompare(a.at))
-    .slice(0, 5);
-}
-
-function IconClose({ color, size = 20 }: { color: string; size?: number }) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Path
-        d="M5 5l14 14M19 5 5 19"
-        stroke={color}
-        strokeWidth={2}
-        strokeLinecap="square"
-      />
-    </Svg>
-  );
-}
-
-const styles = StyleSheet.create({
-  scroll: { flex: 1 },
-  content: { flexGrow: 1, paddingBottom: 12 },
-  row: { flexDirection: "row", alignItems: "center", gap: 12 },
-  grow: { flex: 1, minWidth: 0 },
-  line: {
-    marginTop: 14,
-    paddingTop: 14,
-    borderTopWidth: 1,
-    borderTopColor: T.hairline,
-  },
-  cta: { marginTop: 16 },
-  failed: { marginTop: 10 },
-  name: { marginTop: 4 },
-  figure: { marginTop: 10 },
-  entry: {
-    flexDirection: "row",
-    alignItems: "baseline",
-    gap: 12,
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: T.hairline,
-  },
-  kg: { minWidth: 78, textAlign: "right" },
-});
+const usarEstilos = estilos(({ T }) =>
+  StyleSheet.create({
+    row: { flexDirection: "row", alignItems: "center", gap: 12 },
+    grow: { flex: 1, minWidth: 0 },
+    stands: { marginTop: 14 },
+    line: {
+      marginTop: 14,
+      paddingTop: 14,
+      borderTopWidth: 1,
+      borderTopColor: T.hairline,
+    },
+    cta: { marginTop: 16 },
+    failed: { marginTop: 10 },
+  }),
+);

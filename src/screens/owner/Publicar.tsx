@@ -3,26 +3,33 @@ import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import {
+  ApiError,
   ownerWeek,
   publishPrescription,
   type OwnerWeekItem,
 } from "../../api";
 import type { RootStackParamList } from "../../nav/types";
-import { accentSet, errorInk, productTheme as T } from "../../theme";
 import { AccentCTA } from "../../ui/AccentCTA";
+import { Campo } from "../../ui/Campo";
 import { Figure } from "../../ui/Figure";
 import { IconCheck } from "../../ui/Icons";
 import { Band, DockFooter, Head, Phone } from "../../ui/Screen";
+import { estilos, useTema } from "../../ui/tema";
 import { Txt } from "../../ui/Txt";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Publicar">;
 
-export function Publicar({ route }: Props) {
-  const { token, accent, prescriptionId, personId, personName } = route.params;
-  const A = accentSet(accent, T.raised);
+export function Publicar({ navigation, route }: Props) {
+  const styles = usarEstilos();
+  const { T, acento, errorInk } = useTema();
+  const { token, prescriptionId, personId, personName } = route.params;
+  const A = acento(undefined, T.raised);
   // null = ainda carregando. [] = ninguém mais na turma. Os três estados são visíveis.
   const [others, setOthers] = useState<OwnerWeekItem[] | null>(null);
   const [picked, setPicked] = useState<Record<string, boolean>>({});
+  // A frase do dia, na voz dele. Vazia é o estado normal — e vazia o aluno não vê bloco
+  // nenhum, em vez de ver o produto falando com o rosto do personal.
+  const [frase, setFrase] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(0);
@@ -61,11 +68,22 @@ export function Publicar({ route }: Props) {
         token,
         prescriptionId,
         also.map((it) => it.person_id),
+        frase,
       );
       setSent(n);
       setError("");
-    } catch {
-      setError("Não deu para publicar.");
+      // Publicado, a volta por gesto deixa de ser saída: ela cai em Ajustar, que ainda
+      // segura `items` e `prescriptionId` nos params — republicaria a mesma prescrição.
+      // Daqui em diante existe UM caminho, e ele é o botão do overlay.
+      navigation.setOptions({ gestureEnabled: false });
+    } catch (e) {
+      // O servidor só sabe dizer `invalido`, e nesta tela a única coisa que a mão do
+      // personal escreve é a frase: então o aviso NOMEIA a regra em vez de dar de ombros.
+      setError(
+        e instanceof ApiError && e.code === "invalido" && frase.trim()
+          ? "Link e telefone não entram na frase."
+          : "Não deu para publicar.",
+      );
     } finally {
       setBusy(false);
     }
@@ -73,7 +91,7 @@ export function Publicar({ route }: Props) {
 
   return (
     <Phone>
-      <Head kicker={personName} title="Publicar" kickerMuted accent={accent} />
+      <Head kicker={personName} title="Publicar" kickerMuted />
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}
@@ -98,6 +116,26 @@ export function Publicar({ route }: Props) {
                 Mesma estrutura. A carga sai da última sessão de cada um; sem
                 sessão, a inicial.
               </Txt>
+            </Band>
+
+            {/* A VOZ DO PERSONAL, onde ela nasce: junto da prescrição, porque é sobre
+                este dia. Opcional de verdade — sem frase o app cala, e calar é o
+                contrário de assinar uma frase de produto com o nome dele. */}
+            <Band rule="hair">
+              <Campo
+                label="Seu recado"
+                rotulo
+                nota={`${
+                  count === 1
+                    ? `Aparece no Hoje de ${personName}, com seu nome.`
+                    : `Aparece no Hoje das ${count} pessoas, com seu nome.`
+                } Em branco, ninguém fala no seu lugar.`}
+                hint="Aparece no Hoje do aluno, com seu nome. Em branco, o app não escreve nada"
+                value={frase}
+                onChangeText={setFrase}
+                placeholder="Hoje é técnica. Deixa o peso esperar."
+                maxLength={100}
+              />
             </Band>
 
             <View style={styles.header}>
@@ -173,7 +211,6 @@ export function Publicar({ route }: Props) {
             meta={count === 1 ? "1 pessoa" : `${count} pessoas`}
             onPress={() => void publish()}
             busy={busy}
-            accent={accent}
           />
         </DockFooter>
       ) : null}
@@ -192,6 +229,16 @@ export function Publicar({ route }: Props) {
                 ? `. As outras ${sent - 1}, cada uma com a carga do próprio corpo.`
                 : "."}
             </Txt>
+            {/* A única saída da tela. Volta para a rota do painel, não fecha o overlay:
+                fechar devolveria esta tela, e atrás dela Ajustar com o rascunho vivo.
+                `popTo` e não `navigate` pelo mesmo motivo de tools/pilha.mjs: descer
+                até uma rota que já está na pilha, sem chance de empilhar outra. */}
+            <AccentCTA
+              label="Voltar ao painel"
+              onPress={() => navigation.popTo("Painel", { screen: "Painel" })}
+              check
+              block
+            />
           </View>
         </View>
       ) : null}
@@ -202,6 +249,8 @@ export function Publicar({ route }: Props) {
 /** ponytail: a caixa de marcar é a mesma nas duas linhas — nome e "todos". Uma peça
  *  local, porque marcar nome só acontece aqui e na Revisão, que tem a sua. */
 function Box({ on }: { on: boolean }) {
+  const styles = usarEstilos();
+  const { T } = useTema();
   return (
     <View
       style={[styles.check, on && { backgroundColor: T.ink, borderColor: T.ink }]}
@@ -211,52 +260,56 @@ function Box({ on }: { on: boolean }) {
   );
 }
 
-const styles = StyleSheet.create({
-  scroll: { flex: 1 },
-  content: { flexGrow: 1 },
-  error: { paddingHorizontal: T.pad, paddingTop: 12 },
-  cause: { marginTop: 14 },
-  header: {
-    flexDirection: "row",
-    alignItems: "baseline",
-    justifyContent: "space-between",
-    paddingHorizontal: T.pad,
-    paddingTop: 20,
-    paddingBottom: 6,
-  },
-  state: { paddingHorizontal: T.pad, paddingVertical: 14 },
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 14,
-    paddingHorizontal: T.pad,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: T.hairline,
-  },
-  check: {
-    width: 22,
-    height: 22,
-    borderWidth: 2,
-    borderColor: T.ink,
-    alignItems: "center",
-    justifyContent: "center",
-    flexShrink: 0,
-  },
-  name: { flex: 1, minWidth: 0 },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(11,10,10,0.86)",
-    justifyContent: "flex-end",
-    paddingHorizontal: T.pad,
-    paddingBottom: 24,
-  },
-  sheet: {
-    backgroundColor: T.surface,
-    borderWidth: 2,
-    paddingHorizontal: T.pad,
-    paddingTop: 24,
-    paddingBottom: 22,
-  },
-  sheetBody: { marginTop: 10 },
-});
+const usarEstilos = estilos(({ T, FORMA }) =>
+  StyleSheet.create({
+    scroll: { flex: 1 },
+    content: { flexGrow: 1 },
+    error: { paddingHorizontal: T.pad, paddingTop: 12 },
+    cause: { marginTop: 14 },
+    header: {
+      flexDirection: "row",
+      alignItems: "baseline",
+      justifyContent: "space-between",
+      paddingHorizontal: T.pad,
+      paddingTop: 20,
+      paddingBottom: 6,
+    },
+    state: { paddingHorizontal: T.pad, paddingVertical: 14 },
+    row: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 14,
+      paddingHorizontal: T.pad,
+      paddingVertical: 14,
+      borderBottomWidth: FORMA.fio,
+      borderBottomColor: T.hairline,
+    },
+    check: {
+      width: 22,
+      height: 22,
+      borderWidth: FORMA.borda,
+      borderRadius: FORMA.raioEm(22),
+      borderColor: T.ink,
+      alignItems: "center",
+      justifyContent: "center",
+      flexShrink: 0,
+    },
+    name: { flex: 1, minWidth: 0 },
+    overlay: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: "rgba(11,10,10,0.86)",
+      justifyContent: "flex-end",
+      paddingHorizontal: T.pad,
+      paddingBottom: 24,
+    },
+    sheet: {
+      backgroundColor: T.surface,
+      borderWidth: FORMA.borda,
+      borderRadius: FORMA.raio,
+      paddingHorizontal: T.pad,
+      paddingTop: 24,
+      paddingBottom: 22,
+    },
+    sheetBody: { marginTop: 10 },
+  }),
+);

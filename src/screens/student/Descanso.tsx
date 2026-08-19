@@ -10,6 +10,7 @@ import Animated, {
 } from "react-native-reanimated";
 import {
   flush,
+  loadSession,
   markFinished,
   nextAfter,
   patchLastSetEffort,
@@ -17,7 +18,7 @@ import {
 } from "../../offline/sessionQueue";
 import { studentHomeTarget } from "../../nav/StudentTabs";
 import type { RootStackParamList } from "../../nav/types";
-import { accentSet, productTheme as T } from "../../theme";
+import { neutroSobre } from "../../theme";
 import { AccentCTA } from "../../ui/AccentCTA";
 import { Choice } from "../../ui/Choice";
 import { Figure } from "../../ui/Figure";
@@ -25,6 +26,8 @@ import { formatKg } from "../../ui/format";
 import { GhostCTA } from "../../ui/GhostCTA";
 import { useTone } from "../../ui/motion";
 import { Band, DockFooter, Head, Phone } from "../../ui/Screen";
+import { estilos, useTema } from "../../ui/tema";
+import { Troca } from "../../ui/Troca";
 import { Txt } from "../../ui/Txt";
 
 type Effort = 1 | 2 | 3;
@@ -38,10 +41,11 @@ const WORDS: { effort: Effort; label: string }[] = [
 ];
 
 export function Descanso({ navigation, route }: Props) {
+  const styles = usarEstilos();
+  const { T, FORMA, acento } = useTema();
   const {
     token,
     timeName,
-    accent,
     localId,
     items,
     itemIndex,
@@ -51,10 +55,44 @@ export function Descanso({ navigation, route }: Props) {
     ofensivaCount,
     xpTotal,
   } = route.params;
-  const A = accentSet(accent);
+  const A = acento();
+  const item = items[itemIndex];
   const [left, setLeft] = useState(restSeconds);
   const [effort, setEffort] = useState<Effort | 0>(0);
   const [busy, setBusy] = useState(false);
+
+  // O QUE O CORPO FEZ, e não o que a ficha pediu.
+  //
+  // Este cabeçalho imprimia `item.load_kg × item.planned_reps` — a PRESCRIÇÃO. Quem
+  // acabava de levantar 65 lia "60 kg × 8" no segundo seguinte ao esforço: o único momento
+  // em que o app fala sobre o ato que acabou de acontecer, e ele falava do plano.
+  //
+  // A fonte é a série GRAVADA, não o estado da tela anterior: se a escrita não aconteceu,
+  // nada é afirmado. Vem de disco porque é onde a verdade da sessão mora (o app é
+  // offline-first) e porque assim nenhuma rota precisa carregar carga em parâmetro.
+  const [feito, setFeito] = useState<{ load: number; reps: number } | null>(null);
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      const stored = await loadSession(localId);
+      const s = stored?.sets.find(
+        (x) => x.prescription_item_id === item?.id && x.set_index === setIndex,
+      );
+      if (alive && s) setFeito({ load: s.load_kg, reps: s.reps });
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [item, localId, setIndex]);
+
+  // A REFERÊNCIA DO CORPO. `last_kg` é a série EXECUTADA da última vez naquele exercício
+  // (internal/today/service.go), e NÃO o recorde — por isso a linha diz "última vez" e
+  // nunca "recorde". Recorde é personal_records, e quem fala dele é a tela Recorde.
+  const ultima = item?.last_kg ?? null;
+  const subiu =
+    ultima !== null && feito !== null && feito.load > ultima
+      ? Math.round((feito.load - ultima) * 10) / 10
+      : null;
 
   useEffect(() => {
     const id = setInterval(() => {
@@ -83,7 +121,20 @@ export function Descanso({ navigation, route }: Props) {
 
   const nxt = nextAfter(items, itemIndex, setIndex);
   const ending = last || nxt === "done";
-  const item = items[itemIndex];
+
+  // A PALAVRA DE ESFORÇO É POR EXERCÍCIO, NÃO POR SÉRIE.
+  //
+  // Ela travava as duas saídas daqui em `disabled={!effort}`, então cada série custava um
+  // toque a mais: 18 séries num treino viravam 18 toques só para responder três palavras
+  // repetidas. Um crítico cego mediu o ciclo em regime e deu 3 toques por série onde o
+  // brief pede que um toque feche — e o medidor antigo nem via, porque parava no descanso.
+  //
+  // O sinal não some: `last_effort` é o que sustenta "Última sessão difícil" na Atenção do
+  // dia do personal. Por exercício ele é mais informativo que por série, e custa 6 toques
+  // num treino de 6 exercícios em vez de 18. Entre séries do mesmo exercício o descanso
+  // volta a ser só descanso.
+  const fechaExercicio =
+    ending || (typeof nxt !== "string" && nxt.itemIndex !== itemIndex);
 
   async function pick(n: Effort) {
     setEffort(n);
@@ -91,6 +142,10 @@ export function Descanso({ navigation, route }: Props) {
   }
 
   async function goFinish() {
+    // Fechar a SESSÃO sempre pede a palavra: é o esforço da sessão que sobe em
+    // markFinished, e ele é 1|2|3 por tipo. Quem relaxou foi só o avanço entre séries do
+    // mesmo exercício. O botão abaixo carrega o mesmo guarda — botão clicável e inerte foi
+    // exatamente o defeito que apareceu quando mexi só no `disabled`.
     if (!effort || busy) return;
     setBusy(true);
     try {
@@ -107,7 +162,6 @@ export function Descanso({ navigation, route }: Props) {
             name: "Feito",
             params: {
               timeName,
-              accent,
               ofensivaCount: finish?.ofensiva.current_count ?? ofensivaCount + 1,
               xpGained: finish?.xp_gained ?? 10,
               xpTotal: finish?.xp_total ?? xpTotal + 10,
@@ -125,12 +179,15 @@ export function Descanso({ navigation, route }: Props) {
   }
 
   async function goNext() {
-    if (!effort || busy) return;
+    if ((fechaExercicio && !effort) || busy) return;
     if (nxt === "done") {
       await goFinish();
       return;
     }
-    navigation.navigate("Serie", {
+    // popTo pelo mesmo motivo da Série: a rota de volta é a que já existe, e quando não
+    // existe ela TROCA esta. A tela é remontada com key nova, então carga, repetição e
+    // relógio nascem do zero como nasciam antes.
+    navigation.popTo("Serie", {
       ...route.params,
       itemIndex: nxt.itemIndex,
       setIndex: nxt.setIndex,
@@ -153,12 +210,39 @@ export function Descanso({ navigation, route }: Props) {
             : `Série ${setIndex}`
         }
         kickerMuted
-        title={item ? `${formatKg(item.load_kg)} kg × ${item.planned_reps}` : "Feita"}
-      />
+        title={feito ? `${formatKg(feito.load)} kg × ${feito.reps}` : "Série feita"}
+      >
+        {/* O RECONHECIMENTO NO INSTANTE EM QUE ACONTECE — e no slot que já existia.
+            A linha da última vez é PERMANENTE (é a coluna `Previous` do Hevy: o passado
+            fica no mesmo pixel onde o presente é escrito), então ela ocupa o lugar desde o
+            primeiro quadro e nada salta quando a troca chega. Quando a carga gravada supera
+            a última vez, o número velho É SUBSTITUÍDO pelo ganho — sem modal, sem toque,
+            sem atrasar o descanso, que já está correndo atrás. */}
+        {ultima === null ? null : (
+          <View style={styles.marca}>
+            <Troca
+              antes={
+                <Txt role="label" tone="dim">
+                  Última vez · {formatKg(ultima)} kg
+                </Txt>
+              }
+              depois={
+                subiu === null ? null : (
+                  <Txt role="label" color={A.text}>
+                    Você subiu {formatKg(subiu)} kg
+                  </Txt>
+                )
+              }
+            />
+          </View>
+        )}
+      </Head>
 
-      <View style={styles.grow} />
-
-      <Band rule="none">
+      {/* O relógio e a palavra são DUAS superfícies que crescem: a sobra da tela se divide
+          entre elas em vez de virar dois buracos de 220pt no chão nu, um acima e um abaixo
+          do número. Quando a série não fecha exercício, a palavra não existe e o relógio
+          fica com a folga inteira — ainda dele, ainda com dono. */}
+      <Band raised grow rule="none">
         <View
           accessible
           accessibilityLabel={
@@ -177,10 +261,9 @@ export function Descanso({ navigation, route }: Props) {
         </Txt>
       </Band>
 
-      <View style={styles.grow} />
-
-      <Band rule="none">
-        <Txt role="label">Como foi essa série?</Txt>
+      {fechaExercicio ? (
+      <Band raised grow rule="none">
+        <Txt role="label">Como foi esse exercício?</Txt>
         <View style={styles.words}>
           {WORDS.map((w) => (
             <Choice
@@ -188,17 +271,21 @@ export function Descanso({ navigation, route }: Props) {
               label={w.label}
               selected={effort === w.effort}
               flex
-              accent={accent}
               onPress={() => void pick(w.effort)}
             />
           ))}
         </View>
+        {/* QUEM RECEBE, dito antes de o aluno gastar o toque. A palavra de esforço viaja
+            para a tela de trabalho de uma pessoa (`ReturnItem.Effort`, internal/owner/
+            service.go:120) e é dela que sai o ajuste de carga da próxima ficha. O app sabia
+            disso e não contava: o aluno tocava achando que alimentava um banco de dados. */}
         <Txt role="note" tone="dim" style={styles.note}>
           {effort
             ? noteFor(effort, timeName)
-            : "Um toque. O peso de amanhã sai daqui."}
+            : `Um toque. O ${timeName} lê isso antes de montar a próxima.`}
         </Txt>
       </Band>
+      ) : null}
 
       <DockFooter>
         <View style={styles.dock}>
@@ -214,12 +301,12 @@ export function Descanso({ navigation, route }: Props) {
               void goNext();
             }}
             meta={ending ? undefined : nextLabel}
-            disabled={!effort}
+            disabled={fechaExercicio && !effort}
             busy={busy}
-            accent={accent}
           />
           {ending ? null : (
             <GhostCTA
+              fundo={FORMA.folha.chrome.composto}
               label="Terminar por aqui"
               onPress={() => {
                 void goFinish();
@@ -239,11 +326,23 @@ function noteFor(effort: Effort, timeName: string): string {
   return `O ${timeName} vê e não empurra amanhã.`;
 }
 
-const styles = StyleSheet.create({
-  track: { height: 10, backgroundColor: T.fill, marginTop: 18 },
-  fill: { height: 10 },
-  note: { marginTop: 14 },
-  grow: { flex: 1 },
-  words: { flexDirection: "row", gap: 8, marginTop: 12 },
-  dock: { gap: 10 },
-});
+const usarEstilos = estilos(({ T, SPACE, FORMA }) =>
+  StyleSheet.create({
+    // A calha pousa DENTRO da Band levantada, e `T.fill` é um degrau contado a partir do
+    // CHÃO: ali ele separava 8,3 de L* em vez dos 14,9 que entrega no chão — meia calha.
+    // `veuComposto` é o fundo real da superfície nas quatro famílias, inclusive `contorno`
+    // (onde ele É o chão, e o neutro volta a ser exatamente `T.fill`).
+    track: {
+      height: 10,
+      backgroundColor: neutroSobre(FORMA.veuComposto, T),
+      marginTop: SPACE.step,
+    },
+    fill: { height: 10 },
+    // O mesmo degrau que o `title` do Head já paga acima dele: a marca é irmã do título,
+    // não um bloco novo.
+    marca: { marginTop: SPACE.hair },
+    note: { marginTop: SPACE.step },
+    words: { flexDirection: "row", gap: SPACE.hair, marginTop: SPACE.tight },
+    dock: { gap: SPACE.tight },
+  }),
+);

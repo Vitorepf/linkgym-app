@@ -1,6 +1,6 @@
 import { StyleSheet, View } from "react-native";
-import { accentSet, productTheme as T } from "../theme";
 import { initials } from "./format";
+import { useTema } from "./tema";
 import { Txt } from "./Txt";
 
 type Props = {
@@ -11,13 +11,19 @@ type Props = {
 };
 
 export function Initials({ name, accent, fill, size = 34 }: Props) {
+  const { T, FORMA, acento } = useTema();
   // Peça, não massa: avatar de 34–54 px. Ver o verbete `piece` em src/theme.ts.
-  const ac = accentSet(accent || T.accentFallback).piece;
+  const ac = acento(accent).piece;
   return (
     <View
       style={[
         styles.box,
-        { width: size, height: size, backgroundColor: fill ? ac.fill : T.fill },
+        {
+          width: size,
+          height: size,
+          backgroundColor: fill ? ac.fill : T.fill,
+          borderRadius: FORMA.raioEm(size),
+        },
       ]}
     >
       <Txt role="label" color={fill ? ac.ink : T.ink} style={styles.letters}>

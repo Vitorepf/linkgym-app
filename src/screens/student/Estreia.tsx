@@ -3,15 +3,16 @@ import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useEffect, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
-import { today, type Time, type TodayPayload } from "../../api";
+import {
+  configDoTime, today, type Time, type TodayPayload } from "../../api";
 import { studentHomeTarget } from "../../nav/StudentTabs";
 import type { RootStackParamList } from "../../nav/types";
 import { createSession, newLocalId } from "../../offline/sessionQueue";
-import { productTheme as T } from "../../theme";
 import { AccentCTA } from "../../ui/AccentCTA";
 import { Figure } from "../../ui/Figure";
 import { plannedSets } from "../../ui/format";
 import { Band, D0_STEPS, DockFooter, Head, Phone, StepRail } from "../../ui/Screen";
+import { estilos } from "../../ui/tema";
 import { Txt } from "../../ui/Txt";
 
 type Props = {
@@ -25,9 +26,9 @@ export function estreiaSeenKey(timeId: string): string {
 }
 
 export function Estreia({ token, time, needsCommitment }: Props) {
+  const styles = usarEstilos();
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList, "Estreia">>();
-  const accent = time.accent_color || T.accentFallback;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [payload, setPayload] = useState<TodayPayload | null>(null);
@@ -78,7 +79,6 @@ export function Estreia({ token, time, needsCommitment }: Props) {
             params: {
               token,
               timeName: time.name,
-              accent,
               localId: session.local_id,
               prescriptionId: next.id,
               items: next.items,
@@ -87,6 +87,7 @@ export function Estreia({ token, time, needsCommitment }: Props) {
               ofensivaCount: data.ofensiva.current_count,
               xpTotal: data.xp_total,
               needsCommitment,
+              passoKg: configDoTime(time).passo_kg,
             },
           },
         ],
@@ -106,9 +107,8 @@ export function Estreia({ token, time, needsCommitment }: Props) {
       <Head
         kicker={`${D0_STEPS} · ${D0_STEPS}`}
         title="Primeira sessão"
-        accent={accent}
       >
-        <StepRail accent={accent} now={D0_STEPS} />
+        <StepRail now={D0_STEPS} />
       </Head>
 
       <ScrollView
@@ -157,11 +157,13 @@ export function Estreia({ token, time, needsCommitment }: Props) {
             ))}
 
             {/* A causa em prosa, no pé: quem montou, para quando, e por que é curto.
-                Fecha a lista e ocupa o último terço — vazio ali lê como defeito. */}
-            <Band rule="none">
+                A superfície CRESCE e fica dona da sobra — com 3 exercícios reais o que
+                sobrava entre a lista e o botão era buraco de ninguém. */}
+            <Band raised grow rule="none">
               <Txt role="body" tone="muted">
-                O {time.name} montou {prescription.name} para o seu primeiro dia.
-                Curto de propósito.
+                {/* a primeira frase humana do app é do personal, quando ele a escreveu. */}
+                {configDoTime(time).boas_vindas ||
+                  `O ${time.name} montou ${prescription.name} para o seu primeiro dia. Curto de propósito.`}
               </Txt>
             </Band>
           </>
@@ -189,7 +191,6 @@ export function Estreia({ token, time, needsCommitment }: Props) {
           label={prescription ? "Começar" : "Ver o Hoje"}
           onPress={() => void start()}
           busy={busy}
-          accent={accent}
         />
       </DockFooter>
     </Phone>
@@ -198,29 +199,31 @@ export function Estreia({ token, time, needsCommitment }: Props) {
 
 const ORD = 26;
 
-const styles = StyleSheet.create({
-  scroll: { flex: 1 },
-  content: { flexGrow: 1 },
-  colHead: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: T.pad,
-    paddingBottom: 8,
-    borderBottomWidth: 2,
-    borderBottomColor: T.divider,
-  },
-  colName: { flex: 1, marginLeft: ORD + 8 },
-  colSets: { width: 78, textAlign: "right" },
-  row: {
-    flexDirection: "row",
-    alignItems: "baseline",
-    gap: 8,
-    paddingHorizontal: T.pad,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: T.hairline,
-  },
-  ord: { width: ORD },
-  name: { flex: 1 },
-  sets: { width: 78, textAlign: "right" },
-});
+const usarEstilos = estilos(({ T }) =>
+  StyleSheet.create({
+    scroll: { flex: 1 },
+    content: { flexGrow: 1 },
+    colHead: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingHorizontal: T.pad,
+      paddingBottom: 8,
+      borderBottomWidth: 2,
+      borderBottomColor: T.divider,
+    },
+    colName: { flex: 1, marginLeft: ORD + 8 },
+    colSets: { width: 78, textAlign: "right" },
+    row: {
+      flexDirection: "row",
+      alignItems: "baseline",
+      gap: 8,
+      paddingHorizontal: T.pad,
+      paddingVertical: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: T.hairline,
+    },
+    ord: { width: ORD },
+    name: { flex: 1 },
+    sets: { width: 78, textAlign: "right" },
+  }),
+);

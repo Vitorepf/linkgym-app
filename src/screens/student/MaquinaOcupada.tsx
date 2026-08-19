@@ -7,16 +7,15 @@ import {
   loadCurrent,
   rememberSwap,
 } from "../../offline/sessionQueue";
-import { accentSet, errorInk, MOTION, productTheme as T } from "../../theme";
 import { formatKg } from "../../ui/format";
 import { IconChevron } from "../../ui/Icons";
 import { useEdgeTone } from "../../ui/motion";
+import { estilos, useTema } from "../../ui/tema";
 import { Txt } from "../../ui/Txt";
 
 type Props = {
   token: string;
   timeName: string;
-  accent: string;
   prescriptionId: string;
   from: TodayItem;
   items: TodayItem[];
@@ -32,12 +31,13 @@ function meta(item: TodayItem): string {
 export function MaquinaOcupada({
   token,
   timeName,
-  accent,
   prescriptionId,
   from,
   items,
 }: Props) {
-  const A = accentSet(accent);
+  const styles = usarEstilos();
+  const { acento, errorInk } = useTema();
+  const A = acento();
   const others = items.filter((item) => item.exercise_id !== from.exercise_id);
   const [done, setDone] = useState<TodayItem | null>(null);
   const [error, setError] = useState("");
@@ -157,6 +157,8 @@ function SwapCard({
   onPress: () => void;
   disabled: boolean;
 }) {
+  const styles = usarEstilos();
+  const { T, MOTION } = useTema();
   const [down, setDown] = useState(false);
   const tone = useEdgeTone(down && !disabled, T.divider, T.ink, MOTION.press);
 
@@ -182,32 +184,36 @@ function SwapCard({
   );
 }
 
-const styles = StyleSheet.create({
-  title: { marginTop: 5 },
-  lede: { marginTop: 8 },
-  from: {
-    marginTop: 20,
-    paddingTop: 16,
-    paddingBottom: 16,
-    borderTopWidth: 2,
-    borderTopColor: T.divider,
-    borderBottomWidth: 2,
-    borderBottomColor: T.divider,
-  },
-  fromRow: { marginTop: 4 },
-  fromName: { marginBottom: 2 },
-  error: { marginTop: 14 },
-  pick: { marginTop: 20 },
-  card: {
-    marginTop: 12,
-    borderWidth: 2,
-    paddingVertical: 20,
-    paddingHorizontal: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  cardMain: { flex: 1, minWidth: 0 },
-  cardMeta: { marginTop: 2 },
-  off: { opacity: 0.35 },
-});
+const usarEstilos = estilos(({ T, FORMA }) =>
+  StyleSheet.create({
+    title: { marginTop: 5 },
+    lede: { marginTop: 8 },
+    from: {
+      marginTop: 20,
+      paddingTop: 16,
+      paddingBottom: 16,
+      borderTopWidth: FORMA.borda,
+      borderTopColor: T.divider,
+      borderBottomWidth: FORMA.borda,
+      borderBottomColor: T.divider,
+    },
+    fromRow: { marginTop: 4 },
+    fromName: { marginBottom: 2 },
+    error: { marginTop: 14 },
+    pick: { marginTop: 20 },
+    // O cartao inteiro e o botao: canto de ACAO, nao de superficie.
+    card: {
+      marginTop: 12,
+      borderWidth: FORMA.borda,
+      borderRadius: FORMA.raioAcao,
+      paddingVertical: 20,
+      paddingHorizontal: 16,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+    },
+    cardMain: { flex: 1, minWidth: 0 },
+    cardMeta: { marginTop: 2 },
+    off: { opacity: 0.35 },
+  }),
+);

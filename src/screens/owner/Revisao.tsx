@@ -1,26 +1,26 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { approveOwnerWeek, ownerWeek, type OwnerWeekItem } from "../../api";
-import { errorInk, productTheme as T } from "../../theme";
+import type { OwnerTabNavigation } from "../../nav/types";
 import { AccentCTA } from "../../ui/AccentCTA";
-import { IconCheck, TrendMark } from "../../ui/Icons";
+import { IconCheck, IconChevron, TrendMark } from "../../ui/Icons";
 import { Initials } from "../../ui/Initials";
 import { MetricGrid } from "../../ui/Metric";
 import { Band, DockFooter, Head, Phone } from "../../ui/Screen";
 import { Txt } from "../../ui/Txt";
 import { weekdayLong } from "../../ui/format";
+import { estilos, useTema } from "../../ui/tema";
 
 type Props = {
   token: string;
   timeName: string;
-  accent: string;
 };
 
 /** O fio em texto: `adherence` chega como "3 de 4" — feito de prescrito. Os dois números
  *  são reais, vêm da API, e são a única coisa desta tela que pode virar número grande.
  *  Sem os dois, nenhum número é desenhado — a linha continua, muda. */
-function fio(text: string): { done: number; planned: number } | null {
+export function fio(text: string): { done: number; planned: number } | null {
   const m = text.match(/(\d+)\D+(\d+)/);
   if (!m) return null;
   const done = Number(m[1]);
@@ -46,7 +46,10 @@ function bandOf(f: ReturnType<typeof fio>): number {
   return f.done >= f.planned ? 2 : 1;
 }
 
-export function Revisao({ token, timeName, accent }: Props) {
+export function Revisao({ token, timeName }: Props) {
+  const styles = usarEstilos();
+  const { T, errorInk } = useTema();
+  const navigation = useNavigation<OwnerTabNavigation>();
   const startedAt = useRef(Date.now());
   const [items, setItems] = useState<OwnerWeekItem[]>([]);
   const [picked, setPicked] = useState<Record<string, boolean>>({});
@@ -142,7 +145,6 @@ export function Revisao({ token, timeName, accent }: Props) {
         <Head
           kicker={weekdayLong()}
           title={`A semana de ${done.n} está revisada`}
-          accent={accent}
         />
         <MetricGrid
           cells={[
@@ -170,7 +172,6 @@ export function Revisao({ token, timeName, accent }: Props) {
             ? "O ajuste sai do fio: feito contra prescrito. Desmarque quem discordar."
             : undefined
         }
-        accent={accent}
       />
       <ScrollView
         style={styles.scroll}
@@ -217,30 +218,48 @@ export function Revisao({ token, timeName, accent }: Props) {
                 const f = fio(row.adherence);
                 const yes = on(row);
                 return (
-                  <Pressable
-                    key={row.person_id}
-                    accessibilityRole="button"
-                    accessibilityState={{ selected: yes }}
-                    style={styles.row}
-                    onPress={() => setMany([row], !yes)}
-                  >
-                    <Box state={yes ? "all" : "none"} />
-                    <Initials name={row.name} size={32} />
-                    <View style={styles.grow}>
-                      <Txt role="body" numberOfLines={1}>
-                        {row.name}
-                      </Txt>
-                      <Txt role="note">{row.suggested}</Txt>
-                    </View>
-                    {f ? (
-                      <View style={styles.num}>
-                        <Txt role="body" style={styles.tab}>
-                          {f.done}
+                  <View key={row.person_id} style={styles.row}>
+                    {/* Marcar e ABRIR são dois atos, então são dois alvos. Enquanto a
+                        linha inteira só marcava, a pessoa que não estava sinalizada hoje
+                        não tinha porta nenhuma no app do personal. */}
+                    <Pressable
+                      accessibilityRole="checkbox"
+                      accessibilityState={{ checked: yes }}
+                      accessibilityLabel={`Revisar ${row.name}`}
+                      hitSlop={10}
+                      onPress={() => setMany([row], !yes)}
+                    >
+                      <Box state={yes ? "all" : "none"} />
+                    </Pressable>
+                    <Pressable
+                      accessibilityRole="button"
+                      style={styles.who}
+                      onPress={() =>
+                        navigation.navigate("Aluna", {
+                          token,
+                          personId: row.person_id,
+                          timeName,
+                        })
+                      }
+                    >
+                      <Initials name={row.name} size={32} />
+                      <View style={styles.grow}>
+                        <Txt role="body" numberOfLines={1}>
+                          {row.name}
                         </Txt>
-                        <Txt role="label">de {f.planned}</Txt>
+                        <Txt role="note">{row.suggested}</Txt>
                       </View>
-                    ) : null}
-                  </Pressable>
+                      {f ? (
+                        <View style={styles.num}>
+                          <Txt role="body" style={styles.tab}>
+                            {f.done}
+                          </Txt>
+                          <Txt role="label">de {f.planned}</Txt>
+                        </View>
+                      ) : null}
+                      <IconChevron color={T.muted2} size={16} />
+                    </Pressable>
+                  </View>
                 );
               })}
             </View>
@@ -259,7 +278,6 @@ export function Revisao({ token, timeName, accent }: Props) {
             onPress={() => void approve()}
             disabled={count === 0}
             busy={busy}
-            accent={accent}
             check
           />
         </DockFooter>
@@ -272,6 +290,8 @@ export function Revisao({ token, timeName, accent }: Props) {
  *  ponytail: os dois níveis (grupo e aluno) usam a MESMA caixa — o grupo só é o único que
  *  chega a "some". */
 function Box({ state }: { state: "all" | "some" | "none" }) {
+  const styles = usarEstilos();
+  const { T } = useTema();
   return (
     <View style={[styles.box, state === "all" && styles.boxOn]}>
       {state === "all" ? <IconCheck color={T.bg} size={13} /> : null}
@@ -280,44 +300,48 @@ function Box({ state }: { state: "all" | "some" | "none" }) {
   );
 }
 
-const styles = StyleSheet.create({
-  scroll: { flex: 1 },
-  // O terço inferior não termina em linha raspada: a lista respira contra o dock.
-  content: { flexGrow: 1, paddingBottom: 28 },
-  error: { paddingHorizontal: T.pad, paddingTop: 12 },
-  gap: { marginTop: 6 },
-  dockLine: { marginBottom: 10 },
-  grow: { flex: 1, minWidth: 0 },
-  group: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    paddingHorizontal: T.pad,
-    paddingTop: 18,
-    paddingBottom: 10,
-    borderBottomWidth: 2,
-    borderBottomColor: T.divider,
-  },
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    paddingHorizontal: T.pad,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: T.hairline,
-  },
-  num: { alignItems: "flex-end", flexShrink: 0 },
-  tab: { fontVariant: ["tabular-nums"] },
-  box: {
-    width: 22,
-    height: 22,
-    borderWidth: 2,
-    borderColor: T.ink,
-    alignItems: "center",
-    justifyContent: "center",
-    flexShrink: 0,
-  },
-  boxOn: { backgroundColor: T.ink },
-  half: { width: 10, height: 10, backgroundColor: T.ink },
-});
+const usarEstilos = estilos(({ T, FORMA }) =>
+  StyleSheet.create({
+    scroll: { flex: 1 },
+    // O terço inferior não termina em linha raspada: a lista respira contra o dock.
+    content: { flexGrow: 1, paddingBottom: 28 },
+    error: { paddingHorizontal: T.pad, paddingTop: 12 },
+    gap: { marginTop: 6 },
+    dockLine: { marginBottom: 10 },
+    grow: { flex: 1, minWidth: 0 },
+    group: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+      paddingHorizontal: T.pad,
+      paddingTop: 18,
+      paddingBottom: 10,
+      borderBottomWidth: FORMA.borda,
+      borderBottomColor: T.divider,
+    },
+    row: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+      paddingHorizontal: T.pad,
+      paddingVertical: 10,
+      borderBottomWidth: FORMA.fio,
+      borderBottomColor: T.hairline,
+    },
+    who: { flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", gap: 12 },
+    num: { alignItems: "flex-end", flexShrink: 0 },
+    tab: { fontVariant: ["tabular-nums"] },
+    box: {
+      width: 22,
+      height: 22,
+      borderWidth: FORMA.borda,
+      borderRadius: FORMA.raioEm(22),
+      borderColor: T.ink,
+      alignItems: "center",
+      justifyContent: "center",
+      flexShrink: 0,
+    },
+    boxOn: { backgroundColor: T.ink },
+    half: { width: 10, height: 10, borderRadius: FORMA.raioEm(10), backgroundColor: T.ink },
+  }),
+);

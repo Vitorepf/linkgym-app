@@ -2,20 +2,26 @@ import { useCallback, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import * as Clipboard from "expo-clipboard";
 import {
   applyOwnerAttention,
+  criarCobranca,
+  mudarEstadoDoVinculo,
   ownerAttention,
   ownerStudent,
+  type Cobranca,
   type OwnerAttention,
   type OwnerStudent,
 } from "../../api";
 import type { RootStackParamList } from "../../nav/types";
-import { errorInk, productTheme as T } from "../../theme";
 import { AccentCTA } from "../../ui/AccentCTA";
+import { Campo } from "../../ui/Campo";
 import { formatKg } from "../../ui/format";
+import { GhostCTA } from "../../ui/GhostCTA";
 import { Initials } from "../../ui/Initials";
 import { MetricGrid } from "../../ui/Metric";
 import { Band, DockFooter, Head, Phone } from "../../ui/Screen";
+import { estilos, useTema } from "../../ui/tema";
 import { Txt } from "../../ui/Txt";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Aluna">;
@@ -32,13 +38,16 @@ type Props = NativeStackScreenProps<RootStackParamList, "Aluna">;
  *  domínio — não é uma régua inventada) e com o esforço da última sessão marcado por
  *  FORMA na escala, nunca por matiz.
  *
- *  A ação é uma só e ela DIZ o que vai acontecer. Quando a pessoa está na fila de hoje, a
- *  ação é a decisão daquela fila e ela se aplica aqui mesmo — o botão faz, não navega.
- *  Fora da fila, a ação é publicar, e o rótulo diz qual das duas publicações é. Nada de
- *  "Manter": verbo genérico num retângulo cheio de acento era o maior elemento da tela
- *  fazendo nada. */
+ *  Cada ação DIZ o que vai acontecer. A decisão da fila se aplica aqui mesmo — o botão
+ *  faz, não navega — e publicar continua ao lado dela: enquanto a decisão era o único
+ *  CTA, a pessoa sinalizada hoje era justamente a que não tinha porta para prescrever.
+ *  Duas ações, um orçamento: a decisão é `quiet` e o acento em ÁREA fica com publicar,
+ *  que é o trabalho. Nada de "Manter": verbo genérico num retângulo cheio de acento era o
+ *  maior elemento da tela fazendo nada. */
 export function Aluna({ navigation, route }: Props) {
-  const { token, personId, accent } = route.params;
+  const styles = usarEstilos();
+  const { errorInk } = useTema();
+  const { token, personId } = route.params;
   const [card, setCard] = useState<OwnerStudent | null>(null);
   const [flag, setFlag] = useState<OwnerAttention | null>(null);
   const [error, setError] = useState("");
@@ -72,7 +81,6 @@ export function Aluna({ navigation, route }: Props) {
     navigation.navigate("Base", {
       token,
       timeName: route.params.timeName,
-      accent,
       personId: card.person_id,
       personName: card.name,
     });
@@ -93,43 +101,39 @@ export function Aluna({ navigation, route }: Props) {
     }
   }
 
-  function flagAction(
-    queued: OwnerAttention | null,
-    student: OwnerStudent,
-    done: boolean,
-    first: boolean,
-  ) {
-    if (queued) {
-      return {
-        label: queued.decision,
-        why: reasonLine(queued),
+  const loads = card?.last_loads ?? [];
+  const first = loads.length === 0;
+
+  // A decisão da fila, quando existe. Some ao ser aplicada.
+  const decision = flag
+    ? {
+        label: flag.decision,
+        why: reasonLine(flag),
         // O que o toque FAZ, sem inflar: aplicar resolve o item de hoje e, quando a causa
         // é o sumiço, abre a retomada do vínculo. Nada além disso acontece no servidor.
         effect:
-          queued.reason === "student_stopped"
+          flag.reason === "student_stopped"
             ? "Aplicar abre a retomada e tira ela da fila de hoje."
             : "Aplicar tira ela da fila de hoje.",
-        run: () => void applyFlag(queued.id),
-        check: true,
-      };
-    }
-    return {
-      label: first ? "Publicar a primeira ficha" : "Publicar a próxima ficha",
-      why: done ? "Resolvido agora." : whyPublish(student, first),
-      effect: "Abre de onde partir: a última carga deste corpo ou o modelo.",
-      run: goBase,
-      check: false,
-    };
-  }
+        run: () => void applyFlag(flag.id),
+      }
+    : null;
 
-  const loads = card?.last_loads ?? [];
-  const act = card && flagAction(flag, card, applied, loads.length === 0);
+  // Prescrever está SEMPRE aqui: é a razão de o personal abrir a ficha de alguém.
+  const publish = card
+    ? {
+        label: first ? "Publicar a primeira ficha" : "Publicar a próxima ficha",
+        why: applied ? "Resolvido agora." : whyPublish(card, first),
+        effect: "Abre de onde partir: a última carga deste corpo ou o modelo.",
+      }
+    : null;
+
+  const said = decision ?? publish;
 
   return (
     <Phone>
       <Head
         title={card?.name}
-        accent={accent}
         right={
           card ? (
             // Sem `fill`: o acento em ÁREA desta tela é o botão da ação, e ele é um só.
@@ -219,14 +223,21 @@ export function Aluna({ navigation, route }: Props) {
               ]}
             />
 
+            <Dinheiro
+              token={token}
+              card={card}
+              timeName={route.params.timeName}
+              navigation={navigation}
+            />
+
             {/* A causa vive NA tela, colada na ação. Sem isto o botão é uma ordem sem
                 motivo, e o motivo estava atrás de um toque (ou não existia). */}
-            {act ? (
+            {said ? (
               <View style={styles.why}>
                 <Band rule="none">
-                  <Txt role="body">{act.why}</Txt>
+                  <Txt role="body">{said.why}</Txt>
                   <Txt role="body" tone="muted" style={styles.effect}>
-                    {act.effect}
+                    {said.effect}
                   </Txt>
                 </Band>
               </View>
@@ -235,15 +246,20 @@ export function Aluna({ navigation, route }: Props) {
         ) : null}
       </ScrollView>
 
-      {act ? (
+      {publish ? (
         <DockFooter>
-          <AccentCTA
-            label={act.label}
-            accent={accent}
-            onPress={act.run}
-            busy={busy}
-            check={act.check}
-          />
+          {decision ? (
+            <View style={styles.second}>
+              <AccentCTA
+                label={decision.label}
+                onPress={decision.run}
+                busy={busy}
+                check
+                quiet
+              />
+            </View>
+          ) : null}
+          <AccentCTA label={publish.label} onPress={goBase} />
         </DockFooter>
       ) : null}
     </Phone>
@@ -294,31 +310,294 @@ function effortWord(n: number | null): string {
   return "";
 }
 
-const styles = StyleSheet.create({
-  scroll: { flex: 1 },
-  content: { flexGrow: 1 },
-  // O par causa+ação desce para o pé da rolagem em vez de deixar o terço de baixo morto.
-  // Uma folga só, entre o bloco de fatos e a decisão — não duas, que leem como buraco.
-  // Com ficha longa a margem automática vira zero e a rolagem manda.
-  why: { marginTop: "auto" },
-  sectionHead: {
-    paddingHorizontal: T.pad,
-    paddingTop: 18,
-    paddingBottom: 10,
-  },
-  loadRow: {
-    flexDirection: "row",
-    alignItems: "baseline",
-    gap: 6,
-    paddingHorizontal: T.pad,
-    paddingVertical: 28,
-    borderTopWidth: 1,
-    borderTopColor: T.hairline,
-  },
-  loadName: { flex: 1, minWidth: 0 },
-  // Coluna de número com largura fixa: as cargas alinham à direita entre si e a unidade
-  // fica num degrau tipográfico próprio, do lado de fora do número.
-  loadKg: { fontVariant: ["tabular-nums"], minWidth: 76, textAlign: "right" },
-  unit: { minWidth: 26 },
-  effect: { marginTop: 6 },
-});
+/** O DINHEIRO DESTA PESSOA, na tela dela.
+ *
+ *  A ficha do aluno tinha 332 linhas e nenhuma palavra sobre dinheiro — enquanto a tela de
+ *  Operação escrevia "o combinado se digita uma vez, NA PESSOA" e apontava para cá. Este
+ *  bloco é a porta que aquela frase prometia.
+ *
+ *  Três coisas, na ordem em que o personal precisa delas: o combinado (ou a porta para
+ *  criá-lo), o que ele vende à parte, e a saída. A saída fica por último e é a única peça
+ *  em tom de perigo do produto inteiro — encerrar não é um gesto de rotina, mas precisa
+ *  existir: sem ela, quem sai do estúdio conta e fatura para sempre. */
+function Dinheiro({
+  token,
+  card,
+  timeName,
+  navigation,
+}: {
+  token: string;
+  card: OwnerStudent;
+  timeName: string;
+  navigation: Props["navigation"];
+}) {
+  const styles = usarEstilos();
+  const { FORMA, errorInk } = useTema();
+  const [aberto, setAberto] = useState(false);
+  const [descricao, setDescricao] = useState("");
+  const [valor, setValor] = useState("");
+  const [criando, setCriando] = useState(false);
+  const [criada, setCriada] = useState<Cobranca | null>(null);
+  const [copiado, setCopiado] = useState(false);
+  const [erro, setErro] = useState("");
+  const [encerrado, setEncerrado] = useState(false);
+
+  const cents = centavosDe(valor);
+  const podeCriar = descricao.trim() !== "" && cents !== null;
+
+  async function criar() {
+    if (!podeCriar || criando) return;
+    setCriando(true);
+    setErro("");
+    try {
+      setCriada(
+        await criarCobranca(token, {
+          bond_id: card.bond_id,
+          descricao: descricao.trim(),
+          valor_cents: cents as number,
+        }),
+      );
+      setDescricao("");
+      setValor("");
+    } catch {
+      setErro("Não deu para criar. Nada foi cobrado.");
+    } finally {
+      setCriando(false);
+    }
+  }
+
+  async function encerrar() {
+    try {
+      await mudarEstadoDoVinculo(token, card.bond_id, "ended");
+      setEncerrado(true);
+    } catch {
+      setErro("Não deu para encerrar. O vínculo continua ativo.");
+    }
+  }
+
+  return (
+    <>
+      <View style={styles.sectionHead}>
+        <Txt role="label">Dinheiro</Txt>
+      </View>
+
+      <Band rule="hair">
+        {card.combinado ? (
+          <>
+            <Txt role="body">
+              R$ {reaisDaAluna(card.combinado.amount_cents)} por mês, todo dia{" "}
+              {card.combinado.due_day}
+            </Txt>
+            <Txt role="note" tone="dim" style={styles.effect}>
+              Dá para corrigir quando o combinado mudar.
+            </Txt>
+          </>
+        ) : (
+          <Txt role="body">
+            Sem valor combinado. Sem ele, {primeiroNomeDe(card.name)} não entra na conta do
+            mês.
+          </Txt>
+        )}
+        <View style={styles.acaoDoDinheiro}>
+          <GhostCTA
+            label={card.combinado ? "Mudar o combinado" : "Combinar o valor"}
+            fundo={FORMA.folha.peca.composto}
+            onPress={() =>
+              navigation.navigate("Combinado", {
+                token,
+                timeName,
+                pessoas: [
+                  {
+                    bond_id: card.bond_id,
+                    name: card.name,
+                    amount_cents: card.combinado?.amount_cents,
+                    due_day: card.combinado?.due_day,
+                  },
+                ],
+              })
+            }
+          />
+        </View>
+      </Band>
+
+      {/* COBRAR À PARTE: dois campos, e nada mais. Avaliação, whey, marmita, aula avulsa —
+          "qualquer tipo de produto" com categoria, foto, estoque, variante e frete são seis
+          decisões entre ele e o dinheiro, e nenhuma delas ele sabe tomar às 22h. */}
+      <Band rule="hair">
+        {criada ? (
+          <>
+            <Txt role="body">
+              {criada.descricao} · R$ {reaisDaAluna(criada.valor_cents)}
+            </Txt>
+            <Txt role="note" tone="dim" style={styles.effect}>
+              {copiado
+                ? "Copiado. Manda pra ela."
+                : "Entrou em A entregar, na Operação."}
+            </Txt>
+            <View style={styles.acaoDoDinheiro}>
+              {criada.copia_e_cola ? (
+                <GhostCTA
+                  label="Copiar o Pix"
+                  fundo={FORMA.folha.peca.composto}
+                  onPress={() => {
+                    void Clipboard.setStringAsync(criada.copia_e_cola);
+                    setCopiado(true);
+                  }}
+                />
+              ) : (
+                <GhostCTA
+                  label="Cobrar outra coisa"
+                  fundo={FORMA.folha.peca.composto}
+                  onPress={() => {
+                    setCriada(null);
+                    setCopiado(false);
+                  }}
+                />
+              )}
+            </View>
+          </>
+        ) : aberto ? (
+          <>
+            <Campo
+              label="O que você está cobrando"
+              rotulo
+              placeholder="Avaliação física"
+              maxLength={60}
+              value={descricao}
+              onChangeText={setDescricao}
+            />
+            <View style={styles.acaoDoDinheiro}>
+              <Campo
+                label="Valor"
+                rotulo
+                placeholder="150"
+                keyboardType="decimal-pad"
+                value={valor}
+                onChangeText={setValor}
+                style={styles.valorAvulso}
+              />
+            </View>
+            <View style={styles.acaoDoDinheiro}>
+              <AccentCTA
+                label="Criar a cobrança"
+                busy={criando}
+                disabled={!podeCriar}
+                onPress={() => void criar()}
+                quiet
+              />
+            </View>
+          </>
+        ) : (
+          <>
+            <Txt role="body">Cobrar à parte</Txt>
+            <Txt role="note" tone="dim" style={styles.effect}>
+              Avaliação, suplemento, marmita, aula avulsa. Dois campos.
+            </Txt>
+            <View style={styles.acaoDoDinheiro}>
+              <GhostCTA
+                label="Cobrar à parte"
+                fundo={FORMA.folha.peca.composto}
+                onPress={() => setAberto(true)}
+              />
+            </View>
+          </>
+        )}
+      </Band>
+
+      {erro ? (
+        <Band rule="none">
+          <Txt role="body" color={errorInk}>
+            {erro}
+          </Txt>
+        </Band>
+      ) : null}
+
+      {/* A SAÍDA. Sem ela, quem foi embora continua contando, faturando e devendo — e o
+          erro cresce todo mês. É reversível: encerrar por engano não pode ser porta de mão
+          única, e "voltei a treinar com o Fred" é comum. */}
+      <Band rule="none">
+        {encerrado ? (
+          <>
+            <Txt role="body">
+              {primeiroNomeDe(card.name)} saiu. Sai das contas do mês a partir de agora.
+            </Txt>
+            <View style={styles.acaoDoDinheiro}>
+              <GhostCTA
+                label="Desfazer"
+                fundo={FORMA.folha.peca.composto}
+                onPress={() => {
+                  void mudarEstadoDoVinculo(token, card.bond_id, "active");
+                  setEncerrado(false);
+                }}
+              />
+            </View>
+          </>
+        ) : (
+          <GhostCTA
+            label={`${primeiroNomeDe(card.name)} saiu do estúdio`}
+            tom="perigo"
+            fundo={FORMA.folha.peca.composto}
+            onPress={() => void encerrar()}
+          />
+        )}
+      </Band>
+    </>
+  );
+}
+
+/** Centavos em prosa de dinheiro: inteiro limpo, quebrado com vírgula. */
+function reaisDaAluna(cents: number): string {
+  const resto = cents % 100;
+  const inteiro = Math.trunc(cents / 100).toLocaleString("pt-BR");
+  return resto ? `${inteiro},${String(resto).padStart(2, "0")}` : inteiro;
+}
+
+/** O dedo digitou; quanto é em centavos. Vírgula e ponto porque o teclado numérico do iOS
+ *  oferece os dois e ninguém lembra qual é o certo. */
+function centavosDe(texto: string): number | null {
+  const limpo = texto.trim().replace(/\s/g, "").replace(".", ",");
+  if (!limpo || !/^\d{1,7}(,\d{0,2})?$/.test(limpo)) return null;
+  const [i, d = ""] = limpo.split(",");
+  const cents = Number(i) * 100 + Number(d.padEnd(2, "0"));
+  return cents > 0 ? cents : null;
+}
+
+function primeiroNomeDe(n: string): string {
+  return n.trim().split(/\s+/)[0];
+}
+
+const usarEstilos = estilos(({ T }) =>
+  StyleSheet.create({
+    scroll: { flex: 1 },
+    content: { flexGrow: 1 },
+    // O par causa+ação desce para o pé da rolagem em vez de deixar o terço de baixo morto.
+    // Uma folga só, entre o bloco de fatos e a decisão — não duas, que leem como buraco.
+    // Com ficha longa a margem automática vira zero e a rolagem manda.
+    why: { marginTop: "auto" },
+    sectionHead: {
+      paddingHorizontal: T.pad,
+      paddingTop: 18,
+      paddingBottom: 10,
+    },
+    loadRow: {
+      flexDirection: "row",
+      alignItems: "baseline",
+      gap: 6,
+      paddingHorizontal: T.pad,
+      paddingVertical: 28,
+      borderTopWidth: 1,
+      borderTopColor: T.hairline,
+    },
+    loadName: { flex: 1, minWidth: 0 },
+    // Coluna de número com largura fixa: as cargas alinham à direita entre si e a unidade
+    // fica num degrau tipográfico próprio, do lado de fora do número.
+    loadKg: { fontVariant: ["tabular-nums"], minWidth: 76, textAlign: "right" },
+    unit: { minWidth: 26 },
+    effect: { marginTop: 6 },
+    // A decisão fica ACIMA do acento: mesma massa, tinta neutra, e o dedo cai primeiro no
+    // trabalho. Sem folga entre os dois — são um par, não duas listas.
+    second: { marginBottom: 2 },
+    acaoDoDinheiro: { marginTop: 12, alignSelf: "flex-start" },
+    valorAvulso: { width: 120 },
+  }),
+);

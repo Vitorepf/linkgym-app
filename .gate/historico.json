@@ -1,0 +1,27 @@
+[
+  {
+    "ts": "2026-08-19",
+    "rodada": "critico-cego pos-fatias de superficie/ritmo/grade, 3 criticos + 3 refutadores",
+    "oficio": {
+      "resultado": "empatou",
+      "motivo": "Hoje.png reproduz a anatomia de whoop-frame-03-recovery.png: heroi 84 com baseline dupla, causa em prosa que cita os numeros, decomposicao em tres pares de mesmo peso e acao nomeada. Nao vence: a barra 0-100 e traco uniforme sem preenchimento nem marcador em 84 (regra 3, digito sem forma) e a Ofensiva 214 aparece sem baseline nem alvo.",
+      "referencia": "docs/barra/eixo1-oficio-visual/whoop-frame-03-recovery.png",
+      "artefato": "tools/out/design/0/Hoje.png",
+      "refutacao": ".gate/revisao/refutacao-oficio.md"
+    },
+    "operacao": {
+      "resultado": "venceu",
+      "motivo": "Atencao.png: 3 nomes ordenados com motivo e UMA acao por linha contra os 11 cartoes com 3 botoes e 'Resolver todos (11)' de mfit-03; Painel abre com a fila de trabalho onde mfit-01 abre com atalhos comerciais; Ajustar.png pre-preenche 6/6 cargas com procedencia declarada onde mfit-02 entrega o campo em branco.",
+      "referencia": "docs/barra/eixo2-operacao-personal/mfit-03-feedbacks-fila-resolver-todos-11.png",
+      "artefato": "tools/out/design/0/Atencao.png",
+      "refutacao": ".gate/revisao/refutacao-operacao.md"
+    },
+    "ritual": {
+      "resultado": "empatou",
+      "motivo": "O registro vence a barra (Previous na linha, prefill em passo fixo sem teclado, alvo unico), mas Feito empilha sessao + Ofensiva 214 + XP + carga numa tela contra a regra 'uma tela = um numero' de duolingo-11, e o fim do dia na home e so o contador acendendo.",
+      "referencia": "docs/barra/eixo3-ritual-aluno/duolingo-11-blog-licao-completa-e-ofensiva-7.png",
+      "artefato": "tools/out/design/0/HojeCumprido.png",
+      "refutacao": ".gate/revisao/refutacao-ritual.md"
+    }
+  }
+]

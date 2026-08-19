@@ -5,12 +5,16 @@ import type {
 } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { DraftItem, FinishRecord, TodayItem } from "../api";
+import type { CombinadoRoute } from "../screens/owner/Combinado";
 import type { SessionProof } from "../offline/sessionQueue";
 
+/** ponytail: `accent` saiu de TODA rota. A cor do personal é o TEMA (src/ui/tema.tsx), e
+ *  parâmetro de rota é CONGELADO no momento do navigate — com uma tela empilhada aberta,
+ *  trocar a cor no Perfil deixava aquela tela pintando a cor velha até o usuário voltar.
+ *  Cópia de estado global em parâmetro de rota é bug esperando data. */
 export type SessionRoute = {
   token: string;
   timeName: string;
-  accent: string;
   localId: string;
   prescriptionId: string;
   items: TodayItem[];
@@ -19,12 +23,16 @@ export type SessionRoute = {
   ofensivaCount: number;
   xpTotal: number;
   needsCommitment: boolean;
+  /** passo do ajuste de carga (config do Time); 2,5 quando o Time não configurou. */
+  passoKg?: number;
 };
 
 export type OwnerTabParamList = {
   Painel: undefined;
   Semana: undefined;
   Fichas: undefined;
+  Operacao: undefined;
+  PerfilTime: undefined;
 };
 
 export type StudentTabParamList = {
@@ -36,38 +44,44 @@ export type StudentTabParamList = {
 
 export type RootStackParamList = {
   Painel: NavigatorScreenParams<OwnerTabParamList> | undefined;
+  /** Sem parâmetro de propósito: quem a monta é o Root, que já tem token, time e o
+   *  onTimeChange. Empurrar o Time inteiro por parâmetro de rota é serializar estado que
+   *  já existe uma linha acima. */
+  Aparencia: undefined;
+  ComoFunciona: undefined;
+  Convite: undefined;
   Retorno: {
     token: string;
     timeName: string;
-    accent: string;
   };
   Atencao: {
     token: string;
     timeName: string;
-    accent: string;
   };
   Revisao: {
     token: string;
     timeName: string;
-    accent: string;
   };
   Aluna: {
     token: string;
     personId: string;
     timeName: string;
-    accent: string;
   };
+  /** O combinado, em lote ou em um. `pessoas` viaja por parâmetro porque a lista já veio
+   *  no payload da Operação (ou da própria pessoa): buscar de novo aqui seria uma segunda
+   *  ida à rede para o mesmo dado que a tela anterior tem na mão. */
+  Combinado: CombinadoRoute;
+  /** `personId` é obrigatório: prescrever é sempre PARA alguém, e o opcional daqui era o
+   *  que deixava a tela escolher um aluno sozinha. */
   Base: {
     token: string;
     timeName: string;
-    accent: string;
-    personId?: string;
-    personName?: string;
+    personId: string;
+    personName: string;
   };
   Ajustar: {
     token: string;
     timeName: string;
-    accent: string;
     prescriptionId: string;
     personId: string;
     personName: string;
@@ -76,7 +90,6 @@ export type RootStackParamList = {
   Publicar: {
     token: string;
     timeName: string;
-    accent: string;
     prescriptionId: string;
     personId: string;
     personName: string;
@@ -84,20 +97,17 @@ export type RootStackParamList = {
   SobreVoce: undefined;
   Pronto: undefined;
   Estreia: undefined;
-  Retomada: undefined;
   Compromisso: undefined;
   Hoje: NavigatorScreenParams<StudentTabParamList> | undefined;
   Ficha: {
     token: string;
     timeName: string;
-    accent: string;
     items: TodayItem[];
     prescriptionId: string;
   };
   ComoFazer: {
     token: string;
     timeName: string;
-    accent: string;
     item: TodayItem;
     items: TodayItem[];
     prescriptionId: string;
@@ -106,7 +116,6 @@ export type RootStackParamList = {
   Descanso: SessionRoute & { restSeconds: number; last: boolean };
   Feito: {
     timeName: string;
-    accent: string;
     ofensivaCount: number;
     xpTotal: number;
     xpGained: number;
@@ -118,7 +127,6 @@ export type RootStackParamList = {
     needsCommitment?: boolean;
   };
   Recorde: {
-    accent: string;
     records: FinishRecord[];
     needsCommitment?: boolean;
   };

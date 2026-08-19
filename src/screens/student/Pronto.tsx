@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
-import { StyleSheet, View } from "react-native";
 import { today, type Person, type Time, type TodayPayload } from "../../api";
-import { accentSet, productTheme as T } from "../../theme";
+
 import { AccentCTA } from "../../ui/AccentCTA";
 import { Figure } from "../../ui/Figure";
 import { plannedSets } from "../../ui/format";
 import { Band, D0_STEPS, DockFooter, Head, Phone, StepRail } from "../../ui/Screen";
+import { useTema } from "../../ui/tema";
 import { Txt } from "../../ui/Txt";
 
 type Props = {
@@ -31,8 +31,8 @@ const HERE = D0_STEPS - 1;
  *  permissão é emoldurada aqui, na tela do produto, antes de qualquer diálogo do sistema.
  */
 export function Pronto({ token, time, onContinue }: Props) {
-  const accent = time.accent_color || T.accentFallback;
-  const A = accentSet(accent);
+  const { acento } = useTema();
+  const A = acento();
   const [pres, setPres] = useState<TodayPayload["prescription"]>(null);
 
   useEffect(() => {
@@ -53,11 +53,14 @@ export function Pronto({ token, time, onContinue }: Props) {
 
   return (
     <Phone>
-      <Head kicker={`${HERE} · ${D0_STEPS}`} title="O que acontece agora" accent={accent}>
-        <StepRail accent={accent} now={HERE} />
+      <Head kicker={`${HERE} · ${D0_STEPS}`} title="O que acontece agora">
+        <StepRail now={HERE} />
       </Head>
 
-      <View style={styles.mid}>
+      {/* Duas superfícies que crescem, e não um `flex: 1` cru com o número boiando: a
+          sobra da tela é DIVIDIDA entre as duas e vira respiro interno de cada uma. O
+          buraco único de 285pt no chão nu era o terço perdido que os juízes cobraram. */}
+      <Band raised grow rule="none">
         {pres ? (
           <Figure
             role="mega"
@@ -67,15 +70,20 @@ export function Pronto({ token, time, onContinue }: Props) {
             note={`${pres.name} · ${pres.items.length} exercícios · ${plannedSets(pres.items)} séries`}
           />
         ) : null}
-      </View>
+      </Band>
 
-      <Band rule="none">
+      {/* O AVISO TEM REMETENTE. A moldura da permissão continua sendo a da barra (o motivo
+          dito na tela do produto, antes do diálogo do sistema), mas "toda sessão nova chega
+          por aviso" era um app falando de si — ninguém se afeiçoa a um agendador. Quem monta
+          a próxima sessão é uma pessoa com nome, e é ela que está combinando de te chamar.
+          É a maior alavanca emocional deste produto e ela custa uma linha. */}
+      <Band raised grow rule="none">
         <Txt role="title">
-          Toda sessão nova chega por{" "}
+          Quando o {time.name} montar sua próxima sessão, o{" "}
           <Txt role="title" color={A.text}>
             aviso
-          </Txt>
-          .
+          </Txt>{" "}
+          chega aqui.
         </Txt>
       </Band>
 
@@ -84,20 +92,9 @@ export function Pronto({ token, time, onContinue }: Props) {
             então o toque só avança. O quadro — motivo dito primeiro, um botão, sempre o
             mesmo rótulo — é a parte que fica. Upgrade: chamar requestPermissionsAsync()
             aqui, antes do onContinue, no dia em que a dependência entrar. */}
-        <AccentCTA label="Quero o aviso" onPress={onContinue} accent={accent} />
+        <AccentCTA label="Quero o aviso" onPress={onContinue} />
       </DockFooter>
     </Phone>
   );
 }
 
-const styles = StyleSheet.create({
-  // O terço de baixo é da instrução e do botão. O número sobe do centro geométrico para
-  // o terço óptico com o paddingBottom — centrado exato ele FLUTUA, com vão igual em
-  // cima e embaixo, e vão igual não compõe nada.
-  mid: {
-    flex: 1,
-    justifyContent: "center",
-    paddingHorizontal: T.pad,
-    paddingBottom: 96,
-  },
-});

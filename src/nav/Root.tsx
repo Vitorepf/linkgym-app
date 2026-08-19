@@ -2,11 +2,14 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
-import type { Person, Time, TodayPayload } from "../api";
-import { today } from "../api";
+import type { Person, Time } from "../api";
 import { Atencao } from "../screens/owner/Atencao";
 import { Aluna } from "../screens/owner/Aluna";
 import { Ajustar } from "../screens/owner/Ajustar";
+import { Aparencia } from "../screens/owner/Aparencia";
+import { ComoFunciona } from "../screens/owner/ComoFunciona";
+import { Combinado } from "../screens/owner/Combinado";
+import { Convite } from "../screens/owner/Convite";
 import { Base } from "../screens/owner/Base";
 import { Publicar } from "../screens/owner/Publicar";
 import { Revisao } from "../screens/owner/Revisao";
@@ -19,10 +22,9 @@ import { Feito } from "../screens/student/Feito";
 import { Ficha } from "../screens/student/Ficha";
 import { Pronto } from "../screens/student/Pronto";
 import { Recorde } from "../screens/student/Recorde";
-import { Retomada } from "../screens/student/Retomada";
 import { Serie } from "../screens/student/Serie";
 import { SobreVoce } from "../screens/student/SobreVoce";
-import { accentOn, productTheme } from "../theme";
+import { estilos, useTema } from "../ui/tema";
 import { OWNER_HOME_ROUTE, OwnerTabs } from "./OwnerTabs";
 import { studentHomeTarget, STUDENT_HOME_ROUTE, StudentTabs } from "./StudentTabs";
 import type { RootStackParamList } from "./types";
@@ -36,6 +38,8 @@ export type RootProps = {
   onboardingComplete: boolean;
   commitmentComplete: boolean;
   debut: boolean;
+  onTimeChange: (next: Time) => void;
+  onPersonChange: (next: Person) => void;
   onLeave: () => void;
 };
 
@@ -48,8 +52,12 @@ export function Root({
   onboardingComplete,
   commitmentComplete,
   debut,
+  onTimeChange,
+  onPersonChange,
   onLeave,
 }: RootProps) {
+  const styles = usarEstilos();
+  const { T, acentoEm } = useTema();
   const owner = person.role === "owner";
   const [needsOnboarding, setNeedsOnboarding] = useState(
     () => !owner && !onboardingComplete,
@@ -60,19 +68,18 @@ export function Root({
   const [showEstreia, setShowEstreia] = useState<boolean | null>(
     owner ? false : null,
   );
-  const [comeback, setComeback] = useState<
-    TodayPayload["comeback"] | undefined
-  >(owner ? null : undefined);
-
+  // A Retomada NAO decide mais rota. Ela era uma tela desta pilha, e para saber se
+  // apareceria o Root chamava /v1/today aqui — a Hoje entao chamava de novo, dois
+  // requests no boot para desenhar um deles. Agora a faixa mora dentro da Hoje e usa o
+  // payload que a Hoje ja tem, entao esta camada nao precisa mais esperar por rede
+  // nenhuma: o unico portao que sobrou e o da Estreia, que le disco.
   useEffect(() => {
     if (owner) {
       setShowEstreia(false);
-      setComeback(null);
       return;
     }
     if (needsOnboarding) {
       setShowEstreia(null);
-      setComeback(undefined);
       return;
     }
     let alive = true;
@@ -80,29 +87,18 @@ export function Root({
       const seen = await AsyncStorage.getItem(estreiaSeenKey(time.id));
       if (alive) setShowEstreia(Boolean(debut && !seen));
     })();
-    (async () => {
-      try {
-        const payload = await today(token);
-        if (alive) setComeback(payload.comeback);
-      } catch {
-        if (alive) setComeback(null);
-      }
-    })();
     return () => {
       alive = false;
     };
-  }, [debut, time.id, owner, needsOnboarding, token]);
+  }, [debut, time.id, owner, needsOnboarding]);
 
-  if (
-    !owner &&
-    !needsOnboarding &&
-    (showEstreia === null || comeback === undefined)
-  ) {
+  if (!owner && !needsOnboarding && showEstreia === null) {
     return (
       <View style={styles.boot}>
-        <ActivityIndicator
-          color={accentOn(time.accent_color || productTheme.accentFallback)}
-        />
+        {/* Sem argumento de propósito: o acento do personal já É o tema desta sessão.
+            Repassar `time.accent_color` aqui, além de redundante, é o vazamento que
+            tools/contrast.mjs acusa — cor crua entrando numa propriedade de cor. */}
+        <ActivityIndicator color={acentoEm()} />
       </View>
     );
   }
@@ -111,7 +107,7 @@ export function Root({
     <Stack.Navigator
       screenOptions={{
         headerShown: false,
-        contentStyle: { backgroundColor: productTheme.bg },
+        contentStyle: { backgroundColor: T.bg },
         animation: "none",
         gestureEnabled: true,
       }}
@@ -146,6 +142,7 @@ export function Root({
                 token={token}
                 person={person}
                 time={time}
+                onTimeChange={onTimeChange}
                 onLeave={onLeave}
               />
             )}
@@ -160,6 +157,19 @@ export function Root({
             component={Atencao}
             options={{ animation: "slide_from_right" }}
           />
+          <Stack.Screen name="Convite" options={{ animation: "slide_from_right" }}>
+            {() => <Convite token={token} time={time} />}
+          </Stack.Screen>
+          <Stack.Screen name="Aparencia" options={{ animation: "slide_from_right" }}>
+            {() => (
+              <Aparencia token={token} time={time} onTimeChange={onTimeChange} />
+            )}
+          </Stack.Screen>
+          <Stack.Screen name="ComoFunciona" options={{ animation: "slide_from_right" }}>
+            {() => (
+              <ComoFunciona token={token} time={time} onTimeChange={onTimeChange} />
+            )}
+          </Stack.Screen>
           <Stack.Screen name="Revisao" options={{ animation: "slide_from_right" }}>
             {({ route }) => <Revisao {...route.params} />}
           </Stack.Screen>
@@ -168,6 +178,9 @@ export function Root({
             component={Aluna}
             options={{ animation: "slide_from_right" }}
           />
+          <Stack.Screen name="Combinado" options={{ animation: "slide_from_right" }}>
+            {({ route }) => <Combinado {...route.params} />}
+          </Stack.Screen>
           <Stack.Screen name="Base" options={{ animation: "slide_from_right" }}>
             {({ route }) => <Base {...route.params} />}
           </Stack.Screen>
@@ -184,19 +197,7 @@ export function Root({
         </>
       ) : (
         <>
-          {comeback ? (
-            <Stack.Screen name="Retomada">
-              {() => (
-                <Retomada
-                  token={token}
-                  person={person}
-                  time={time}
-                  needsCommitment={needsCommitment}
-                  comeback={comeback}
-                />
-              )}
-            </Stack.Screen>
-          ) : showEstreia ? (
+          {showEstreia ? (
             <Stack.Screen name="Estreia">
               {() => (
                 <Estreia
@@ -214,6 +215,7 @@ export function Root({
                 person={person}
                 time={time}
                 needsCommitment={needsCommitment}
+                onPersonChange={onPersonChange}
                 onLeave={onLeave}
               />
             )}
@@ -269,11 +271,13 @@ export function Root({
   );
 }
 
-const styles = StyleSheet.create({
-  boot: {
-    flex: 1,
-    backgroundColor: productTheme.bg,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-});
+const usarEstilos = estilos(({ T }) =>
+  StyleSheet.create({
+    boot: {
+      flex: 1,
+      backgroundColor: T.bg,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+  }),
+);

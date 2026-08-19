@@ -2,25 +2,26 @@ import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { TodayItem } from "../../api";
 import type { RootStackParamList } from "../../nav/types";
-import { accentSet, productTheme as T } from "../../theme";
 import { AccentCTA } from "../../ui/AccentCTA";
 import { Figure } from "../../ui/Figure";
 import { Band, DockFooter, Head, Phone } from "../../ui/Screen";
 import { Txt } from "../../ui/Txt";
 import { formatKg, plannedSets } from "../../ui/format";
+import { estilos, useTema } from "../../ui/tema";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Ficha">;
 
 export function Ficha({ navigation, route }: Props) {
-  const { items, timeName, accent, token, prescriptionId } = route.params;
-  const ac = accent || T.accentFallback;
-  const A = accentSet(ac);
+  const styles = usarEstilos();
+  const { acento } = useTema();
+  const { items, timeName, token, prescriptionId } = route.params;
+  const A = acento();
   const rows = [...items].sort((a, b) => a.position - b.position);
 
   return (
     <Phone>
       {/* O nome do personal é CONTEXTO, não ação: mudo, como nas quatro abas. */}
-      <Head kicker={timeName} title="Minha ficha" kickerMuted accent={ac} />
+      <Head kicker={timeName} title="Minha ficha" kickerMuted />
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}
@@ -61,7 +62,6 @@ export function Ficha({ navigation, route }: Props) {
                     item,
                     items,
                     timeName,
-                    accent: ac,
                     token,
                     prescriptionId,
                   });
@@ -102,7 +102,6 @@ export function Ficha({ navigation, route }: Props) {
         <AccentCTA
           label="Voltar à sessão"
           onPress={() => navigation.goBack()}
-          accent={ac}
         />
       </DockFooter>
     </Phone>
@@ -128,43 +127,49 @@ function spread(rows: TodayItem[]): string {
 
 const ORD = 26;
 
-const styles = StyleSheet.create({
-  scroll: { flex: 1 },
-  // ponytail: sem folga no pé — a última régua encosta no dock. Vazio que não separa
-  // nada é defeito, e aqui ele só empurrava um hairline para longe de um divider.
-  content: { flexGrow: 1 },
-  colHead: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: T.pad,
-    paddingBottom: 8,
-    borderBottomWidth: 2,
-    borderBottomColor: T.divider,
-  },
-  colName: { flex: 1, marginLeft: ORD + 8 },
-  colKg: { width: 78, textAlign: "right" },
-  row: {
-    paddingHorizontal: T.pad,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: T.hairline,
-  },
-  // ponytail: a última linha não fecha com régua própria — quem fecha a lista é o divider
-  // do dock. Duas réguas paralelas a 20pt uma da outra leem como acidente.
-  last: { borderBottomWidth: 0 },
-  line: { flexDirection: "row", alignItems: "baseline", gap: 8 },
-  ord: { width: ORD },
-  name: { flex: 1 },
-  kg: {
-    width: 78,
-    textAlign: "right",
-    fontVariant: ["tabular-nums"],
-  },
-  meta: { marginLeft: ORD + 8, marginTop: 2 },
-  said: {
-    marginLeft: ORD + 8,
-    marginTop: 10,
-    paddingLeft: 10,
-    borderLeftWidth: 2,
-  },
-});
+const usarEstilos = estilos(({ T }) =>
+  StyleSheet.create({
+    scroll: { flex: 1 },
+    // ponytail: sem folga no pé — a última régua encosta no dock. Vazio que não separa
+    // nada é defeito, e aqui ele só empurrava um hairline para longe de um divider.
+    content: { flexGrow: 1 },
+    colHead: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingHorizontal: T.pad,
+      paddingBottom: 8,
+      borderBottomWidth: 2,
+      borderBottomColor: T.divider,
+    },
+    colName: { flex: 1, marginLeft: ORD + 8 },
+    colKg: { width: 78, textAlign: "right" },
+    // A linha CRESCE: com 3 exercícios reais a sobra da tela se divide entre as linhas em
+    // vez de virar buraco órfão; com 6+ o conteúdo enche e o flexGrow é inerte.
+    row: {
+      paddingHorizontal: T.pad,
+      paddingVertical: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: T.hairline,
+      flexGrow: 1,
+      justifyContent: "center",
+    },
+    // ponytail: a última linha não fecha com régua própria — quem fecha a lista é o divider
+    // do dock. Duas réguas paralelas a 20pt uma da outra leem como acidente.
+    last: { borderBottomWidth: 0 },
+    line: { flexDirection: "row", alignItems: "baseline", gap: 8 },
+    ord: { width: ORD },
+    name: { flex: 1 },
+    kg: {
+      width: 78,
+      textAlign: "right",
+      fontVariant: ["tabular-nums"],
+    },
+    meta: { marginLeft: ORD + 8, marginTop: 2 },
+    said: {
+      marginLeft: ORD + 8,
+      marginTop: 10,
+      paddingLeft: 10,
+      borderLeftWidth: 2,
+    },
+  }),
+);

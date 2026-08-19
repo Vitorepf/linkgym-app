@@ -9,13 +9,13 @@ import {
   type Time,
 } from "../../api";
 import type { OwnerTabNavigation } from "../../nav/types";
-import { errorInk, productTheme as T } from "../../theme";
 import { AccentCTA } from "../../ui/AccentCTA";
 import { Figure } from "../../ui/Figure";
 import { GhostCTA } from "../../ui/GhostCTA";
 import { IconChevron } from "../../ui/Icons";
 import { Initials } from "../../ui/Initials";
-import { Band, Head, Phone } from "../../ui/Screen";
+import { Band, Head, neutroNaBand, Phone, useFimDaRolagem } from "../../ui/Screen";
+import { estilos, useTema } from "../../ui/tema";
 import { Txt } from "../../ui/Txt";
 import { weekdayLong, weekdayShort } from "../../ui/format";
 
@@ -23,7 +23,6 @@ type Props = {
   token: string;
   person: Person;
   time: Time;
-  onLeave: () => void;
 };
 
 type Row = OwnerHome["attention"][number];
@@ -41,11 +40,30 @@ type Day = OwnerHome["fio"]["week"][number];
  *  RETORNOS — trivia sem baseline), a barra de progresso da semana acima do trabalho, e o
  *  atalho "Atenção do dia" que apontava para a fila que agora está NESTA tela.
  *
- *  Acento: UM só elemento pinta área — o botão do primeiro da fila. Os outros dois são
- *  `quiet`. O fio é tinta neutra: a semana não pode competir com a ação de hoje. */
-export function Painel({ token, time, onLeave }: Props) {
+ *  Acento: UM só elemento pinta área com a cor da MARCA — o botão do primeiro da fila. Os
+ *  outros dois são `quiet`. A semana não pode competir com a ação de hoje, e não compete:
+ *  o dia de hoje continua em tinta neutra e quem ganhou matiz é a série de REFERÊNCIA (os
+ *  outros dias), na segunda cor — subordinada por construção e nunca a da marca. */
+export function Painel({ token, time }: Props) {
+  const styles = usarEstilos();
+  const fim = useFimDaRolagem();
+  const tema = useTema();
+  const { T, acento, errorInk, secundaria } = tema;
+  // A CALHA DA SEMANA pousa dentro da Band, e por isso o degrau dela é contado a partir do
+  // fundo da Band e não do chão: `T.fill` é um degrau de `bg`, e dentro de uma Band
+  // levantada ele valeria METADE (8,3 de L* em vez de 14,9). Hoje isto É `T.fill`.
+  const calha = neutroNaBand(tema);
+  // A SEGUNDA COR como SEGUNDA SÉRIE, o mesmo papel que ela tem na ui/Baseline. O fio da
+  // semana diz duas coisas que a legenda ao lado já separa em palavras — "Feitos hoje" e
+  // "nos outros dias da semana" —, e até aqui as duas eram o mesmo cinza em dois degraus.
+  // Hoje é o DADO e fica na tinta neutra; os outros dias são a REFERÊNCIA e é ela que
+  // ganha matiz. Não é "bom" nem "ruim": é "esta é a outra".
+  // A cor da marca continua fora daqui: a massa dela é do botão da fila, e a semana não
+  // pode competir com a ação de hoje. A segunda cor é subordinada por construção.
+  // O fundo REAL desta peça é a calha, e não o chão: é dentro dela que a parte feita do
+  // dia é pintada, então é contra ela que o piso tem de valer.
+  const referencia = acento(secundaria, calha).mark;
   const navigation = useNavigation<OwnerTabNavigation>();
-  const accent = time.accent_color || T.accentFallback;
   const [data, setData] = useState<OwnerHome | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
@@ -89,10 +107,10 @@ export function Painel({ token, time, onLeave }: Props) {
       {/* Sem retrato e sem saudação: a referência gasta o maior texto da tela no nome
           do PROFISSIONAL, que é a única pessoa que já sabe quem é. Aqui o cabeçalho diz
           de quem é a casa e que dia é hoje, em uma linha. */}
-      <Head kicker={`${time.name} · ${weekdayLong()}`} accent={accent} />
+      <Head kicker={`${time.name} · ${weekdayLong()}`} />
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, fim]}
         showsVerticalScrollIndicator={false}
       >
         {error ? (
@@ -122,9 +140,19 @@ export function Painel({ token, time, onLeave }: Props) {
                 : `${queue.length} ${queue.length === 1 ? "precisa" : "precisam"} de um toque hoje`}
             </Txt>
             <View style={styles.queueSub}>
-              <Txt role="note" tone="dim" style={styles.queueNote}>
-                {data.student_count} alunos com você
-              </Txt>
+              {/* O número da turma era só texto, e a fila é curta de propósito: quem não
+                  está sinalizado hoje não tinha porta nenhuma. Agora ele é a porta. */}
+              <Pressable
+                onPress={() => navigation.navigate("Fichas")}
+                accessibilityRole="button"
+                hitSlop={12}
+                style={styles.queueLink}
+              >
+                <Txt role="note" tone="dim" style={styles.queueNote}>
+                  {data.student_count} alunos com você
+                </Txt>
+                <IconChevron color={T.muted2} size={14} />
+              </Pressable>
               {/* A mesma fila em modo foco, que conta quantas já saíram. Mora aqui, no
                   cabeçalho dela, e não numa linha solta no rodapé. */}
               <Pressable
@@ -132,7 +160,6 @@ export function Painel({ token, time, onLeave }: Props) {
                   navigation.navigate("Atencao", {
                     token,
                     timeName: time.name,
-                    accent,
                   })
                 }
                 accessibilityRole="button"
@@ -165,15 +192,19 @@ export function Painel({ token, time, onLeave }: Props) {
                   token,
                   personId: row.person_id,
                   timeName: time.name,
-                  accent,
                 })
               }
               accessibilityRole="button"
               style={styles.who}
             >
-              <Initials name={row.name} size={i === 0 ? 44 : 34} />
+              {/* O MESMO PAPEL nas três: a fila é uma fila. O primeiro tinha `title` e
+                  rosto de 44 contra `body` e 34 dos outros — numa voz de duas faces isso
+                  deixa de ser ênfase e vira inconsistência, porque a urgência já está dita
+                  duas vezes (o traço forte em cima da linha e o acento do CTA, que só o
+                  primeiro carrega cheio). */}
+              <Initials name={row.name} size={34} />
               <View style={styles.whoCopy}>
-                <Txt role={i === 0 ? "title" : "body"} numberOfLines={2}>
+                <Txt role="body" numberOfLines={2}>
                   {row.name}
                 </Txt>
                 <Txt role="note" style={styles.why}>
@@ -188,7 +219,6 @@ export function Painel({ token, time, onLeave }: Props) {
               <AccentCTA
                 label={row.decision || "Aplicar a sugestão"}
                 onPress={() => void apply(row.id)}
-                accent={accent}
                 busy={busy === row.id}
                 disabled={busy !== null && busy !== row.id}
                 check
@@ -216,13 +246,17 @@ export function Painel({ token, time, onLeave }: Props) {
                       <View
                         style={[
                           styles.bar,
-                          { height: d.height, backgroundColor: T.fill },
+                          { height: d.height, backgroundColor: calha },
                         ]}
                       >
                         <View
                           style={{
                             height: d.fill,
-                            backgroundColor: d.today ? T.ink : T.muted,
+                            // Hoje contra o resto da semana em TRÊS canais, e nenhum
+                            // sozinho: a letra embaixo (tinta cheia contra apagada), a
+                            // posição na fila e o matiz. Em preto e branco a leitura
+                            // fica inteira — o medidor exige 5 de L* entre os dois.
+                            backgroundColor: d.today ? T.ink : referencia,
                           }}
                         />
                       </View>
@@ -250,7 +284,6 @@ export function Painel({ token, time, onLeave }: Props) {
               navigation.navigate("Retorno", {
                 token,
                 timeName: time.name,
-                accent,
               })
             }
             accessibilityRole="button"
@@ -266,9 +299,6 @@ export function Painel({ token, time, onLeave }: Props) {
           </Pressable>
         ) : null}
 
-        <View style={styles.leaveRow}>
-          <GhostCTA label="Sair" onPress={onLeave} />
-        </View>
       </ScrollView>
     </Phone>
   );
@@ -276,7 +306,10 @@ export function Painel({ token, time, onLeave }: Props) {
 
 /** O motivo em palavra de personal. A API manda o enum; o fixture do gate manda a prosa
  *  já pronta — o default deixa as duas passarem sem um segundo mapa. */
-function whyFor(row: Row): string {
+/** O motivo em portugues. EXPORTADA porque a Atencao renderizava `row.reason` cru: a API
+ *  manda enum (student_stopped, pain_flag, debut, high_effort) e o personal lia
+ *  "student_stopped" na tela. A fixture escondia o defeito por ja vir em prosa. */
+export function whyFor(row: Row): string {
   switch (row.reason) {
     case "student_stopped": {
       const n = row.days ?? 0;
@@ -368,68 +401,65 @@ function letterOf(iso: string): string {
   return weekdayShort(new Date(`${iso}T00:00:00`)).slice(0, 1);
 }
 
-const styles = StyleSheet.create({
-  scroll: { flex: 1 },
-  content: { flexGrow: 1, paddingBottom: 8 },
-  retry: { marginTop: 14, alignSelf: "flex-start" },
-  queueHead: {
-    paddingHorizontal: T.pad,
-    paddingTop: 14,
-    paddingBottom: 6,
-  },
-  queueSub: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 12,
-    marginTop: 2,
-  },
-  queueNote: { flexShrink: 1 },
-  queueLink: { flexDirection: "row", alignItems: "center", gap: 6 },
-  row: {
-    paddingHorizontal: T.pad,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: T.hairline,
-  },
-  // O primeiro da fila é o único com traço forte em cima: rank por posição e por peso
-  // de traço, nunca por matiz.
-  rowFirst: { borderTopWidth: 2, borderTopColor: T.divider },
-  who: { flexDirection: "row", alignItems: "center", gap: 12 },
-  whoCopy: { flex: 1, minWidth: 0 },
-  why: { marginTop: 2 },
-  act: { marginTop: 10 },
-  fio: { paddingHorizontal: T.pad, paddingVertical: 12 },
-  fioRow: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    justifyContent: "space-between",
-    gap: 18,
-  },
-  fioNote: { marginTop: 10 },
-  week: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    gap: 5,
-    flex: 1,
-    maxWidth: 230,
-  },
-  day: { flex: 1, alignItems: "stretch" },
-  bar: { justifyContent: "flex-end" },
-  dayName: { marginTop: 6, textAlign: "center", letterSpacing: 0.4 },
-  linkRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    paddingHorizontal: T.pad,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: T.hairline,
-  },
-  linkLabel: { flex: 1 },
-  leaveRow: {
-    paddingHorizontal: T.pad,
-    paddingTop: 24,
-    paddingBottom: 16,
-  },
-});
+const usarEstilos = estilos(({ T }) =>
+  StyleSheet.create({
+    scroll: { flex: 1 },
+    content: { flexGrow: 1 },
+    retry: { marginTop: 14, alignSelf: "flex-start" },
+    queueHead: {
+      paddingHorizontal: T.pad,
+      paddingTop: 14,
+      paddingBottom: 6,
+    },
+    queueSub: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 12,
+      marginTop: 2,
+    },
+    queueNote: { flexShrink: 1 },
+    queueLink: { flexDirection: "row", alignItems: "center", gap: 6 },
+    row: {
+      paddingHorizontal: T.pad,
+      paddingVertical: 14,
+      borderBottomWidth: 1,
+      borderBottomColor: T.hairline,
+    },
+    // O primeiro da fila é o único com traço forte em cima: rank por posição e por peso
+    // de traço, nunca por matiz.
+    rowFirst: { borderTopWidth: 2, borderTopColor: T.divider },
+    who: { flexDirection: "row", alignItems: "center", gap: 12 },
+    whoCopy: { flex: 1, minWidth: 0 },
+    why: { marginTop: 2 },
+    act: { marginTop: 10 },
+    fio: { paddingHorizontal: T.pad, paddingVertical: 12 },
+    fioRow: {
+      flexDirection: "row",
+      alignItems: "flex-end",
+      justifyContent: "space-between",
+      gap: 18,
+    },
+    fioNote: { marginTop: 10 },
+    week: {
+      flexDirection: "row",
+      alignItems: "flex-end",
+      gap: 5,
+      flex: 1,
+      maxWidth: 230,
+    },
+    day: { flex: 1, alignItems: "stretch" },
+    bar: { justifyContent: "flex-end" },
+    dayName: { marginTop: 6, textAlign: "center", letterSpacing: 0.4 },
+    linkRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+      paddingHorizontal: T.pad,
+      paddingVertical: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: T.hairline,
+    },
+    linkLabel: { flex: 1 },
+  }),
+);

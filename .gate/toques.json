@@ -1,0 +1,24 @@
+{
+  "serie": {
+    "toques": 2,
+    "teclas": 0,
+    "entrada": 1
+  },
+  "lote": {
+    "um": {
+      "toques": 6,
+      "alunos": 1
+    },
+    "turma": {
+      "toques": 7,
+      "alunos": 20
+    },
+    "inclinacao": 0.0526
+  },
+  "convite": {
+    "toques": 5,
+    "teclas": 27
+  },
+  "incompleto": [],
+  "codigo": "4253bdfd81e764c60c0c4516a267fb22fabce9b1d9df098a67478f39ed5a2004"
+}

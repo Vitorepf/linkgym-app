@@ -2,8 +2,9 @@ import { useCallback, useMemo, useState } from "react";
 import { StyleSheet } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, { runOnJS, useFrameCallback, useSharedValue } from "react-native-reanimated";
-import { MOTION, productTheme as T, withAlpha } from "../theme";
+import { withAlpha } from "../theme";
 import { useTone } from "./motion";
+import { useTema } from "./tema";
 import { Txt } from "./Txt";
 
 type Props = {
@@ -18,6 +19,7 @@ type Props = {
  *  que é justamente o que precisa mexer no estado do React. */
 export function HoldTick({ onTick, label, hint }: Props) {
   const [held, setHeld] = useState(false);
+  const { T, MOTION } = useTema();
   const tone = useTone(held, withAlpha(T.fill, 0), T.fill, MOTION.press);
 
   // shared value, não `let`: o worklet captura por valor e o relógio tem que sobreviver

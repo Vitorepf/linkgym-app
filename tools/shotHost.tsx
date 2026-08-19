@@ -2,13 +2,27 @@
 // prop initialState e serve rede/relógio/aleatoriedade congelados. Cada carga de página é
 // um estado limpo — nada vaza entre telas porque cada tela é uma página nova.
 // Só entra no bundle quando EXPO_PUBLIC_SHOT está setada (ver index.ts).
-import { Archivo_800ExtraBold, useFonts } from "@expo-google-fonts/archivo";
+import {
+  Archivo_500Medium,
+  Archivo_800ExtraBold,
+  useFonts,
+} from "@expo-google-fonts/archivo";
+import { Inter_500Medium, Inter_700Bold } from "@expo-google-fonts/inter";
+import { Nunito_600SemiBold, Nunito_800ExtraBold } from "@expo-google-fonts/nunito";
+import { Oswald_600SemiBold } from "@expo-google-fonts/oswald";
+import { PlayfairDisplay_700Bold } from "@expo-google-fonts/playfair-display";
+import {
+  SpaceGrotesk_500Medium,
+  SpaceGrotesk_700Bold,
+} from "@expo-google-fonts/space-grotesk";
 import { NavigationContainer } from "@react-navigation/native";
 import { Component, useEffect, type ReactNode } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import App, { navTheme } from "../App";
+import App, { criarNavTheme } from "../App";
+import { aparenciaDoTime } from "../src/api";
+import { TemaDoTime, useTema } from "../src/ui/tema";
 import { Root } from "../src/nav/Root";
 import { Criacao } from "../src/screens/student/Criacao";
 import { MaquinaOcupada } from "../src/screens/student/MaquinaOcupada";
@@ -82,7 +96,16 @@ globalThis.localStorage?.clear();
 // ---- rede determinística, instalada ANTES de montar.
 const FX: Fixture = FIXTURES[SCREEN] ?? {};
 const B = brand(BRAND);
-const TIME = { id: "t-shot", name: B.name, accent_color: B.accent };
+/** A APARÊNCIA da foto. Sem `?ap=`, é o padrão de fábrica — as 720 montagens de
+ *  tools/shots.mjs continuam fotografando exatamente o que fotografavam. Com `?ap=`, o
+ *  mesmo host serve para provar QUALQUER kit sem duplicar uma linha de host. */
+const AP = qs.get("ap");
+const TIME = {
+  id: "t-shot",
+  name: B.name,
+  accent_color: B.accent,
+  ...(AP ? { config: { aparencia: JSON.parse(AP) } } : {}),
+};
 const ROUTES = apiRoutes(TIME, FX.api);
 const realFetch = globalThis.fetch.bind(globalThis);
 
@@ -107,7 +130,7 @@ globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
 }) as typeof fetch;
 
 // ---- rotas
-const OWNER_TABS = ["Painel", "Semana", "Fichas"];
+const OWNER_TABS = ["Painel", "Semana", "Fichas", "Operacao", "PerfilTime"];
 const STUDENT_TABS = ["Hoje", "MinhaFicha", "Progresso", "Perfil"];
 
 function initialState() {
@@ -128,7 +151,10 @@ function initialState() {
   if (!FX.route) return undefined;
   return {
     index: 0,
-    routes: [{ name: FX.route.name, params: params(FX.route.name, TIME) }],
+    // A CHAVE da fixture, não o nome da rota. Duas fixtures podem apontar para a mesma
+    // tela em estados diferentes (Descanso mudo x Descanso na virada de exercício), e
+    // passar o nome da rota fundia as duas numa cópia silenciosa.
+    routes: [{ name: FX.route.name, params: params(SCREEN, TIME) ?? params(FX.route.name, TIME) }],
   };
 }
 
@@ -190,7 +216,20 @@ function useSettle(fontsLoaded: boolean) {
 }
 
 export function ShotHost() {
-  const [loaded] = useFonts({ Archivo_800ExtraBold });
+  // O host carrega as CINCO vozes: fotografar um kit com a fonte dele ausente provaria
+  // outra coisa.
+  const [loaded] = useFonts({
+    Archivo_800ExtraBold,
+    Archivo_500Medium,
+    SpaceGrotesk_700Bold,
+    SpaceGrotesk_500Medium,
+    PlayfairDisplay_700Bold,
+    Inter_500Medium,
+    Inter_700Bold,
+    Nunito_800ExtraBold,
+    Nunito_600SemiBold,
+    Oswald_600SemiBold,
+  });
   useSettle(loaded);
 
   if (!loaded) return <View style={styles.blank} />;
@@ -209,6 +248,11 @@ export function ShotHost() {
     return (
       <GestureHandlerRootView style={styles.flex}>
         <SafeAreaProvider>
+          {/* O TemaDoTime tem que estar aqui também. Sem ele, este ramo fotografava as
+              duas telas diretas SEMPRE no carvão — dois kits diferentes produziam PNGs
+              byte a byte iguais, e a prova visual tinha um buraco calado do tamanho de
+              duas telas. */}
+          <TemaDoTime aparencia={aparenciaDoTime(TIME)}>
           <Boundary>
             <View style={styles.flex}>
               <Phone>
@@ -224,6 +268,7 @@ export function ShotHost() {
               </Phone>
             </View>
           </Boundary>
+          </TemaDoTime>
         </SafeAreaProvider>
       </GestureHandlerRootView>
     );
@@ -233,7 +278,8 @@ export function ShotHost() {
   return (
     <GestureHandlerRootView style={styles.flex}>
       <SafeAreaProvider>
-        <NavigationContainer theme={navTheme} initialState={initialState()}>
+        <TemaDoTime aparencia={aparenciaDoTime(TIME)}>
+          <Casca initialState={initialState()}>
           <Boundary>
             <Root
               token={TOKEN}
@@ -242,15 +288,21 @@ export function ShotHost() {
               onboardingComplete={FX.onboardingComplete ?? true}
               commitmentComplete={FX.commitmentComplete ?? true}
               debut={FX.debut ?? false}
+              onTimeChange={() => {}}
+              onPersonChange={() => {}}
               onLeave={() => {}}
             />
           </Boundary>
-        </NavigationContainer>
+          </Casca>
+        </TemaDoTime>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
 }
 
+/** As folhas do HOST (moldura de erro, tela em branco, respiro do ramo direto) ficam no
+ *  tema padrão de propósito: são andaime do medidor, não app. Quem pinta o chão da foto é o
+ *  `Phone` de dentro, que já obedece ao tema do kit. */
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: T.bg },
   blank: { flex: 1, backgroundColor: T.bg },
@@ -258,3 +310,20 @@ const styles = StyleSheet.create({
   err: { flex: 1, backgroundColor: T.bg, padding: 16 },
   errText: { color: T.accentFallback, fontSize: 12 },
 });
+
+/** O NavigationContainer tem que nascer DEPOIS do provider: o tema dele é derivado da
+ *  aparência, e um container montado acima leria o padrão para sempre. */
+function Casca({
+  initialState: estadoInicial,
+  children,
+}: {
+  initialState: ReturnType<typeof initialState>;
+  children: ReactNode;
+}) {
+  const tema = useTema();
+  return (
+    <NavigationContainer theme={criarNavTheme(tema)} initialState={estadoInicial}>
+      {children}
+    </NavigationContainer>
+  );
+}
