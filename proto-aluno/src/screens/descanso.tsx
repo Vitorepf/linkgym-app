@@ -128,7 +128,8 @@ export function Descanso() {
           </div>
           {effort ? null : (
             <p className="t-body mt-2 text-ink">
-              <span aria-hidden className="mr-1">!</span>
+              <span className="text-stamp">0</span>
+              <span aria-hidden className="mx-1">!</span>
               Marca como foi.
             </p>
           )}

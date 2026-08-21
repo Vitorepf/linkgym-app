@@ -369,7 +369,7 @@
   }
 
   .thumb:disabled {
-    background-color: color-mix(in oklab, var(--color-ink) 28%, var(--color-bg));
+    background-color: color-mix(in oklab, var(--color-ink) 34%, var(--color-bg));
     color: var(--color-bg);
     box-shadow: none;
   }

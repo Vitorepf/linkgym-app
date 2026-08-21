@@ -88,12 +88,13 @@ export function Serie() {
       <div className="flex min-h-0 flex-1 flex-col justify-center px-5">
         <div className={cn(empty && "rounded-sm border-2 border-ink px-2 py-2")}>
           <p className="t-small">kg</p>
-          <p className="t-body mt-1 tabular-nums">
+          <p className="t-display mt-1 tabular-nums">
             <Roll value={kg} was={last != null ? formatKg(last) : kg} />
           </p>
           {empty ? (
             <p className="t-body mt-2 text-ink">
-              <span aria-hidden className="mr-1">!</span>
+              <span className="text-stamp">{kg}</span>
+              <span aria-hidden className="mx-1">!</span>
               Carga sem peso.
             </p>
           ) : null}
@@ -126,7 +127,6 @@ export function Serie() {
         <Thumb
           label="Fiz essa série"
           meta={`${item.rest_seconds}s`}
-          disabled={empty}
           onPress={() => {
             if (armed.current || empty) return;
             armed.current = true;
