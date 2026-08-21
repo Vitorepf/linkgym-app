@@ -9,6 +9,7 @@ import { ComoFazer, FichaSessao, Serie } from "./screens/serie";
 import { Descanso } from "./screens/descanso";
 import { Feito } from "./screens/feito";
 import { Bora, Composer, Pessoa, Prova, Zap } from "./screens/social";
+import { Versus } from "./screens/versus";
 import { useLink } from "./lib/store";
 import type { Overlay, TabId } from "./lib/types";
 
@@ -54,6 +55,7 @@ const OVERLAYS: Record<string, SceneFn> = {
   escrever: Escrever,
   montar: Montar,
   oferecer: Oferecer,
+  versus: Versus,
 };
 
 const TABS: Record<TabId, SceneFn> = {
@@ -89,10 +91,13 @@ class SceneBoundary extends Component<{ children: ReactNode; onLeave: () => void
   }
 }
 
-/** O rack é uma corrente: avança de lado. Cartão sobe no sítio. Página substitui a aba. */
-const RACK = new Set<string>(["serie", "descanso", "feito"]);
-const CARDS = new Set<string>(["como", "fichaSessao"]);
-const PAGES = new Set<string>(["prova", "pessoa", "composer"]);
+/**
+ * Rack vazio: Série / Descanso / Feito / Como / Ficha sobem cartão 55%.
+ * Folha 35×25 = social (Stripe). Página = o objeto é a cena (Airbnb).
+ */
+const RACK = new Set<string>();
+const CARDS = new Set<string>(["serie", "descanso", "feito", "como", "fichaSessao"]);
+const PAGES = new Set<string>(["prova", "pessoa", "composer", "versus"]);
 
 function rackUnder(overlay: Overlay, trail: Overlay[]) {
   if (overlay && RACK.has(overlay)) return overlay;
@@ -107,6 +112,7 @@ function rackUnder(overlay: Overlay, trail: Overlay[]) {
 
 function entranceOf(overlay: Overlay) {
   if (!overlay) return { from: { opacity: 0, y: 6 }, dur: 0.24 };
+  if (overlay === "versus") return { from: { opacity: 0, scale: 0.96 }, dur: 0.4 };
   if (RACK.has(overlay)) return { from: { opacity: 0, x: 22 }, dur: 0.24 };
   return { from: { opacity: 0, y: 20 }, dur: 0.32 };
 }
@@ -163,7 +169,7 @@ export function AppRoot() {
         <motion.div
           key={liveKey}
           initial={rackId || isPage ? from : { opacity: 0, y: 6 }}
-          animate={{ opacity: 1, x: 0, y: 0 }}
+          animate={{ opacity: 1, x: 0, y: 0, scale: 1 }}
           transition={{ duration: rackId || isPage ? dur : 0.24, ease: [0.22, 1, 0.36, 1] }}
           className="flex min-h-0 flex-1 flex-col"
         >
