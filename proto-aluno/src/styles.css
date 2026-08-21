@@ -1,0 +1,542 @@
+@import "tailwindcss";
+
+/* ---------------------------------------------------------------------------
+   Fundação. Uma escada de superfície, uma escada de tipo, um acento com job.
+   Regra do acento: vermelho é ESTADO (vivo, carimbo, recorde, ofensiva em
+   risco). A ação primária nunca é vermelha; ela é tinta cheia, o maior
+   contraste disponível. Um acento, um significado.
+--------------------------------------------------------------------------- */
+
+@theme {
+  --font-sans: "Archivo", ui-sans-serif, system-ui, sans-serif;
+
+  /* superfície: carbono frio. Zero croma. Marrom no escuro é lodo, não luxo. */
+  --color-sunk: #0a0a0a;
+  --color-bg: #0a0a0a;
+  --color-dock: #0a0a0a;
+  --color-surface: #1c1c1c;
+  --color-raised: #2c2c2c;
+  --color-fill: #3d3d3d;
+
+  /* traço: hairline recua, edge desenha componente */
+  --color-line: #242424;
+  --color-edge: #333333;
+
+  /* texto: 4 tons, do assunto ao sussurro */
+  --color-ink: #f5f5f5;
+  --color-mute: #8a8a8a;
+  --color-faint: #808080;
+  --color-ghost: #5e5e5e;
+
+  /* acento único */
+  --color-stamp: #ec3013;
+  --color-stamp-hi: #ff5a3c;
+  --color-stamp-dim: #1a1a1a;
+  --color-stamp-ink: #fff6f4;
+
+  /* escada: 10 nomes, 6 tamanhos. Vizinho 1,13–1,24. Extremos 25/11 = 2,27×. */
+  --text-micro: 11px;
+  --text-meta: 13px;
+  --text-small: 15px;
+  --text-sub: 17px;
+  --text-body: 17px;
+  --text-title: 21px;
+  --text-display: 25px;
+  --text-hero: 25px;
+  --text-score: 25px;
+  --text-plate: 25px;
+
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+
+  /* movimento: 4 durações nomeadas, 3 curvas nomeadas */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-back: cubic-bezier(0.34, 1.32, 0.64, 1);
+  --dur-tap: 90ms;
+  --dur-quick: 160ms;
+  --dur-move: 240ms;
+  --dur-enter: 320ms;
+}
+
+.tone-zap {
+  /* mesmo carbono. Verde no escuro é outro planeta. */
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html,
+  body,
+  #app {
+    min-height: 100%;
+    background: var(--color-sunk);
+    color: var(--color-ink);
+  }
+
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  /* foco que não parece depuração: anel que respeita o raio do próprio alvo */
+  :focus-visible {
+    outline: none;
+    box-shadow:
+      0 0 0 2px var(--color-bg),
+      0 0 0 4px var(--color-ink);
+  }
+
+  input:focus-visible,
+  textarea:focus-visible {
+    box-shadow: none;
+    border-bottom-color: var(--color-ink);
+  }
+
+  /* celular não mostra barra de rolagem parada na tela */
+  * {
+    scrollbar-width: none;
+  }
+
+  *::-webkit-scrollbar {
+    display: none;
+  }
+
+  ::selection {
+    background: var(--color-stamp);
+    color: var(--color-stamp-ink);
+  }
+}
+
+@layer components {
+  /* ---- escada de tipo ------------------------------------------------- */
+
+  .t-micro {
+    font-size: var(--text-micro);
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    line-height: 1.2;
+  }
+
+  /* rótulo de seção: mesmo tamanho da linha. Só o peso e o cinza mudam. */
+  .t-kicker {
+    font-size: var(--text-body);
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    line-height: 1.2;
+    color: var(--color-faint);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .t-mono {
+    font-size: var(--text-meta);
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    line-height: 1.25;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .t-small {
+    font-size: var(--text-small);
+    font-weight: 500;
+    line-height: 1.4;
+    color: var(--color-mute);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* o degrau que faltava: prosa secundária que não é metadado */
+  .t-sub {
+    font-size: var(--text-sub);
+    font-weight: 500;
+    line-height: 1.45;
+    color: var(--color-mute);
+  }
+
+  .t-body {
+    font-size: var(--text-body);
+    font-weight: 500;
+    line-height: 1.35;
+    letter-spacing: -0.005em;
+  }
+
+  .t-title {
+    font-size: var(--text-title);
+    font-weight: 600;
+    letter-spacing: -0.018em;
+    line-height: 1.2;
+  }
+
+  .t-display {
+    font-size: var(--text-display);
+    font-weight: 600;
+    letter-spacing: -0.026em;
+    line-height: 1.06;
+    text-wrap: balance;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .t-hero {
+    font-size: var(--text-hero);
+    font-weight: 600;
+    letter-spacing: -0.032em;
+    line-height: 1;
+    text-wrap: balance;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .t-score {
+    font-size: var(--text-score);
+    font-weight: 600;
+    letter-spacing: -0.034em;
+    line-height: 0.92;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .t-plate {
+    font-size: var(--text-plate);
+    font-weight: 600;
+    letter-spacing: -0.042em;
+    line-height: 0.88;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ---- traço ---------------------------------------------------------- */
+
+  .rule {
+    height: 1px;
+    background: var(--color-line);
+  }
+
+  /*
+   * Superfície no escuro. A face recebe luz de cima — o inverso do .thumb,
+   * que emite. Três portadores, senão o bloco é um retângulo chapado:
+   *
+   *   1. luz de cima: a face clareia no topo;
+   *   2. fio: 1 px mais claro no lábio superior (o "rim" que separa do fundo);
+   *   3. derrame: a peça cai sombra na página.
+   *
+   * Sem isso, card e página somem um no outro. Com isso, o bloco tem peso.
+   */
+  .plate {
+    background: var(--color-surface);
+    border-radius: var(--radius-xl);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.07),
+      0 16px 40px -24px rgb(0 0 0 / 0.8);
+  }
+
+  /*
+   * Folha social: cartão centrado, orçamento ≤35% × ≤25%.
+   * Como / Ficha / Série / Descanso / Feito são rack full-bleed, não folha.
+   */
+  .sheet {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    z-index: 20;
+    display: flex;
+    width: 35%;
+    height: 25%;
+    max-width: 35%;
+    max-height: 25%;
+    transform: translate(-50%, -50%);
+    flex-direction: column;
+    overflow: hidden;
+    border-radius: var(--radius-xl);
+    background: var(--color-surface);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.07);
+  }
+
+  .sheet-card {
+    top: auto;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    max-width: none;
+    height: 55%;
+    min-height: 48%;
+    max-height: 70%;
+    transform: none;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  }
+
+  /* last riscado: 42% do herói que o envolve, sem degrau novo na escada */
+  .strike {
+    font-size: 0.42em;
+    line-height: 1;
+    text-decoration: line-through;
+  }
+
+  /* acima da tab a folha já pagou o inset; o dock interno não paga de novo */
+  .sheet [data-dock] {
+    padding-bottom: 12px;
+  }
+
+  /*
+   * Veredito no sítio do Thumb. 26% da cena viva (Great job! 22–30%).
+   * Cobre o rodapé; o conteúdo acima não se move. pointer-events: none —
+   * 0 toque obrigatório. Sem height em px: % da palco, não da dobra.
+   */
+  .mark-strip {
+    display: flex;
+    height: 26%;
+    width: 100%;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    padding-inline: 2px;
+  }
+
+  .mark-strip-cover {
+    pointer-events: none;
+    position: absolute;
+    inset-inline: 0;
+    bottom: 0;
+    z-index: 30;
+    height: 26%;
+    align-items: flex-end;
+    padding: 16px 20px 20px;
+    background: var(--color-dock);
+  }
+
+  /* Folha que sobe na foto: só o fio. Sombra aqui brigaria com a imagem. */
+  .rim {
+    box-shadow: inset 0 1px 0 color-mix(in oklab, var(--color-ink) 14%, transparent);
+  }
+
+  /* ---- toque: todo alvo devolve algo, sem exceção --------------------- */
+
+  .press {
+    transition:
+      background-color var(--dur-quick) var(--ease-out),
+      transform var(--dur-tap) var(--ease-out),
+      opacity var(--dur-tap) var(--ease-out);
+  }
+
+  .press:active:not(:disabled) {
+    background-color: color-mix(in oklab, var(--color-ink) 7%, transparent);
+  }
+
+  .press-sink:active:not(:disabled) {
+    transform: scale(0.985);
+  }
+
+  /* ---- ação ----------------------------------------------------------- */
+
+  /*
+   * Peso físico em fundo escuro.
+   *
+   * O lábio inferior escuro que dá corpo ao botão do Duolingo depende de face
+   * saturada sobre fundo branco, e no escuro ele desaparece. A física aqui é a
+   * inversa: a face é clara, então ela é o que emite luz. Três portadores, e
+   * todos os três se mexem no toque, senão o toque não tem peso.
+   *
+   *   1. luz de cima: a face é mais clara no topo do que na base;
+   *   2. espessura: a base da própria face fica na sombra, 1 px por dentro;
+   *   3. derrame: a luz da face cai na superfície escura logo abaixo.
+   *
+   * Apertado, a peça afunda 1 px, a luz achata, a espessura some e o derrame
+   * encolhe. Quem levanta o dedo vê a luz voltar.
+   */
+  .thumb {
+    display: flex;
+    height: 54px;
+    width: 100%;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    border-radius: var(--radius-md);
+    background-color: color-mix(in oklab, var(--color-ink) 82%, var(--color-bg));
+    color: var(--color-bg);
+    font-size: var(--text-body);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    box-shadow: none;
+    transition: background-color var(--dur-tap) var(--ease-out);
+  }
+
+  .thumb:active:not(:disabled) {
+    background-color: color-mix(in oklab, var(--color-ink) 70%, var(--color-bg));
+  }
+
+  .thumb:disabled {
+    background-color: color-mix(in oklab, var(--color-ink) 36%, var(--color-bg));
+    color: var(--color-ink);
+    box-shadow: none;
+  }
+
+  /* único botão vermelho do app: o ato do carimbo */
+  .thumb[data-stamp="true"] {
+    background-color: var(--color-stamp);
+    color: var(--color-stamp-ink);
+    box-shadow: none;
+  }
+
+  .thumb[data-stamp="true"]:active:not(:disabled) {
+    background-color: color-mix(in oklab, var(--color-stamp) 86%, var(--color-bg));
+  }
+
+  /* secundária: contorno, mesma altura de dedo, nunca compete em massa */
+  .thumb-line {
+    display: flex;
+    height: 54px;
+    width: 100%;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-edge);
+    background: transparent;
+    color: var(--color-ink);
+    font-size: var(--text-body);
+    font-weight: 500;
+    transition: background-color var(--dur-quick) var(--ease-out), color var(--dur-quick) var(--ease-out);
+  }
+
+  .thumb-line:active:not(:disabled) {
+    background: var(--color-raised);
+  }
+
+  .thumb-line:disabled {
+    border-color: color-mix(in oklab, var(--color-ink) 22%, var(--color-bg));
+    background: color-mix(in oklab, var(--color-ink) 28%, var(--color-bg));
+    color: var(--color-bg);
+  }
+
+  .quiet {
+    display: flex;
+    min-height: 44px;
+    width: 100%;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--text-sub);
+    font-weight: 500;
+    color: var(--color-mute);
+    border-radius: var(--radius-sm);
+    transition: color var(--dur-quick) var(--ease-out);
+  }
+
+  .quiet:active:not(:disabled) {
+    color: var(--color-ink);
+  }
+
+  .quiet[data-danger="true"] {
+    color: var(--color-faint);
+  }
+
+  .quiet:disabled {
+    color: color-mix(in oklab, var(--color-ink) 26%, var(--color-bg));
+  }
+
+  /* ---- rolagem -------------------------------------------------------- */
+
+  .scroll {
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .scroll::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* o conteúdo desaparece por baixo da barra em vez de bater nela */
+  .scrim-bottom::after {
+    content: "";
+    position: absolute;
+    inset: auto 0 0 0;
+    height: 28px;
+    pointer-events: none;
+    background: linear-gradient(to top, var(--color-bg), transparent);
+  }
+
+  .door {
+    border-bottom: 1px solid var(--color-line);
+  }
+
+  /* a impressão do carimbo, não um círculo com borda */
+  .stamp-mark {
+    box-shadow:
+      inset 0 0 0 1px color-mix(in oklab, var(--color-stamp) 45%, transparent),
+      0 0 0 3px var(--color-stamp-dim);
+  }
+
+  .led {
+    font-weight: 600;
+    letter-spacing: -0.03em;
+    line-height: 0.9;
+    font-variant-numeric: tabular-nums;
+    color: var(--color-ink);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Movimento. Nada pisca à toa: o que se move está entrando, saindo, ou
+   avisando que mudou.
+--------------------------------------------------------------------------- */
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0);
+  }
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes breathe {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@keyframes roll-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 0.5em, 0);
+  }
+}
+
+@keyframes roll-out {
+  to {
+    opacity: 0;
+    transform: translate3d(0, -0.5em, 0);
+  }
+}
+
+.anim-rise {
+  animation: rise var(--dur-enter) var(--ease-out) both;
+}
+
+.anim-fade {
+  animation: fade var(--dur-move) var(--ease-out) both;
+}
+
+/* o anel respira; o algarismo do cronômetro fica parado para ser lido */
+.anim-breathe {
+  animation: breathe 2.4s var(--ease-in-out) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
