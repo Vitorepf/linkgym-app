@@ -111,28 +111,32 @@ export function Descanso() {
       {fechaExercicio ? (
         <Pad className="pb-3">
           <p className="t-kicker mb-3">Como foi</p>
-          <div className={cn("flex gap-2", !effort && "rounded-sm border border-ink p-1")}>
-            {WORDS.map((w) => (
-              <button
-                key={w.effort}
-                type="button"
-                className={cn(
-                  "min-h-11 flex-1 border t-body",
-                  effort === w.effort ? "border-ink bg-transparent text-ink" : "border-edge bg-transparent text-mute",
-                )}
-                onClick={() => setEffort(w.effort)}
-              >
-                {w.label}
-              </button>
-            ))}
+          <div className={cn("flex flex-col gap-2", !effort && "rounded-sm border border-ink p-1")}>
+            <div className="flex gap-2">
+              {WORDS.map((w) => (
+                <button
+                  key={w.effort}
+                  type="button"
+                  className={cn(
+                    "min-h-11 flex-1 border t-body",
+                    effort === w.effort ? "border-ink bg-transparent text-ink" : "border-edge bg-transparent text-mute",
+                  )}
+                  onClick={() => setEffort(w.effort)}
+                >
+                  {w.label}
+                </button>
+              ))}
+            </div>
+            {effort ? null : (
+              <p className="t-body px-1 text-ink">
+                {markN ? <span className="text-stamp">{markN}</span> : null}
+                <span aria-hidden className="mx-1 text-stamp">
+                  !
+                </span>
+                Marca como foi.
+              </p>
+            )}
           </div>
-          {effort ? null : (
-            <p className="t-body mt-2 text-ink">
-              <span className="text-stamp">0</span>
-              <span aria-hidden className="mx-1">!</span>
-              Marca como foi.
-            </p>
-          )}
         </Pad>
       ) : null}
 

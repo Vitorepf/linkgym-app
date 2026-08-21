@@ -89,15 +89,14 @@ export function Serie() {
         <div className={cn(empty && "rounded-sm border-2 border-ink px-2 py-2")}>
           <p className="t-small">kg</p>
           <p className="t-display mt-1 tabular-nums">
-            <Roll value={kg} was={last != null ? formatKg(last) : kg} />
+            <Roll value={kg} was={last != null ? formatKg(last) : kg} className={empty ? "text-stamp" : undefined} />
+            {empty ? (
+              <span aria-hidden className="ml-2 text-stamp">
+                !
+              </span>
+            ) : null}
           </p>
-          {empty ? (
-            <p className="t-body mt-2 text-ink">
-              <span className="text-stamp">{kg}</span>
-              <span aria-hidden className="mx-1">!</span>
-              Carga sem peso.
-            </p>
-          ) : null}
+          {empty ? <p className="t-body mt-2 text-ink">Carga sem peso.</p> : null}
         </div>
         <div className="mt-6">
           <p className="t-small">reps</p>

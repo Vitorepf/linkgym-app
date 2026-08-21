@@ -399,11 +399,14 @@ export function Montar() {
   const [name, setName] = useState("");
   const [about, setAbout] = useState("");
   const [picked, setPicked] = useState<string[]>([]);
+  const [tried, setTried] = useState(false);
   const save = useLink((s) => s.createDeck);
   const close = useLink((s) => s.closeOverlay);
   const fichas = useLink((s) => s.fichas);
   const mine = fichas.filter((f) => f.ownerId === YOU_ID);
   const ready = name.trim().length > 1 && picked.length > 0;
+  const nameBad = tried && name.trim().length <= 1;
+  const listBad = tried && picked.length === 0;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -416,14 +419,26 @@ export function Montar() {
 
         <Reveal i={1} className="mt-6 px-5">
           <Place>Nome</Place>
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value.slice(0, 32))}
-            placeholder="Bum bum guloso"
-            maxLength={32}
-            aria-label="Nome do deck"
-            className="t-body mt-2 h-12 w-full rounded-sm border border-edge bg-transparent px-3 text-ink outline-none placeholder:text-faint"
-          />
+          <div className="relative mt-2">
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value.slice(0, 32))}
+              placeholder="Bum bum guloso"
+              maxLength={32}
+              aria-invalid={nameBad}
+              aria-label="Nome do deck"
+              className={cn(
+                "t-body h-12 w-full rounded-sm border bg-transparent px-3 outline-none placeholder:text-faint",
+                nameBad ? "border-ink pr-8 text-stamp" : "border-edge text-ink",
+              )}
+            />
+            {nameBad ? (
+              <span aria-hidden className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-stamp">
+                !
+              </span>
+            ) : null}
+          </div>
+          {nameBad ? <p className="t-small mt-2 text-ink">Nome curto demais.</p> : null}
         </Reveal>
 
         <Reveal i={2} className="mt-6 px-5">
@@ -441,7 +456,7 @@ export function Montar() {
         <Reveal i={3} className="mt-6 px-5">
           <SectionHead>Fichas nesta pilha</SectionHead>
           {mine.length ? (
-            <Card className="mt-2 px-4 py-1">
+            <Card className={cn("mt-2 px-4 py-1", listBad && "border border-ink")}>
               {mine.map((f) => {
                 const on = picked.includes(f.id);
                 return (
@@ -449,12 +464,27 @@ export function Montar() {
                     key={f.id}
                     last
                     title={f.name}
-                    sub={`${f.items.length} exercícios`}
+                    sub={
+                      listBad ? (
+                        <span className="text-stamp">{f.items.length} exercícios</span>
+                      ) : (
+                        `${f.items.length} exercícios`
+                      )
+                    }
                     value={on ? "nesta" : undefined}
                     onPress={() => setPicked((cur) => (on ? cur.filter((id) => id !== f.id) : [...cur, f.id]))}
                   />
                 );
               })}
+              {listBad ? (
+                <p className="t-small py-2 text-ink">
+                  <span className="text-stamp">{mine.length}</span>
+                  <span aria-hidden className="mx-1">
+                    !
+                  </span>
+                  Escolha uma ficha.
+                </p>
+              ) : null}
             </Card>
           ) : (
             <p className="t-small mt-2">Escreva uma ficha primeiro.</p>
@@ -463,7 +493,16 @@ export function Montar() {
       </Scroll>
 
       <ActionBar>
-        <Thumb label="Guardar deck" disabled={!ready} onPress={() => save(name, about, picked)} />
+        <Thumb
+          label="Guardar deck"
+          onPress={() => {
+            if (!ready) {
+              setTried(true);
+              return;
+            }
+            save(name, about, picked);
+          }}
+        />
         <Quiet label="Voltar" onPress={() => close()} />
       </ActionBar>
     </div>
@@ -475,6 +514,7 @@ const STRANGERS = PEOPLE.filter((p) => p.id !== YOU_ID && !p.groupIds.includes("
 /** Oferece ficha ou deck a um estranho. Reusa o aceite do duelo. */
 export function Oferecer() {
   const [pick, setPick] = useState<string | null>(null);
+  const [tried, setTried] = useState(false);
   const close = useLink((s) => s.closeOverlay);
   const offer = useLink((s) => s.offer);
   const offerDuel = useLink((s) => s.offerDuel);
@@ -482,6 +522,7 @@ export function Oferecer() {
   const fichas = useLink((s) => s.fichas);
   const obj =
     offer?.kind === "deck" ? decks.find((d) => d.id === offer.id) : fichas.find((f) => f.id === offer?.id);
+  const pickBad = tried && !pick;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -494,7 +535,7 @@ export function Oferecer() {
 
         <Reveal i={1} className="mt-6 px-5">
           <SectionHead>Um estranho da arena</SectionHead>
-          <Card className="mt-2 px-4 py-1">
+          <Card className={cn("mt-2 px-4 py-1", pickBad && "border border-ink")}>
             {STRANGERS.map((p) => (
               <Row
                 key={p.id}
@@ -506,15 +547,29 @@ export function Oferecer() {
                 onPress={() => setPick(p.id)}
               />
             ))}
+            {pickBad ? (
+              <p className="t-small py-2 text-ink">
+                <span className="text-stamp">{STRANGERS.length}</span>
+                <span aria-hidden className="mx-1">
+                  !
+                </span>
+                Escolha alguém.
+              </p>
+            ) : null}
           </Card>
         </Reveal>
       </Scroll>
 
       <ActionBar>
         <Thumb
-          label={pick ? `Oferecer a ${STRANGERS.find((p) => p.id === pick)?.name}` : "Escolha alguém"}
-          disabled={!pick || !obj}
-          onPress={() => pick && offerDuel(pick)}
+          label={pick ? `Oferecer a ${STRANGERS.find((p) => p.id === pick)?.name}` : "Oferecer"}
+          onPress={() => {
+            if (!pick || !obj) {
+              setTried(true);
+              return;
+            }
+            offerDuel(pick);
+          }}
         />
         <Quiet label="Voltar" onPress={() => close()} />
       </ActionBar>
