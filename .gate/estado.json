@@ -3,7 +3,7 @@
   "fase": 10,
   "alvo": "CICLO 10 — O ARSENAL. A meta do dono mudou de foco: Perfil > Aparencia do app é O produto, num ciclo longo com JUIZES de qualidade, simplicidade e inovacao a cada rodada. O que ele pede agora e diferente do ciclo 9: nao mais alavancas isoladas, e sim LINGUAGENS DE DESIGN inteiras — minimalista, flat, moderno e o que mais existir — cada uma completa e de acabamento impecavel, feita a mao. Mais materiais, mais tipos de elemento, mais personalizacao, e acabamento/empacotamento/fluidez em nivel absurdo. Sem rolagem demais. Variedade de VERDADE: se duas opcoes chegam parecidas na tela, sao uma opcao com dois nomes.",
   "spec": "docs/operacao/SPEC.md (em producao pelo ciclo de ideacao+juri)",
-  "motivo": "Rodada 7 oficio-things PERDEU: o disco mentiu — RACK tinha voltado a comer serie/descanso/feito e CARDS estava vazio. Fechei: RACK = new Set(), CARDS com os tres + como + fichaSessao. Medidor cartao le app-root.tsx e o tudo imprime FORA se RACK contiver serie/descanso/feito ou se CARDS perder os tres. tsc 0. medir tudo 0 fora DEPOIS do cheque, com o Set certo. Linear (hoje.tsx) nao tocado. Nao e aprovado — o eixo perdeu B20 nesta rodada.",
+  "motivo": "Rodada 7 motion-duolingo: strip nao zera no rest; ultima tem faixa no sitio antes do Hoje. tsc + medir 0 fora. Nao e aprovado.",
   "fabrica_entregue": {
     "api": [
       "migration 00009 studios.config jsonb + whitelist (internal/owner/config.go): liga nomes|anonima|off, selos, xp, prontidao, passo_kg 0.5|1|2.5, dias_padrao 2-6, boas_vindas <=100 sem URL/fone, retomada <=90; acoplamento liga!=off => xp visivel",

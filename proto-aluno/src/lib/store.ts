@@ -27,7 +27,7 @@ import {
   proofGroupId,
   warSide,
 } from "./seed";
-import { dateShort } from "./format";
+import { dateShort, formatKg } from "./format";
 import { vibrate } from "./tap";
 import type {
   Challenge,
@@ -250,6 +250,21 @@ export function nextCursor(items: Exercise[], itemIndex: number, setIndex: numbe
   if (setIndex < ex.planned_sets) return { itemIndex, setIndex: setIndex + 1 };
   if (itemIndex + 1 < items.length) return { itemIndex: itemIndex + 1, setIndex: 1 };
   return "done" as const;
+}
+
+function stripFrom(s: Session) {
+  const ex = s.items[s.itemIndex]!;
+  const last = ex.last_kg;
+  const delta = last != null ? s.kg - last : null;
+  return {
+    n: formatKg(s.kg),
+    line:
+      delta == null
+        ? `${s.reps} reps`
+        : delta === 0
+          ? "igual à última"
+          : `${delta > 0 ? "+" : "−"}${formatKg(Math.abs(delta))} kg`,
+  };
 }
 
 function proofFrom(session: Session) {
@@ -621,7 +636,6 @@ export const useLink = create<State>()(
             arenaLadder: bumpLadder(st.arenaLadder, YOU_ID),
             groups: bumpGroupSessions(st.groups, st.joinedGroupIds),
             challenges: bumpChallenges(st.challenges, st.joinedGroupIds),
-            strip: null,
           });
           return;
         }
@@ -644,7 +658,6 @@ export const useLink = create<State>()(
         set({
           session: { ...s, ...nxt, ...load, restLeft: 0 },
           overlay: "serie",
-          strip: null,
         });
       },
       tickRest: () => {
@@ -664,7 +677,6 @@ export const useLink = create<State>()(
         set({
           session: { ...s, ...nxt, ...load, restLeft: 0 },
           overlay: "serie",
-          strip: null,
         });
       },
       setEffortAndAdvance: (effort) => {
@@ -795,6 +807,7 @@ export const useLink = create<State>()(
         if (!proof || proof.personId === YOU_ID || taPagoGiven.includes(id) || (proof.cheers ?? []).includes(YOU_ID)) {
           return;
         }
+        vibrate("light");
         set({
           taPagoGiven: [...taPagoGiven, id],
           proofs: proofs.map((p) =>

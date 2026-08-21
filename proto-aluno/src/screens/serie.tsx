@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { Display, HoldTick, Pad, Place, Quiet, Screen, Thumb } from "@/components/bits";
-import { Roll } from "@/ui/kit";
+import { MarkStrip, Roll } from "@/ui/kit";
 import { Dock } from "@/components/shell";
 import { CATALOG, CUES, LAST_WORKOUT, PRESCRIPTION } from "@/lib/seed";
 import { applyLast, useLink } from "@/lib/store";
@@ -42,6 +42,7 @@ export function Serie() {
   const logSet = useLink((s) => s.logSet);
   const armStrip = useLink((s) => s.armStrip);
   const skipRest = useLink((s) => s.skipRest);
+  const strip = useLink((s) => s.strip);
   const open = useLink((s) => s.openOverlay);
   const openComo = useLink((s) => s.openComo);
   const armed = useRef(false);
@@ -134,6 +135,8 @@ export function Serie() {
         </button>
         {item.notes ? <p className="t-body mt-3 italic">“{item.notes}”</p> : null}
       </div>
+
+      {strip ? <MarkStrip mark={strip.n} line={strip.line} cover /> : null}
 
       <Dock>
         <Thumb
