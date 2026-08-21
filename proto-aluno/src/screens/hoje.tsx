@@ -1,7 +1,7 @@
-import { Display, Face, NoSheet, Pad, Place, Quiet, Screen, Scoreboard, Stamp, Thumb } from "@/components/bits";
-import { MarkStrip } from "@/ui/kit";
+import { Face, NoSheet, Pad, Place, Quiet, Screen, Stamp } from "@/components/bits";
+import { MarkStrip, Roll } from "@/ui/kit";
 import { Shot } from "@/ui/photo";
-import { BORAS, NOW, PRESCRIPTION, YOU_ID, alreadySeenLine, arenaWhy, clanOf, duelOpen, groupOf, personOf, warLeadNote } from "@/lib/seed";
+import { BORAS, NOW, PRESCRIPTION, YOU_ID, alreadySeenLine, arenaWhy, clanOf, duelOpen, groupOf, personOf } from "@/lib/seed";
 import { applyLast, useLink } from "@/lib/store";
 import { dateShort, weekdayLong } from "@/lib/format";
 
@@ -16,7 +16,7 @@ export function Hoje() {
   const openBora = useLink((s) => s.openBora);
   const open = useLink((s) => s.openOverlay);
   const openComo = useLink((s) => s.openComo);
-  const openProof = useLink((s) => s.openProof);
+  const openVersus = useLink((s) => s.openVersus);
   const war = useLink((s) => s.war);
   const paused = Boolean(session) && !cumprido;
   const groups = useLink((s) => s.groups);
@@ -27,12 +27,6 @@ export function Hoje() {
   const home = groupOf(war.homeId, groups);
   const away = groupOf(war.awayId, groups);
   const clan = clanOf(war, joined, groups);
-  const missing = clan ? clan.memberIds.filter((id) => (war.contributions[id] ?? 0) === 0) : [];
-  const top = clan
-    ? [...clan.memberIds]
-        .map((id) => ({ id, n: war.contributions[id] ?? 0 }))
-        .sort((a, b) => b.n - a.n)[0]
-    : undefined;
   const seen = clanOf(war, joined, groups)?.name ?? groups.find((g) => joined.includes(g.id))?.name;
   const lastLoads = useLink((s) => s.lastLoads);
   const raid = useLink((s) => s.raid);
@@ -47,173 +41,150 @@ export function Hoje() {
 
   return (
     <Screen>
-      <Pad className="flex items-end justify-between pt-1 pb-4">
-        <div>
+      <Pad className="flex items-end justify-between pt-1 pb-5">
+        <div className="min-w-0">
           <Place>{clanName ?? "Sem clã"}</Place>
           <p className="t-body mt-1">
             {weekdayLong(NOW)} · {dateShort(NOW)}
           </p>
         </div>
-        <p className="t-small text-right">
+        <p className="t-body shrink-0 text-right text-mute">
           ofensiva {ofensiva}
           <br />
           {protector ? "1 protetor" : "protetor gasto"}
         </p>
       </Pad>
 
-      <Pad className="pb-4">
-          {cumprido ? (
-            <>
-              <Shot src={lastProof?.image ?? "/feed/supino.jpg"} still square />
-              <Place>Sessão fechada · hoje</Place>
-              <Display className="mt-1">{lastProof?.title ?? PRESCRIPTION.name}</Display>
-              <p className="t-body mt-3">
-                {lastProof
-                  ? `${lastProof.sets} ${lastProof.sets === 1 ? "série" : "séries"} · ${lastProof.minutes || 1} min · ${lastProof.lead ?? lastProof.title}`
-                  : alreadySeenLine(seen)}
-              </p>
-              <div className="mt-6 flex items-center justify-between">
-                <div>
-                  <p className="t-body">{ofensiva}</p>
-                  <p className="t-small">semanas na ofensiva</p>
-                </div>
-                <Stamp />
+      <Pad className="pb-8">
+        {cumprido ? (
+          <>
+            <Shot src={lastProof?.image ?? "/feed/supino.jpg"} still square />
+            <Place>Sessão fechada · hoje</Place>
+            <h1 className="t-body mt-1">{lastProof?.title ?? PRESCRIPTION.name}</h1>
+            <p className="t-body mt-3">
+              {lastProof
+                ? `${lastProof.sets} ${lastProof.sets === 1 ? "série" : "séries"} · ${lastProof.minutes || 1} min · ${lastProof.lead ?? lastProof.title}`
+                : alreadySeenLine(seen)}
+            </p>
+            <div className="mt-6 flex items-center justify-between">
+              <div>
+                <p className="t-body">{ofensiva}</p>
+                <p className="t-body">semanas na ofensiva</p>
               </div>
-              <p className="t-small mt-4">{alreadySeenLine(seen)} Amanhã é outro.</p>
-              {faixa ? (
-                <div className="mt-6">
-                  <MarkStrip
-                    mark={faixa.match(/(\d+(?:[.,]\d+)?)/)?.[1] ?? String(judged?.mark ?? "—")}
-                    line={faixa}
-                  />
-                </div>
-              ) : null}
+              <Stamp />
+            </div>
+            <p className="t-body mt-4">{alreadySeenLine(seen)} Amanhã é outro.</p>
+            {faixa ? (
+              <div className="mt-6">
+                <MarkStrip
+                  mark={faixa.match(/(\d+(?:[.,]\d+)?)/)?.[1] ?? String(judged?.mark ?? "—")}
+                  line={faixa}
+                />
+              </div>
+            ) : null}
+            <div className="mt-6">
               <Quiet label="Recomeçar o proto" danger onPress={() => useLink.getState().reset()} />
-            </>
-          ) : sheet.length ? (
-            <>
-              <Place>O de hoje</Place>
-              <Display className="mt-1">{PRESCRIPTION.name}</Display>
-              <ul className="mt-5">
-                {sheet.map((item) => {
-                  const delta = item.last_kg != null ? item.load_kg - item.last_kg : null;
-                  const mark =
-                    delta == null ? `${item.planned_sets} × ${item.planned_reps}` : delta === 0 ? "igual" : delta > 0 ? "acima" : "abaixo";
-                  return (
+            </div>
+          </>
+        ) : sheet.length ? (
+          <>
+            <Place>O de hoje</Place>
+            <h1 className="t-body mt-1">{PRESCRIPTION.name}</h1>
+            <ul className="mt-4">
+              {sheet.map((item) => {
+                const now = `${item.planned_sets} × ${item.planned_reps}`;
+                const was =
+                  item.last_reps != null ? `${item.planned_sets} × ${item.last_reps}` : now;
+                return (
                   <li key={item.id}>
                     <button
                       type="button"
-                      className="flex h-12 w-full items-baseline justify-between gap-3 py-3 text-left"
+                      className="flex min-h-11 w-full items-center py-2.5 text-left"
                       onClick={() => openComo(item.id)}
                     >
-                      <span>
-                        <span className="t-body block">{item.name}</span>
-                        <span className="t-small">
-                          {item.planned_sets} × {item.planned_reps}
-                        </span>
+                      <span className="t-body min-w-0 truncate">{item.name}</span>
+                      <span className="w-[15%] shrink-0" aria-hidden />
+                      <span className="t-body shrink-0 tabular-nums text-mute">
+                        <Roll value={now} was={was} />
                       </span>
-                      <span className="t-body tabular-nums">{mark}</span>
                     </button>
                   </li>
-                  );
-                })}
-              </ul>
-              <div className="mt-2 flex gap-2">
-                <Quiet label="Última vez" onPress={() => start("ultima")} />
-                <Quiet label="Treino livre" onPress={() => open("livre")} />
-              </div>
-            </>
-          ) : (
-            <NoSheet onUltima={() => start("ultima")} onLivre={() => open("livre")} />
-          )}
-          {cumprido ? null : sheet.length ? (
-            <div className="relative mt-6">
-              <Thumb
-                label={paused ? "Continuar no rack" : "Começar"}
-                meta={paused ? undefined : `${PRESCRIPTION.minutes} min`}
-                onPress={paused ? resume : () => start("ficha")}
-              />
-              {faixa ? (
-                <div className="pointer-events-none absolute inset-0 flex items-center bg-bg">
-                  <MarkStrip
-                    mark={faixa.match(/(\d+(?:[.,]\d+)?)/)?.[1] ?? String(judged?.mark ?? "—")}
-                    line={faixa}
-                  />
-                </div>
-              ) : null}
+                );
+              })}
+            </ul>
+            <button
+              type="button"
+              className="mt-4 flex min-h-11 w-full items-center py-2.5 text-left"
+              onClick={paused ? resume : () => start("ficha")}
+            >
+              <span className="t-body min-w-0 truncate">{paused ? "Continuar no rack" : "Começar"}</span>
+              <span className="w-[15%] shrink-0" aria-hidden />
+              {paused ? null : (
+                <span className="t-body shrink-0 tabular-nums text-mute">{PRESCRIPTION.minutes} min</span>
+              )}
+            </button>
+            <div className="mt-3 flex gap-2">
+              <Quiet label="Última vez" onPress={() => start("ultima")} />
+              <Quiet label="Treino livre" onPress={() => open("livre")} />
             </div>
-          ) : null}
+          </>
+        ) : (
+          <NoSheet onUltima={() => start("ultima")} onLivre={() => open("livre")} />
+        )}
       </Pad>
 
       {incoming.length ? (
-        <div className="px-5 py-5">
+        <Pad className="pb-8">
           <p className="t-kicker">Te pegaram</p>
-          {incoming.map((d) => (
-            <div key={d.id} className="mt-3 flex items-center justify-between gap-3">
-              <button type="button" className="flex h-12 min-w-0 items-center gap-3" onClick={() => openProof(d.postId)}>
-                <Face id={d.fromId} size={36} />
-                <p className="t-body truncate">
-                  {personOf(d.fromId).name} · {d.mark}
-                </p>
-              </button>
-              <button
-                type="button"
-                className="press flex h-12 shrink-0 items-center rounded-sm border border-edge px-4 t-small text-ink"
-                onClick={() => accept(d.id)}
-              >
-                Aceito
-              </button>
-            </div>
-          ))}
-        </div>
+          <ul className="mt-1">
+            {incoming.map((d) => (
+              <li key={d.id} className="flex min-h-[44px] items-center justify-between gap-3 py-2">
+                <button type="button" className="flex min-h-11 min-w-0 items-center gap-3" onClick={() => openVersus(d.id)}>
+                  <Face id={d.fromId} size={20} />
+                  <p className="t-body truncate">
+                    {personOf(d.fromId).name} · {d.mark}
+                  </p>
+                </button>
+                <button
+                  type="button"
+                  className="press flex min-h-11 shrink-0 items-center rounded-sm border border-edge px-4 t-body text-ink"
+                  onClick={() => accept(d.id)}
+                >
+                  Aceito
+                </button>
+              </li>
+            ))}
+          </ul>
+        </Pad>
       ) : null}
 
-      <div className="min-h-[36vh]" aria-hidden />
-
-      <button type="button" className="h-12 w-full px-5 py-5 text-left" onClick={() => open("raid")}>
-        <p className="t-kicker">Raid · fecha {raid.ends}</p>
-        <p className="t-body mt-1">{raid.mark}</p>
-        <p className="t-small mt-2">{raid.claimed.length} já fizeram.</p>
-      </button>
-
-      <Scoreboard
-        home={home.name}
-        homeScore={war.homeScore}
-        away={away.name}
-        awayScore={war.awayScore}
-        note={
-          clan
-            ? `${top && top.n > 0 ? `${personOf(top.id).name} puxou ${top.n}. ` : ""}${
-                missing.length
-                  ? `${missing.map((id) => (id === "vitor" ? "Você" : personOf(id).name)).join(", ")} ainda não veio. `
-                  : ""
-              }${warLeadNote(war, home, away)}`
-            : warLeadNote(war, home, away)
-        }
-        onPress={() => open("guerra")}
-      />
-
-      {why ? <p className="px-5 py-4 t-small">{why}</p> : null}
+      {why ? <p className="px-5 py-4 t-body">{why}</p> : null}
 
       {bora ? (
-        <button type="button" className="flex h-12 w-full items-center gap-3 px-5 py-5 text-left" onClick={() => openBora(bora.id)}>
+        <button type="button" className="flex min-h-11 w-full items-center gap-3 px-5 py-5 text-left" onClick={() => openBora(bora.id)}>
           <div className="flex -space-x-1.5">
             {going.slice(0, 4).map((id) => (
-              <Face key={id} id={id} size={28} />
+              <Face key={id} id={id} size={20} />
             ))}
           </div>
           <div className="min-w-0 flex-1">
             <p className="t-body">
               {bora.title} · {bora.hour}
             </p>
-            <p className="t-small truncate">
+            <p className="t-body truncate text-mute">
               {going.length} vão · {bora.address}
             </p>
           </div>
-          <span className="t-body">Bora</span>
+          <span className="t-body shrink-0">Bora</span>
         </button>
       ) : null}
 
+      <p className="px-5 py-3 t-body">
+        Raid · {raid.mark} · fecha {raid.ends}
+      </p>
+      <p className="px-5 py-3 t-body text-mute">
+        {home.name} {war.homeScore} · {away.name} {war.awayScore}
+      </p>
     </Screen>
   );
 }
