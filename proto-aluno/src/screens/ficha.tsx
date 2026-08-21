@@ -429,12 +429,15 @@ export function Montar() {
               aria-label="Nome do deck"
               className={cn(
                 "t-body h-12 w-full rounded-sm border bg-transparent px-3 outline-none placeholder:text-faint",
-                nameBad ? "border-ink pr-8 text-stamp" : "border-edge text-ink",
+                nameBad ? "border-ink pr-12 text-stamp" : "border-edge text-ink",
               )}
             />
             {nameBad ? (
-              <span aria-hidden className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-stamp">
-                !
+              <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-stamp tabular-nums">
+                {name.trim().length}
+                <span aria-hidden className="ml-1">
+                  !
+                </span>
               </span>
             ) : null}
           </div>
@@ -478,7 +481,7 @@ export function Montar() {
               })}
               {listBad ? (
                 <p className="t-small py-2 text-ink">
-                  <span className="text-stamp">{mine.length}</span>
+                  <span className="text-stamp">{picked.length}</span>
                   <span aria-hidden className="mx-1">
                     !
                   </span>
@@ -549,7 +552,7 @@ export function Oferecer() {
             ))}
             {pickBad ? (
               <p className="t-small py-2 text-ink">
-                <span className="text-stamp">{STRANGERS.length}</span>
+                <span className="text-stamp">{pick ? 1 : 0}</span>
                 <span aria-hidden className="mx-1">
                   !
                 </span>
