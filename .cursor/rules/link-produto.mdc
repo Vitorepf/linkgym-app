@@ -1,0 +1,82 @@
+# Link — produto travado
+
+Antes de desenhar ou codar feature nova, leia `docs/estrategia-strava-academia.md` §12. Jobs: `docs/destilacao-mobbin-103.md`. Psicologia: `docs/destilacao-psicologia-retencao.md`. Clã e volume: `docs/cla-tribo-volume.md`. Duelo e juiz: `docs/duelo-e-juiz.md`. Ficha de atributos: `docs/ficha-de-atributos.md`.
+
+**Premissa de base: ninguém conhece ninguém.** O app existe para aproximar estranhos, forçar interação, criar disputa (a pessoa contra as outras e a pessoa contra ela mesma), e terminar em encontro no mundo físico.
+
+**O app não depende de personal.** Existe app em que o personal obriga o aluno e o aluno odeia. Aqui é o contrário: o usuário ama sozinho, e por isso o personal precisa estar nele. Nada de treino, disputa ou clã pode ficar atrás de um personal. Aluno tem personal, usuário não tem, e os dois usam tudo.
+
+**Conta deste proto = só aluno.** Painel do personal é outra conta (empresa, turma, PIX). Não desenhar, não mockar.
+
+## Sem academia
+
+Não existe nome de academia nem unidade. Não existe armário. Quem quer falar de academia **posta** sobre isso: foto, vídeo, texto. O produto não sabe o que é academia.
+
+O lugar da pessoa é onde ela mora: **setor**, e acima dele a **cidade**.
+
+## Território elástico
+
+A disputa acontece no **setor**. Setor com gente pouca não dá disputa alcançável, então ela **sobe sozinha para a cidade**. A interface explica a subida em vez de esconder.
+
+Arena sai de `arenaScope()`, `arenaName()`, `arenaPeople()` e `arenaWhy()` em `proto-aluno/src/lib/seed.ts`. Nunca chumbe "Setor Bueno" nem "Goiânia" no TSX.
+
+## Clã, não turma
+
+Grupo é clã no modelo Clash of Clans. Tem **tipo** (`geral`, `powerlifting`, `crossfit`, `hipertrofia`, `corrida`, `calistenia`, `luta`), tem **descrição escrita por quem criou**, e tem **teto**. Havendo vaga, **entra quem chegar**.
+
+Não existe código de convite. Não existe grupo fechado. Não existe requisito de entrada. A única porta é o teto.
+
+"Turma das 18h" está morto: pressupõe gente que já se conhece. Nunca escreva texto que assuma que a pessoa conhece os outros do clã.
+
+## Duas escadas
+
+Modelo Clash Royale, e as duas existem ao mesmo tempo:
+
+1. **Você contra as outras pessoas** da arena.
+2. **Seu clã contra os outros clãs.**
+
+A força do clã sai da capacidade dos integrantes: sessão da semana e raid cumprida (`clanPower()`). A moeda da guerra é **sessão**, que é a única coisa comparável entre powerlifting e CrossFit.
+
+Ranking mundial de indivíduo é proibido. Escada local é o normal.
+
+## Duelo e juiz
+
+Pessoa desafia pessoa. O app dá o start, mede e arbitra. Ao declarar vencedor, vira post na rede.
+
+O app **não tem sensor**. Só é arbitrável o que tem testemunha real: tempo cronometrado começando dentro do app, série registrada ao vivo dentro de uma janela, presença, sequência, vídeo anexado. Número digitado depois, sem janela e sem testemunha, é honra declarada, e honra declarada sem atrito vira mentira e mata a escada.
+
+Derrota e recusa são desenhadas de propósito. Quem perde volta amanhã. Recusar não é vergonha pública.
+
+## Ficha de atributos
+
+O Perfil é ficha de RPG **da vida real**. Atributo é ganho, nunca concedido: sai de trabalho registrado. Corpo blindado não é permanente, então decai.
+
+Proibido: gema, moeda de fantasia, mascote, barrinha colorida de jogo, "XP", qualquer coisa que um adulto de 40 anos teria vergonha de mostrar. O registro é instrumento, dossiê, exame. Não é painel de fantasia.
+
+Cuidado com o nome: a aba **Ficha** é a ficha de **treino**. A ficha de **atributos** mora no **Perfil**.
+
+## Superfície
+
+Cinco abas, no máximo: **Hoje · Ficha · Rede · Progresso · Perfil**. Mais o rack em sobreposição: Série → Descanso → Feito.
+
+Rede = arena e clãs. Raid vive no Hoje.
+
+Sobreposições existentes, reaproveite antes de inventar: `serie`, `descanso`, `feito`, `como`, `fichaSessao`, `bora`, `raid`, `prova`, `pessoa`, `grupo`, `guerra`, `arena`, `duelos`, `livre`, `desafio`, `zap`, `criarGrupo`, `composer`.
+
+## Obrigatório
+
+Um polegar → "Fiz essa série". Ofensiva + protetor. **Tá pago** (nunca "kudo"). Lugar no recibo. "bora" termina no Zap. "Já paguei" no perfil (o app não cobra). Disputa = pessoa na arena ou clã contra clã.
+
+O feed é da pessoa: texto, imagem, vídeo. Feito do rack também entra, e não é o único post.
+
+## Proibido
+
+Aba Explore. Chat. Ranking mundial de indivíduo. Gema. Clone de tela do Strava. A palavra "chão". A palavra "kudo". Nome de academia. Unidade. Armário. Código de convite. Grupo fechado.
+
+## Hipóteses
+
+1. Sem sessão fechada no celular, clã e disputa são enfeite.
+2. Ficha do personal é extra, nunca requisito.
+3. Estranho vira parceiro por disputa, não por horário.
+
+Mobbin (função, não pixel): Strava recibo/gesto/clube/desafio · Hevy rack · Whoop número · Duolingo ofensiva e ritual · Flighty informação viva · Linear densidade · Things 3 ofício · Airbnb objeto/fluxo/foto.

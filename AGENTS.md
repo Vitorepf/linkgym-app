@@ -1,5 +1,7 @@
 # Expo HAS CHANGED
 
+Produto: o app que o aluno abre no rack, e que vicia sem personal nenhum. A premissa é que ninguém conhece ninguém: o app aproxima estranhos, cria disputa e termina em encontro no mundo físico. Conta do aluno. Sem academia, sem unidade: o lugar da pessoa é o setor onde ela mora, e a disputa sobe para a cidade quando o setor tem gente pouca. Grupo é clã aberto, não turma. Não invente outro app. Leia `docs/estrategia-strava-academia.md` (§0 e §12), `docs/destilacao-mobbin-103.md`, `docs/destilacao-psicologia-retencao.md` e `docs/cla-tribo-volume.md`. Não use a palavra “chão”. Rule: `.cursor/rules/link-produto.mdc`.
+
 Read the exact versioned docs at https://docs.expo.dev/versions/v54.0.0/ before writing any code.
 
 This app stays on **SDK 54** — the same major as `atlas-app` (`~54.0.33`) and `blackink-app` (`~54.0.32`). Do not bump to SDK 55/56/57.

@@ -1,5 +1,7 @@
 # Brief — desenho: superfície no lugar de linha, grade que fecha
 
+Tese de produto (o que o app *é*): `docs/estrategia-strava-academia.md`. Este arquivo é só o gate de desenho. Sem aquele, é Instagram preto.
+
 O que foi pedido (dono, 2026-08-19), com número:
 
 1. **Ritmo vertical.** `node tools/ritmo.mjs tools/out/design/0` — 32 telas. Pior:
