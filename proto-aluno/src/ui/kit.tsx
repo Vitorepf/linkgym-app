@@ -168,7 +168,7 @@ export function Chip({
         "inline-flex h-6 shrink-0 items-center gap-1.5 rounded-xs px-2 t-mono",
         tone === "quiet" && "bg-raised text-ink",
         tone === "live" && "bg-raised text-ink",
-        tone === "done" && "bg-raised text-ink",
+        tone === "done" && "bg-line text-mute",
         tone === "outline" && "border border-edge bg-surface text-ink",
       )}
     >
@@ -243,7 +243,7 @@ export function Roll({
           </motion.span>
         </AnimatePresence>
       </span>
-      {ghost ? <span className="t-small text-faint line-through">{was}</span> : null}
+      {ghost ? <span className="strike text-faint">{was}</span> : null}
     </span>
   );
 }
@@ -274,7 +274,7 @@ export function ActionBar({ children, hair = false }: { children: ReactNode; hai
     <div
       data-dock
       className={cn(
-        "relative shrink-0 bg-bg px-5 pt-3 pb-[max(14px,env(safe-area-inset-bottom))]",
+        "relative mx-auto w-fit min-w-[12rem] max-w-full shrink-0 bg-bg px-5 pt-3 pb-[max(14px,env(safe-area-inset-bottom))]",
         hair && "border-t border-line",
       )}
     >
@@ -312,14 +312,15 @@ export function ObjectBar({
 }
 
 /**
- * Veredito no slot do Thumb. Cobre o botão, não empurra nada acima, 0 toque.
+ * Veredito no sítio do Thumb. Cobre o botão, não empurra, 0 toque.
+ * `cover` ancora 26% da cena viva (22–30%). Sem cover, o fluxo (Hoje) decide a caixa.
  * O algarismo é a marca de quem está olhando — nunca a do vencedor.
  */
-export function MarkStrip({ mark, line }: { mark: string; line: string }) {
+export function MarkStrip({ mark, line, cover, body }: { mark: string; line: string; cover?: boolean; body?: boolean }) {
   return (
-    <div className="mark-strip anim-fade" role="status">
-      <p className="t-display tabular-nums">{mark}</p>
-      <p className="t-small min-w-0 truncate">{line}</p>
+    <div className={cn("mark-strip anim-fade", cover && "mark-strip-cover")} role="status">
+      <p className={cn(body ? "t-body" : "t-display", "tabular-nums")}>{mark}</p>
+      <p className={cn(body ? "t-body" : "t-micro", "min-w-0 truncate")}>{line}</p>
     </div>
   );
 }

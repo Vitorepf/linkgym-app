@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Display, Pad, Place, Quiet, Thumb } from "@/components/bits";
+import { Pad, Place, Quiet, Thumb } from "@/components/bits";
 import { Dock } from "@/components/shell";
 import { MarkStrip, Roll } from "@/ui/kit";
 import { YOU_ID } from "@/lib/seed";
@@ -46,21 +46,41 @@ export function Descanso() {
       : nxt.setIndex > 1
         ? `série ${nxt.setIndex}`
         : session.items[nxt.itemIndex]?.name;
+  const kgNow = last ? formatKg(last.kg) : formatKg(item.load_kg);
+  const kgWas = item.last_kg != null ? formatKg(item.last_kg) : kgNow;
+  const repsNow = last ? last.reps : item.planned_reps;
+  const repsWas = item.last_reps != null ? item.last_reps : repsNow;
+
+  const markN =
+    faixa != null
+      ? (faixa.match(/(\d+(?:[.,]\d+)?)/)?.[1] ?? String(last?.kg ?? "—"))
+      : last
+        ? formatKg(last.kg)
+        : null;
+  const markLine =
+    faixa ??
+    (last
+      ? item.last_kg == null
+        ? `${last.reps} reps`
+        : last.kg === item.last_kg
+          ? "igual à última"
+          : `${last.kg > item.last_kg ? "+" : "−"}${formatKg(Math.abs(last.kg - item.last_kg))} kg`
+      : null);
 
   return (
-    <div className="anim-rise flex min-h-0 flex-1 flex-col">
+    <div className="relative anim-rise flex min-h-0 flex-1 flex-col">
       <Pad className="pt-5">
         <Place>
           {item.name} · série {session.setIndex} de {item.planned_sets}
         </Place>
-        <Display className="mt-2">
-          {last ? (
-            <Roll value={formatKg(last.kg)} was={item.last_kg != null ? formatKg(item.last_kg) : undefined} />
-          ) : (
-            "Série feita"
-          )}
-        </Display>
-        <p className="t-small mt-2">{last ? `${last.reps} reps nesta série` : item.name}</p>
+        <p className="t-display mt-2 tabular-nums">
+          <Roll value={kgNow} was={kgWas} />
+        </p>
+        <p className="t-micro mt-1">kg</p>
+        <p className="t-body mt-3 tabular-nums">
+          <Roll value={repsNow} was={repsWas} />
+          <span className="t-micro ml-2">reps nesta série</span>
+        </p>
       </Pad>
 
       <div className="flex flex-1 flex-col items-center justify-center">
@@ -80,25 +100,25 @@ export function Descanso() {
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
             <p className="t-display text-ink">{left}</p>
-            <p className="t-kicker mt-1">segundos</p>
+            <p className="t-micro mt-1">segundos</p>
           </div>
         </div>
         {left === 0 ? (
-          <p className="t-small mt-5 max-w-[28ch] px-8 text-center">Fechou. Marca como foi e segue.</p>
+          <p className="t-body mt-5 max-w-[28ch] px-8 text-center">Fechou. Marca como foi e segue.</p>
         ) : null}
       </div>
 
       {fechaExercicio ? (
         <Pad className="pb-3">
           <p className="t-kicker mb-3">Como foi</p>
-          <div className="flex gap-2">
+          <div className={cn("flex gap-2", !effort && "rounded-sm border border-ink p-1")}>
             {WORDS.map((w) => (
               <button
                 key={w.effort}
                 type="button"
                 className={cn(
-                  "h-12 flex-1 t-body",
-                  effort === w.effort ? "bg-fill text-ink" : "bg-raised text-mute",
+                  "min-h-11 flex-1 border t-body",
+                  effort === w.effort ? "border-ink bg-transparent text-ink" : "border-edge bg-transparent text-mute",
                 )}
                 onClick={() => setEffort(w.effort)}
               >
@@ -106,36 +126,32 @@ export function Descanso() {
               </button>
             ))}
           </div>
+          {effort ? null : (
+            <p className="t-body mt-2 text-ink">
+              <span aria-hidden className="mr-1">!</span>
+              Marca como foi.
+            </p>
+          )}
         </Pad>
       ) : null}
 
       <Dock>
-        <div className="relative">
-          <Thumb
-            label={ending ? "Terminar sessão" : left === 0 ? "Próxima série" : "Pular descanso"}
-            meta={ending ? undefined : nextLabel}
-            disabled={fechaExercicio && !effort}
-            onPress={() => {
-              if (ending) {
-                if (effort) finish(effort);
-                return;
-              }
-              if (fechaExercicio) {
-                if (effort) advance(effort);
-                return;
-              }
-              skip();
-            }}
-          />
-          {faixa ? (
-            <div className="pointer-events-none absolute inset-0 flex items-center bg-dock">
-              <MarkStrip
-                mark={faixa.match(/(\d+(?:[.,]\d+)?)/)?.[1] ?? String(last?.kg ?? "—")}
-                line={faixa}
-              />
-            </div>
-          ) : null}
-        </div>
+        <Thumb
+          label={ending ? "Terminar sessão" : left === 0 ? "Próxima série" : "Pular descanso"}
+          meta={ending ? undefined : nextLabel}
+          onPress={() => {
+            if (fechaExercicio && !effort) return;
+            if (ending) {
+              if (effort) finish(effort);
+              return;
+            }
+            if (fechaExercicio) {
+              if (effort) advance(effort);
+              return;
+            }
+            skip();
+          }}
+        />
         {ending ? null : (
           <Quiet
             label="Terminar por aqui"
@@ -147,6 +163,7 @@ export function Descanso() {
           />
         )}
       </Dock>
+      {markN && markLine ? <MarkStrip mark={markN} line={markLine} cover /> : null}
     </div>
   );
 }

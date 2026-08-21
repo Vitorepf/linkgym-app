@@ -56,17 +56,17 @@ export function Serie() {
   const empty = session.kg <= 0;
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div className="relative flex min-h-0 flex-1 flex-col">
       <Pad className="flex items-start justify-between pt-3">
         <div>
           <Place>
             {session.itemIndex + 1} de {items.length} · série {session.setIndex} de {item.planned_sets}
           </Place>
-          <h1 className="t-title mt-1">{item.name}</h1>
+          <h1 className="t-body mt-1">{item.name}</h1>
         </div>
         <button
           type="button"
-          className="press flex h-12 min-w-12 items-center justify-end t-body text-mute"
+          className="press flex min-h-11 min-w-12 items-center justify-end t-body text-mute"
           onClick={() => open("fichaSessao")}
         >
           Ficha
@@ -86,22 +86,22 @@ export function Serie() {
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col justify-center px-5">
-        <div>
-          <p className="t-kicker">kg</p>
-          <p className={cn("t-display mt-1 tabular-nums", empty && "text-stamp")}>
-            <Roll value={kg} was={last != null ? formatKg(last) : undefined} />
+        <div className={cn(empty && "rounded-sm border-2 border-ink px-2 py-2")}>
+          <p className="t-small">kg</p>
+          <p className="t-body mt-1 tabular-nums">
+            <Roll value={kg} was={last != null ? formatKg(last) : kg} />
           </p>
           {empty ? (
-            <p className="t-small mt-2">
+            <p className="t-body mt-2 text-ink">
               <span aria-hidden className="mr-1">!</span>
               Carga sem peso.
             </p>
           ) : null}
         </div>
         <div className="mt-6">
-          <p className="t-kicker">reps</p>
-          <p className="t-display mt-1 tabular-nums">
-            <Roll value={session.reps} was={lastReps != null ? lastReps : undefined} />
+          <p className="t-small">reps</p>
+          <p className="t-body mt-1 tabular-nums">
+            <Roll value={session.reps} was={lastReps != null ? lastReps : session.reps} />
           </p>
         </div>
         <div className="mt-6 flex gap-2">
@@ -114,37 +114,34 @@ export function Serie() {
         </div>
         <button
           type="button"
-          className="press mt-5 flex h-12 items-center self-start t-small text-mute"
+          className="press mt-5 flex min-h-11 items-center self-start t-body text-mute"
           onClick={() => openComo(item.id)}
         >
           Como fazer
         </button>
-        {item.notes ? <p className="t-small mt-3 italic">“{item.notes}”</p> : null}
+        {item.notes ? <p className="t-body mt-3 italic">“{item.notes}”</p> : null}
       </div>
 
       <Dock>
-        {mark ? (
-          <MarkStrip mark={mark.n} line={mark.line} />
-        ) : (
-          <Thumb
-            label="Fiz essa série"
-            meta={`${item.rest_seconds}s`}
-            disabled={empty}
-            onPress={() => {
-              if (armed.current || empty) return;
-              armed.current = true;
-              const line =
-                delta == null
-                  ? `${session.reps} reps`
-                  : delta === 0
-                    ? "igual à última"
-                    : `${delta > 0 ? "+" : "−"}${formatKg(Math.abs(delta))} kg`;
-              setMark({ n: kg, line });
-              window.setTimeout(() => logSet(), 520);
-            }}
-          />
-        )}
+        <Thumb
+          label="Fiz essa série"
+          meta={`${item.rest_seconds}s`}
+          disabled={empty}
+          onPress={() => {
+            if (armed.current || empty) return;
+            armed.current = true;
+            const line =
+              delta == null
+                ? `${session.reps} reps`
+                : delta === 0
+                  ? "igual à última"
+                  : `${delta > 0 ? "+" : "−"}${formatKg(Math.abs(delta))} kg`;
+            setMark({ n: kg, line });
+            window.setTimeout(() => logSet(), 520);
+          }}
+        />
       </Dock>
+      {mark ? <MarkStrip mark={mark.n} line={mark.line} cover /> : null}
     </div>
   );
 }
@@ -169,8 +166,14 @@ export function ComoFazer() {
             </li>
           ))}
         </ol>
-        <p className="t-small mt-5">
-          {item.planned_sets} × {item.planned_reps} · {formatKg(item.load_kg)} kg
+        <p className="t-micro mt-5">{item.rest_seconds}s de descanso</p>
+        <p className="t-display mt-2 tabular-nums">
+          <Roll value={formatKg(item.load_kg)} was={item.last_kg != null ? formatKg(item.last_kg) : formatKg(item.load_kg)} />
+        </p>
+        <p className="t-micro mt-1">kg</p>
+        <p className="t-body mt-3 tabular-nums">
+          <Roll value={item.planned_reps} was={item.last_reps != null ? item.last_reps : item.planned_reps} />
+          <span className="t-micro ml-2">reps</span>
         </p>
       </Pad>
       <div className="flex-1" />
@@ -203,7 +206,13 @@ export function FichaSessao() {
                 {i + 1} · {item.planned_sets} × {item.planned_reps}
               </p>
             </div>
-            <p className="t-body">{formatKg(item.load_kg)}</p>
+            <p className="t-body tabular-nums">
+              <Roll
+                value={formatKg(item.load_kg)}
+                was={item.last_kg != null ? formatKg(item.last_kg) : formatKg(item.load_kg)}
+              />
+              <span className="t-micro ml-1">kg</span>
+            </p>
           </div>
         ))}
       </Pad>
