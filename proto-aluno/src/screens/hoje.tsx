@@ -1,9 +1,10 @@
-import { Display, Face, NoSheet, Pad, Place, Quiet, Screen, Scoreboard, Stamp, Thumb } from "@/components/bits";
+import { Face, NoSheet, Pad, Quiet, Screen, Scoreboard, Stamp } from "@/components/bits";
+import { weekCount } from "@/ui/feed";
 import { MarkStrip } from "@/ui/kit";
 import { Shot } from "@/ui/photo";
 import { BORAS, NOW, PRESCRIPTION, YOU_ID, alreadySeenLine, arenaWhy, clanOf, duelOpen, groupOf, personOf, warLeadNote } from "@/lib/seed";
 import { applyLast, useLink } from "@/lib/store";
-import { dateShort, weekdayLong } from "@/lib/format";
+import { dateShort, formatKg, weekdayLong } from "@/lib/format";
 
 export function Hoje() {
   const ofensiva = useLink((s) => s.ofensiva);
@@ -35,6 +36,7 @@ export function Hoje() {
     : undefined;
   const seen = clanOf(war, joined, groups)?.name ?? groups.find((g) => joined.includes(g.id))?.name;
   const lastLoads = useLink((s) => s.lastLoads);
+  const proofs = useLink((s) => s.proofs);
   const raid = useLink((s) => s.raid);
   const duels = useLink((s) => s.duels);
   const accept = useLink((s) => s.acceptDuel);
@@ -42,6 +44,12 @@ export function Hoje() {
   const judged = duels.find((d) => d.veredito && (d.fromId === YOU_ID || d.toId === YOU_ID));
   const faixa = judged?.veredito?.faixa[YOU_ID];
   const sheet = applyLast(PRESCRIPTION.items, lastLoads);
+  const climb = sheet.find((it) => it.last_kg != null && it.load_kg > it.last_kg);
+  const weekLeft = Math.max(0, 4 - weekCount(proofs, YOU_ID));
+  const nextMark =
+    climb && climb.last_kg != null
+      ? `faltam ${formatKg(climb.load_kg - climb.last_kg)} kg no ${climb.name.toLowerCase()}`
+      : `faltam ${weekLeft} ${weekLeft === 1 ? "sessão" : "sessões"} para 4/semana`;
   const clanName = clan?.name ?? groups.find((g) => joined.includes(g.id))?.name;
   const why = arenaWhy();
 
@@ -49,7 +57,7 @@ export function Hoje() {
     <Screen>
       <Pad className="flex items-end justify-between pt-1 pb-4">
         <div>
-          <Place>{clanName ?? "Sem clã"}</Place>
+          <p className="t-body">{clanName ?? "Sem clã"}</p>
           <p className="t-body mt-1">
             {weekdayLong(NOW)} · {dateShort(NOW)}
           </p>
@@ -65,8 +73,8 @@ export function Hoje() {
           {cumprido ? (
             <>
               <Shot src={lastProof?.image ?? "/feed/supino.jpg"} still square />
-              <Place>Sessão fechada · hoje</Place>
-              <Display className="mt-1">{lastProof?.title ?? PRESCRIPTION.name}</Display>
+              <p className="t-body">Sessão fechada · hoje</p>
+              <h1 className="t-body mt-1">{lastProof?.title ?? PRESCRIPTION.name}</h1>
               <p className="t-body mt-3">
                 {lastProof
                   ? `${lastProof.sets} ${lastProof.sets === 1 ? "série" : "séries"} · ${lastProof.minutes || 1} min · ${lastProof.lead ?? lastProof.title}`
@@ -83,6 +91,7 @@ export function Hoje() {
               {faixa ? (
                 <div className="mt-6">
                   <MarkStrip
+                    body
                     mark={faixa.match(/(\d+(?:[.,]\d+)?)/)?.[1] ?? String(judged?.mark ?? "—")}
                     line={faixa}
                   />
@@ -92,8 +101,8 @@ export function Hoje() {
             </>
           ) : sheet.length ? (
             <>
-              <Place>O de hoje</Place>
-              <Display className="mt-1">{PRESCRIPTION.name}</Display>
+              <p className="t-body">O de hoje</p>
+              <h1 className="t-body mt-1">{PRESCRIPTION.name}</h1>
               <ul className="mt-5">
                 {sheet.map((item) => {
                   const delta = item.last_kg != null ? item.load_kg - item.last_kg : null;
@@ -118,6 +127,7 @@ export function Hoje() {
                   );
                 })}
               </ul>
+              <p className="t-small mt-3">{nextMark}</p>
               <div className="mt-2 flex gap-2">
                 <Quiet label="Última vez" onPress={() => start("ultima")} />
                 <Quiet label="Treino livre" onPress={() => open("livre")} />
@@ -127,31 +137,35 @@ export function Hoje() {
             <NoSheet onUltima={() => start("ultima")} onLivre={() => open("livre")} />
           )}
           {cumprido ? null : sheet.length ? (
-            <div className="relative mt-6">
-              <Thumb
-                label={paused ? "Continuar no rack" : "Começar"}
-                meta={paused ? undefined : `${PRESCRIPTION.minutes} min`}
-                onPress={paused ? resume : () => start("ficha")}
-              />
+            <>
+              <button
+                type="button"
+                className="mt-6 flex min-h-11 items-baseline gap-3 text-left"
+                onClick={paused ? resume : () => start("ficha")}
+              >
+                <span className="t-body">{paused ? "Continuar no rack" : "Começar"}</span>
+                {paused ? null : <span className="t-small">{PRESCRIPTION.minutes} min</span>}
+              </button>
               {faixa ? (
-                <div className="pointer-events-none absolute inset-0 flex items-center bg-bg">
+                <div className="mt-6">
                   <MarkStrip
+                    body
                     mark={faixa.match(/(\d+(?:[.,]\d+)?)/)?.[1] ?? String(judged?.mark ?? "—")}
                     line={faixa}
                   />
                 </div>
               ) : null}
-            </div>
+            </>
           ) : null}
       </Pad>
 
       {incoming.length ? (
         <div className="px-5 py-5">
-          <p className="t-kicker">Te pegaram</p>
+          <p className="t-body">Te pegaram</p>
           {incoming.map((d) => (
             <div key={d.id} className="mt-3 flex items-center justify-between gap-3">
               <button type="button" className="flex h-12 min-w-0 items-center gap-3" onClick={() => openProof(d.postId)}>
-                <Face id={d.fromId} size={36} />
+                <Face id={d.fromId} size={22} />
                 <p className="t-body truncate">
                   {personOf(d.fromId).name} · {d.mark}
                 </p>
@@ -199,7 +213,7 @@ export function Hoje() {
         <button type="button" className="flex h-12 w-full items-center gap-3 px-5 py-5 text-left" onClick={() => openBora(bora.id)}>
           <div className="flex -space-x-1.5">
             {going.slice(0, 4).map((id) => (
-              <Face key={id} id={id} size={28} />
+              <Face key={id} id={id} size={22} />
             ))}
           </div>
           <div className="min-w-0 flex-1">
