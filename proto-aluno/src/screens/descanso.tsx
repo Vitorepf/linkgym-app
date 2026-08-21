@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Pad, Place, Quiet, Thumb } from "@/components/bits";
 import { Dock } from "@/components/shell";
-import { MarkStrip, Roll } from "@/ui/kit";
+import { Roll } from "@/ui/kit";
 import { YOU_ID } from "@/lib/seed";
 import { nextCursor, useLink } from "@/lib/store";
 import { formatKg } from "@/lib/format";
@@ -52,20 +52,9 @@ export function Descanso() {
   const repsWas = item.last_reps != null ? item.last_reps : repsNow;
 
   const markN =
-    faixa != null
-      ? (faixa.match(/(\d+(?:[.,]\d+)?)/)?.[1] ?? String(last?.kg ?? "—"))
-      : last
-        ? formatKg(last.kg)
-        : null;
-  const markLine =
-    faixa ??
-    (last
-      ? item.last_kg == null
-        ? `${last.reps} reps`
-        : last.kg === item.last_kg
-          ? "igual à última"
-          : `${last.kg > item.last_kg ? "+" : "−"}${formatKg(Math.abs(last.kg - item.last_kg))} kg`
-      : null);
+    (faixa != null ? faixa.match(/(\d+(?:[.,]\d+)?)/)?.[1] : undefined) ??
+    (last ? formatKg(last.kg) : undefined) ??
+    String(session.setIndex);
 
   return (
     <div className="relative anim-rise flex min-h-0 flex-1 flex-col">
@@ -129,7 +118,7 @@ export function Descanso() {
             </div>
             {effort ? null : (
               <p className="t-body px-1 text-ink">
-                {markN ? <span className="text-stamp">{markN}</span> : null}
+                <span className="text-stamp tabular-nums">{markN}</span>
                 <span aria-hidden className="mx-1 text-stamp">
                   !
                 </span>
@@ -168,7 +157,6 @@ export function Descanso() {
           />
         )}
       </Dock>
-      {markN && markLine ? <MarkStrip mark={markN} line={markLine} cover /> : null}
     </div>
   );
 }

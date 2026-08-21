@@ -178,7 +178,6 @@ export function AppRoot() {
             </Suspense>
           </SceneBoundary>
         </motion.div>
-        {strip && (rackId || overlay === "feito") ? <MarkStrip mark={strip.n} line={strip.line} cover /> : null}
         {(isSheet || isCard) && OverlayScene ? (
           <Sheet onDismiss={dismissSheet} tall={isCard}>
             <motion.div
@@ -195,6 +194,9 @@ export function AppRoot() {
               </SceneBoundary>
             </motion.div>
           </Sheet>
+        ) : null}
+        {strip && (rackId || overlay === "feito" || overlay === "serie" || overlay === "descanso") ? (
+          <MarkStrip mark={strip.n} line={strip.line} cover />
         ) : null}
       </div>
       <TabBar />

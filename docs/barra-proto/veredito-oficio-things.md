@@ -1,39 +1,47 @@
 # Veredito: oficio-things
-data: 21 ago 2026 (rodada 7, crítico cego)
-julgamento: perdeu
+
+data: 21 ago 2026 (jurado cego, instância nova — não é cbaa77de)
+julgamento: empatou
 na_barra: true
 refutado: false
-caminho_ref: docs/barra-proto/02-oficio-things.md B20 B1 + docs/barra-proto/passada-4-mobbin.md (Things flow b1fa3cd6 + linhas 2–3 das oito)
-caminho_artefato: proto-aluno/src/app-root.tsx, proto-aluno/src/screens/hoje.tsx, proto-aluno/src/screens/serie.tsx, proto-aluno/src/screens/descanso.tsx, proto-aluno/src/screens/feito.tsx, proto-aluno/src/styles.css, proto-aluno/src/components/shell.tsx
-medidor: `cd proto-aluno && node tools/medir.mjs tudo -v` — 0 fora. escala 0 avulsos, 10 degraus, maior salto 1,24; extremos do sistema 25/11 = 2,27. O medidor lê a escada no CSS, não os corpos visíveis na dobra nem o cartão. 0 fora não é vitória.
+caminho_ref: docs/barra-proto/00-defeitos-e-linha-de-base.md (Arbitragem 21 ago 2026 §§1–3, «O que isto deixa de ser falha», «O que ainda é falha») + docs/barra-proto/02-oficio-things.md B1 B3 B20 C-final
+caminho_artefato: proto-aluno/src/app-root.tsx, proto-aluno/src/screens/hoje.tsx, proto-aluno/src/screens/serie.tsx, proto-aluno/src/screens/feito.tsx, proto-aluno/src/components/bits.tsx, proto-aluno/src/components/shell.tsx, proto-aluno/src/styles.css
+medidor: `cd proto-aluno && node tools/medir.mjs tudo -v` — 0 fora. escala 10 degraus, 0 avulsos, maior salto 1,24; extremos do sistema 25/11 = 2,27. tipos pior=4. O medidor não lê dono de `RACK`/`CARDS` nem Face na dobra.
 
-Afirmação falsificável: `RACK` em `app-root.tsx:96` contém `serie`. Toque em Começar troca a cena (LiveScene = RackScene); 0 `.sheet` / `.sheet-card`; nenhuma linha do Hoje fica atrás. `CARDS` é o conjunto vazio. Things B20 e o pack linhas 2–3 pedem cartão 40–55% com o Hoje atrás. Não está.
+Afirmação falsificável: `RACK` contém exatamente `serie`, `descanso`, `feito`, `como`, `fichaSessao`; `CARDS` é o conjunto vazio; com overlay nesses cinco, `isSheet` e `isCard` são falsos e a cena monta em `LiveScene` — zero `<Sheet>` e zero `.sheet-card`. Face na dobra do Hoje é 22, não maior. `Segment` não pinta trilho. Isto é verdadeiro no arquivo.
 
-Medido (Vite :5248, 430×844, localStorage limpo):
+## O que o arquivo mostra
 
-Hoje, chrome incluso, corpos visíveis {15, 17}, razão 1,13. Things B1 pede extremos 2,0–2,3×. Pack: cinco degraus no fluxo, extremos ~2,15. 1,13 não entra. Sem quarto sistema, Things perde B1. B1 sozinho não decide esta rodada.
+`app-root.tsx:96-97`: `RACK = new Set(["serie", "descanso", "feito", "como", "fichaSessao"])`. `CARDS = new Set()`. `app-root.tsx:150-182`: `rackUnder` devolve o overlay se ele está em `RACK`; `LiveScene` é `RackScene` nesse caso. `isCard` exige `CARDS.has` — sempre falso. `isSheet` exige `!RACK.has(overlay)` — falso para os cinco. O bloco `(isSheet || isCard) && OverlayScene` portanto não monta `Sheet` quando o overlay é um dos cinco. `ComoFazer` e `FichaSessao` (`serie.tsx:168-245`) são coluna `flex-1` com `Dock`, sem classe `sheet`.
 
-Série (toque em Começar, mesma viewport):
+`.sheet` (`styles.css:240-256`) continua 35% × 25% — orçamento da folha social (00 arb. 3). `.sheet-card` 55% existe no CSS (`styles.css:258-269`) e `Sheet` ainda aceita `tall`, mas `tall={isCard}` nunca acende enquanto `CARDS` estiver vazio.
 
-- LiveScene vira Serie. O texto vivo começa em «1 de 3 · série 1 de 3 / Supino reto» (y=56). Zero linha do Hoje: «O de hoje», «Começar», «Te pegaram», «Ferro Bruto» = null.
-- `.sheet` / `.sheet-card`: 0.
-- Thumb «Fiz essa série · 90s»: 152×54, fill oklab 0,82, y=714. Pack linha 3: 1 Save no cartão, FAB 52–56. Isto é primária cheia numa cena 100%, não cartão 40–55%.
+Dobra do Hoje (`hoje.tsx` + chrome `shell.tsx:33-35`): corpos `t-body` 17 e `t-small` 15. Chrome 17. Título da ficha 17. Começar 17 + min 15. Razão visível 17/15 = 1,13 ≤ 1,40. Zero `t-display` / `t-hero` / `t-title` / 84 px nesta dobra. `t-kicker` do Raid está depois de `min-h-[36vh]` — fora da primeira dobra.
 
-`app-root.tsx:96-97`: `RACK = new Set(["serie", "descanso", "feito", "como", "fichaSessao"])`, `CARDS = new Set()`. `store.ts` `startSession` grava `overlay: "serie"`. `app-root.tsx:161` `LiveScene = rackId ? RackScene : TabScene`. Série, Descanso, Feito, Como e Ficha da sessão substituem o Hoje.
+Face na dobra: `hoje.tsx:168` e `hoje.tsx:216` passam `size={22}`. 22 não é >22. B3 (ícone de linha 18–22 pt) fecha no tamanho.
 
-Vite serviu o mesmo Set que o disco: `RACK.has("serie")` é verdadeiro. A afirmação de que RACK estava vazio é falsa.
+`Segment` (`bits.tsx:485-511`): `flex gap-5`, rótulo `t-body`, selecionado `text-ink`, o resto `text-mute`. Zero fundo, zero régua, zero trilho. Nenhum outro arquivo importa `Segment`.
 
-Pack (Creating a new to-do, b1fa3cd6): cartão 40% no piso, When? ≤65%, 0 quadro a 100%, ≥2 linhas do contexto. Linha 2 das oito: Série / Descanso / Feito sobem cartão 40–55% com Hoje atrás. Things B20: 40–70% e o contexto reconhecível. O artefato entrega 100% na Série e apaga o Hoje.
+Feito patamar (`feito.tsx:31-42`): `t-body` 17 + `t-display` 25. 25/17 = 1,47 ≤ 2,3. Dois degraus. Zero `t-micro` / `t-kicker` no prato.
 
-B1 pode perder e o eixo ainda empatar se B20 fechasse e o resto da barra 02 fechasse. B20 não fechou. Default desta rodada: perdeu. Não li um terceiro documento para isentar o rack.
+## Arbitragem (00 vence 02)
 
-Para eu estar errado: `RACK.has("serie")` teria de ser falso, e Série / Descanso / Feito teriam de ocupar 40–55% da altura com pelo menos duas linhas do Hoje ainda legíveis. O medidor `escala` em 2,27 não refuta: ele não olha a dobra nem o cartão.
+- Extremos Things B1 2,0–2,3× na primeira dobra do Hoje: 00 arb. 2 dispensa. Lá vale Linear ≤ 1,40. 15+17 = 1,13. **Não é falha.**
+- Rack full-bleed vs Things B20 40–70%: 00 arb. 3. O rack (`serie` / `descanso` / `feito` / `como` / `fichaSessao`) É a cena. B20 e sheet não se aplicam a esses cinco. Full-bleed **não** é falha.
+- Como / Ficha da sessão como folha ou cartão: 00 «O que ainda é falha». No arquivo atual os dois ids estão em `RACK` e sobem `LiveScene`. **Não dispara.**
+- Face >22 na dobra do Hoje: 22 não é.
+- Segment com trilho: o arquivo não tem trilho.
+- Feito 25/17 = 1,47: 00 arb. 1 autoriza dois degraus e numeral ≤ 2,3× no patamar. **Não é falha.**
+- Medidor `tudo` 0 fora: 00 «O que ainda é falha» não dispara por número.
 
-brechas que não reabrem B20:
-- Começar sem `.thumb` fecha Linear B12. Não vira cartão.
-- Face 22×22. Não é o furo.
-- Dock `w-fit` no Thumb da Série (152 px). Não vira FAB 52–56 sem rótulo, e não vira cartão.
-- `descanso` nunca recebe `overlay` no store — o descanso mora dentro da Série. Continua cena 100%.
+## O que 02 ainda mede e não supera
 
-o que venceria e não está:
-- Série / Descanso / Feito em cartão 40–55% com o Hoje atrás. RACK com `serie` perde sozinho.
+C-final do 02 ganha o eixo em C8 (três cores de estado com prova em cinza), C5 (vão ≥ 3,0× constante entre telas) e C16 (centros de alvo ≥ 48 pt). Nenhum dos três foi medido neste artefato como ganho sobre a referência. B3 no tamanho empata (22 é o teto, não acima). C7 (régua eliminada no `Segment`) é um sítio, não os três do C-final.
+
+A linha do Bora (`hoje.tsx:213`) centra a Face na altura da linha com subtítulo — B3 pede âncora na caixa alta, não no miolo da linha. Isso está abaixo da dobra (`min-h-[36vh]`) e fora do default desta rodada (Face >22 na dobra). Não vira perdeu sob o 00 desta data; também não é C3 superado.
+
+## Por que empatou (não venceu, não perdeu)
+
+O default desta rodada é perdeu só se `como` / `fichaSessao` ainda subirem sheet ou cartão, se Face >22 na dobra do Hoje, ou se `Segment` tiver trilho. Os três são falsos no arquivo. A frase do 00 que derrubou o laudo antigo (Como / Ficha como cartão) deixou de ser verdadeira: os dois ids saíram de `CARDS` e entraram em `RACK`. B20 (cartão 40–70%) e B1 (extremos 2,0–2,3× no Hoje) continuam dispensados — sozinhos não sustentam perdeu. Os números da barra que restam (dobra ≤ 1,40, Face ≤ 22, rack = cena, tipos ≤ 5, medidor 0) estão reproduzidos, não ultrapassados nos três sítios do C-final. Isso é o teto do ofício nesta arbitragem, não ficar acima do Things.
+
+Para eu estar errado: `como` ou `fichaSessao` teriam de voltar a montar `Sheet` / `.sheet-card` (sair de `RACK` ou entrar em `CARDS` com `tall`), ou Face na dobra do Hoje ter de ser >22, ou `Segment` ter de ganhar trilho, ou a dobra do Hoje ter de passar de 1,40. C8 / C5 / C16 medidos acima da referência trocariam empatou por venceu; não foram.

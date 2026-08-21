@@ -140,14 +140,14 @@ export function Progresso() {
                     <Row
                       last
                       leading={
-                        <Glyph name={trendOf(points)} className={record ? "text-stamp-hi" : "text-faint"} />
+                        <Glyph name={trendOf(points)} className={record ? "text-ink" : "text-faint"} />
                       }
                       title={liftName(id)}
                       sub={historyOf(points)}
                       value={<Roll value={formatKg(tip.kg)} was={points.length > 1 ? formatKg(points[points.length - 2]!.kg) : undefined} />}
                       valueSub="kg"
                     />
-                    <Trail rows={loadRows(points)} accent={record} />
+                    <Trail rows={loadRows(points)} />
                   </Card>
                 </Reveal>
               );

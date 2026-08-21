@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Quiet, Thumb } from "@/components/bits";
-import { ago } from "@/lib/format";
 import { BORAS, SPORT_LABEL, YOU_ID, arenaName, arenaWhy, duelOpen, fichaOf, groupOf, personOf } from "@/lib/seed";
 import { useLink } from "@/lib/store";
 import type { PostKind } from "@/lib/types";
@@ -21,7 +20,7 @@ import {
   weekDays,
 } from "@/ui/feed";
 import { ActionBar, Card, Chip, ObjectBar, Reveal, Roll, Row, Scroll, SectionHead } from "@/ui/kit";
-import { Faces, Glyph, ObjectHead, PillButton, Portrait } from "@/ui/photo";
+import { Faces, Glyph, ObjectHead, PillButton } from "@/ui/photo";
 import { cn } from "@/lib/utils";
 
 /* ---------------------------------------------------------------------------
@@ -210,11 +209,16 @@ export function Prova() {
           sub={markOf(proof) ? who : undefined}
           back={<PillButton label="Voltar" glyph="back" onPress={() => close()} mute />}
         >
-          {attrs.length >= 2 ? (
-            <div className="mt-4">
+          <div className="mt-4">
+            {attrs.length >= 2 ? (
               <Duo a={attrs[0]!} b={attrs[1]!} />
-            </div>
-          ) : null}
+            ) : (
+              <Duo
+                a={{ k: "Tá pago", v: String(cheers.length) }}
+                b={{ k: "falas", v: String(proof.comments.length) }}
+              />
+            )}
+          </div>
         </ObjectHead>
 
         <div className="mt-4 px-5">
@@ -244,20 +248,29 @@ export function Prova() {
           <Block head={proof.comments.length ? `${proof.comments.length} falas` : "Falas"}>
             {proof.comments.length ? (
               <div>
-                {proof.comments.slice(0, 2).map((c, i) => (
-                  <Row
-                    key={c.id}
-                    leading={<Portrait id={c.personId} size={32} />}
-                    title={c.personId === YOU_ID ? name : personOf(c.personId).name}
-                    sub={c.text}
-                    value={<span className="t-small">{ago(c.hoursAgo)}</span>}
-                    onPress={() => openPerson(c.personId)}
-                    last={i === Math.min(proof.comments.length, 2) - 1}
-                  />
-                ))}
-                {proof.comments.length > 2 ? (
-                  <p className="t-small mt-3">{proof.comments.length} falas no total</p>
-                ) : null}
+                <div className="overflow-hidden">
+                  <div className="flex gap-3">
+                    {proof.comments.slice(0, 2).map((c, i) => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        className={cn(
+                          "h-auto min-h-12 shrink-0 rounded-sm border border-edge bg-transparent p-3 text-left",
+                          i === 0 ? "w-[65%]" : "w-[88%]",
+                        )}
+                        onClick={() => openPerson(c.personId)}
+                      >
+                        <p className="t-body truncate">
+                          {c.personId === YOU_ID ? name : personOf(c.personId).name}
+                        </p>
+                        <p className="t-small mt-1 line-clamp-2">{c.text}</p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <button type="button" className="thumb-line mt-3 h-11 w-auto px-4">
+                  {proof.comments.length} {proof.comments.length === 1 ? "fala" : "falas"}
+                </button>
               </div>
             ) : (
               <p className="t-small">Seja o primeiro a falar aqui.</p>
@@ -316,6 +329,7 @@ export function Pessoa() {
       <Scroll>
         <ObjectHead
           src={cover}
+          tall
           portrait={person.id}
           kicker={arenaName()}
           title={person.name}
@@ -412,12 +426,12 @@ export function Pessoa() {
 /* --------------------------------------------------------------- Composer */
 
 const PICKS = [
-  { src: "/feed/supino.jpg", label: "Supino" },
-  { src: "/feed/agachamento.jpg", label: "Agachamento" },
-  { src: "/feed/box.jpg", label: "Box" },
-  { src: "/feed/sled.jpg", label: "Sled" },
-  { src: "/feed/parque.jpg", label: "Parque" },
-  { src: "/feed/ficha.jpg", label: "Ficha" },
+  { src: "/feed/supino.jpg", label: "60 kg · 4 × 8" },
+  { src: "/feed/agachamento.jpg", label: "80 kg · 5 × 5" },
+  { src: "/feed/box.jpg", label: "24 kg · 3 × 10" },
+  { src: "/feed/sled.jpg", label: "90 kg · 6 voltas" },
+  { src: "/feed/parque.jpg", label: "5 km · 28 min" },
+  { src: "/feed/ficha.jpg", label: "12 exercícios" },
 ];
 
 const KINDS: { id: PostKind; label: string }[] = [
@@ -431,7 +445,7 @@ export function Composer() {
   const publish = useLink((s) => s.composePost);
   const [kind, setKind] = useState<PostKind>("texto");
   const [caption, setCaption] = useState("");
-  const [image, setImage] = useState<string | null>(null);
+  const [image, setImage] = useState<string | null>(PICKS[0]!.src);
   const [tried, setTried] = useState(false);
   const can = kind === "texto" ? Boolean(caption.trim()) : Boolean(image);
   const photoBad = tried && kind !== "texto" && !image;
@@ -469,7 +483,7 @@ export function Composer() {
           <p className="t-mono mt-1 text-right text-faint tabular-nums">{caption.length}/280</p>
           {textBad ? (
             <p className="t-small mt-2">
-              <span className="text-stamp">0</span>
+              <span className="text-ink">0</span>
               <span aria-hidden className="mx-1">!</span>
               Texto vazio.
             </p>
@@ -480,39 +494,28 @@ export function Composer() {
           <div className="mt-5 px-5">
             <SectionHead>A foto</SectionHead>
             {image ? (
-              <button type="button" className="press mt-3 aspect-square w-full text-left" onClick={() => setImage(null)}>
+              <button type="button" className="press mt-3 aspect-square w-full text-left" onClick={() => setImage(image)}>
                 <img src={image} alt="" className="aspect-square w-full object-cover" />
                 <p className="t-small mt-2">{PICKS.find((p) => p.src === image)?.label ?? "escolhida"}</p>
               </button>
-            ) : (
-              <>
+            ) : null}
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              {PICKS.filter((p) => p.src !== image).slice(0, 2).map((p) => (
                 <button
+                  key={p.src}
                   type="button"
-                  className="press mt-3 aspect-square w-full text-left"
-                  onClick={() => setImage(PICKS[0]!.src)}
+                  className="press aspect-square w-full text-left"
+                  aria-pressed={image === p.src}
+                  onClick={() => setImage(p.src)}
                 >
-                  <img src={PICKS[0]!.src} alt="" className="aspect-square w-full object-cover" />
-                  <p className="t-small mt-2">{PICKS[0]!.label}</p>
+                  <img src={p.src} alt="" className="aspect-square w-full object-cover" />
+                  <p className="t-small mt-1">{p.label}</p>
                 </button>
-                <div className="mt-2 grid grid-cols-2 gap-2">
-                  {PICKS.slice(1, 5).map((p) => (
-                    <button
-                      key={p.src}
-                      type="button"
-                      className="press aspect-square w-full text-left"
-                      aria-pressed={image === p.src}
-                      onClick={() => setImage(p.src)}
-                    >
-                      <img src={p.src} alt="" className="aspect-square w-full object-cover" />
-                      <p className="t-small mt-1">{p.label}</p>
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
+              ))}
+            </div>
             {photoBad ? (
               <p className="t-small mt-2">
-                <span className="text-stamp">0</span>
+                <span className="text-ink">0</span>
                 <span aria-hidden className="mx-1">!</span>
                 Sem foto. Toque numa.
               </p>

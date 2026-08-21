@@ -4,12 +4,12 @@ import { attrsOf, markOf, metaOf } from "@/ui/feed";
 import { YOU_ID, duelOpen, personOf } from "@/lib/seed";
 import { useLink } from "@/lib/store";
 import type { Duel, Proof } from "@/lib/types";
-import { cn } from "@/lib/utils";
 
 /* ---------------------------------------------------------------------------
    O objeto do feed. Foto quase quadrada, sem borda e sem sombra, com o texto
-   assentando direto na página. Três linhas de texto no máximo: quem e quando,
-   marca e grandeza, e a legenda. Nenhuma delas pousa em cima da imagem.
+   assentando direto na página. Três linhas: título+nota+data, legenda, preço
+   (tá pago) sozinho. Falas moram na Prova, não no card. Nenhuma linha pousa
+   em cima da imagem. Tipo: só t-body 17 e t-small 15.
 --------------------------------------------------------------------------- */
 
 function kindWord(post: Proof): string {
@@ -71,31 +71,30 @@ export function DiaryRow({ post, last }: { post: Proof; last?: boolean }) {
   );
 }
 
-export function DuelOnPost({ duel, post, name }: { duel: Duel; post: Proof; name: string }) {
+export function DuelOnPost({ duel }: { duel: Duel; post: Proof; name: string }) {
   const accept = useLink((s) => s.acceptDuel);
   const incoming = duelOpen(duel) && duel.toId === YOU_ID;
-  const host = post.personId;
-  const third = host !== duel.fromId && host !== duel.toId;
+  const faces = (
+    <div className="flex items-center justify-center gap-3">
+      <Portrait id={duel.fromId} size={24} />
+      <Chip tone="live">{duel.mark}</Chip>
+      <Portrait id={duel.toId} size={24} />
+    </div>
+  );
 
   return (
     <Card tone="outline" className="mt-3 p-3">
-      <div className="flex items-center justify-between gap-2">
-        <span className="flex min-w-0 items-center gap-2">
-          <Portrait id={duel.fromId} size={24} />
-          <span className="t-small truncate text-ink">{nameOf(duel.fromId, name)}</span>
-        </span>
-        <Chip tone="live">{duel.mark}</Chip>
-        <span className="flex min-w-0 items-center gap-2">
-          <span className="t-small truncate text-ink">{nameOf(duel.toId, name)}</span>
-          <Portrait id={duel.toId} size={24} />
-        </span>
-      </div>
-      {third ? <p className="t-small mt-2">Na prova de {nameOf(host, name)}</p> : null}
       {incoming ? (
-        <button type="button" className="quiet mt-1" onClick={() => accept(duel.id)}>
-          Aceitar a disputa
+        <button
+          type="button"
+          className="press flex min-h-11 w-full items-center justify-center"
+          onClick={() => accept(duel.id)}
+        >
+          {faces}
         </button>
-      ) : null}
+      ) : (
+        faces
+      )}
     </Card>
   );
 }
@@ -114,7 +113,6 @@ export function PostCard({ post }: { post: Proof }) {
   const seen = cheers.includes(YOU_ID);
   const mark = markOf(post);
   const attr = strongest(post);
-  const thread = post.comments.slice(-2);
   const duel = duels.find((d) => duelOpen(d) && d.postId === post.id) ?? duels.find((d) => d.postId === post.id);
   const canDuel = !mine && (post.kind === "feito" || post.kind === "video");
   const media = post.image || post.video;
@@ -128,8 +126,14 @@ export function PostCard({ post }: { post: Proof }) {
           onClick={() => openPerson(post.personId)}
         >
           <Portrait id={post.personId} size={36} />
-          <span className="t-body min-w-0 flex-1 truncate">{who}</span>
-          <span className="t-small shrink-0">{metaOf(post)}</span>
+          <span className="t-body min-w-0 flex-1 truncate">
+            {[who, mark].filter(Boolean).join(" · ")}
+          </span>
+          <span className="t-small shrink-0">
+            {[attr ? [attr.v, attr.unit].filter(Boolean).join(" ") : "", metaOf(post)]
+              .filter(Boolean)
+              .join(" · ")}
+          </span>
         </button>
 
         {media ? (
@@ -146,19 +150,8 @@ export function PostCard({ post }: { post: Proof }) {
           </div>
         ) : null}
 
-        {mark ? (
-          <div className="mt-3 flex items-baseline justify-between gap-3">
-            <p className="t-body min-w-0 truncate">{mark}</p>
-            {attr ? (
-              <p className="t-mono shrink-0 text-mute">
-                {attr.v} {attr.unit}
-              </p>
-            ) : null}
-          </div>
-        ) : null}
-
         {post.caption ? (
-          <p className={cn("t-sub line-clamp-2 text-ink", mark ? "mt-1" : "mt-3")}>{post.caption}</p>
+          <p className="t-body mt-3 line-clamp-1 text-ink">{post.caption}</p>
         ) : null}
 
         {duel ? <DuelOnPost duel={duel} post={post} name={name} /> : null}
@@ -172,7 +165,6 @@ export function PostCard({ post }: { post: Proof }) {
             <Faces ids={cheers} size={22} />
             <span className="t-small truncate">
               <Roll value={cheers.length} /> tá pago
-              {post.comments.length ? ` · ${post.comments.length} falas` : ""}
             </span>
           </button>
 
@@ -200,16 +192,6 @@ export function PostCard({ post }: { post: Proof }) {
             </button>
           )}
         </div>
-
-        {thread.length ? (
-          <ul className="mt-2">
-            {thread.map((c) => (
-              <li key={c.id} className="t-small mt-0.5 truncate">
-                <span className="text-ink">{nameOf(c.personId, name)}</span> {c.text}
-              </li>
-            ))}
-          </ul>
-        ) : null}
       </article>
     </Reveal>
   );

@@ -303,7 +303,7 @@ export const PRESCRIPTION: Prescription = {
       planned_sets: 3,
       planned_reps: 8,
       rest_seconds: 90,
-      last_kg: 60,
+      last_kg: 57,
       last_reps: 8,
       notes: "Se as 8 saírem fáceis, sobe 2,5.",
     },
@@ -314,7 +314,7 @@ export const PRESCRIPTION: Prescription = {
       planned_sets: 3,
       planned_reps: 10,
       rest_seconds: 90,
-      last_kg: 50,
+      last_kg: 52,
       last_reps: 10,
       notes: "",
     },
@@ -325,7 +325,7 @@ export const PRESCRIPTION: Prescription = {
       planned_sets: 3,
       planned_reps: 8,
       rest_seconds: 75,
-      last_kg: 32,
+      last_kg: 30,
       last_reps: 8,
       notes: "Não arquear a lombar.",
     },
@@ -346,7 +346,7 @@ export const LAST_WORKOUT: Prescription = {
       planned_sets: 4,
       planned_reps: 6,
       rest_seconds: 120,
-      last_kg: 80,
+      last_kg: 75,
       last_reps: 6,
       notes: "Profundidade. Joelho acompanha o pé.",
     },
@@ -357,7 +357,7 @@ export const LAST_WORKOUT: Prescription = {
       planned_sets: 3,
       planned_reps: 5,
       rest_seconds: 150,
-      last_kg: 120,
+      last_kg: 125,
       last_reps: 5,
       notes: "Trava no joelho. Sem bounce.",
     },
@@ -368,7 +368,7 @@ export const LAST_WORKOUT: Prescription = {
       planned_sets: 3,
       planned_reps: 10,
       rest_seconds: 75,
-      last_kg: 40,
+      last_kg: 38,
       last_reps: 10,
       notes: "",
     },
@@ -376,18 +376,18 @@ export const LAST_WORKOUT: Prescription = {
 };
 
 export const CATALOG: Exercise[] = [
-  { id: "ex-supino", name: "Supino reto", load_kg: 60, planned_sets: 3, planned_reps: 8, rest_seconds: 90, last_kg: 60, last_reps: 8, notes: "" },
-  { id: "ex-remada", name: "Remada curvada", load_kg: 50, planned_sets: 3, planned_reps: 10, rest_seconds: 90, last_kg: 50, last_reps: 10, notes: "" },
-  { id: "ex-desenvolvimento", name: "Desenvolvimento", load_kg: 32, planned_sets: 3, planned_reps: 8, rest_seconds: 75, last_kg: 32, last_reps: 8, notes: "" },
-  { id: "ex-agachamento", name: "Agachamento", load_kg: 80, planned_sets: 4, planned_reps: 6, rest_seconds: 120, last_kg: 80, last_reps: 6, notes: "" },
-  { id: "ex-terra", name: "Levantamento terra", load_kg: 120, planned_sets: 3, planned_reps: 5, rest_seconds: 150, last_kg: 120, last_reps: 5, notes: "" },
-  { id: "ex-elevacao", name: "Elevação lateral", load_kg: 10, planned_sets: 3, planned_reps: 12, rest_seconds: 60, last_kg: 10, last_reps: 12, notes: "" },
-  { id: "ex-triceps", name: "Tríceps pulley", load_kg: 22, planned_sets: 3, planned_reps: 12, rest_seconds: 60, last_kg: 22, last_reps: 12, notes: "" },
-  { id: "ex-rosca", name: "Rosca direta", load_kg: 16, planned_sets: 3, planned_reps: 10, rest_seconds: 60, last_kg: 16, last_reps: 10, notes: "" },
-  { id: "ex-mesa", name: "Mesa flexora", load_kg: 40, planned_sets: 3, planned_reps: 10, rest_seconds: 75, last_kg: 40, last_reps: 10, notes: "" },
-  { id: "ex-hipthrust", name: "Hip thrust", load_kg: 80, planned_sets: 4, planned_reps: 8, rest_seconds: 90, last_kg: 80, last_reps: 8, notes: "" },
-  { id: "ex-stiff", name: "Stiff", load_kg: 70, planned_sets: 3, planned_reps: 8, rest_seconds: 90, last_kg: 70, last_reps: 8, notes: "" },
-  { id: "ex-avanco", name: "Avanço", load_kg: 24, planned_sets: 3, planned_reps: 10, rest_seconds: 75, last_kg: 24, last_reps: 10, notes: "" },
+  { id: "ex-supino", name: "Supino reto", load_kg: 60, planned_sets: 3, planned_reps: 8, rest_seconds: 90, last_kg: 57, last_reps: 8, notes: "" },
+  { id: "ex-remada", name: "Remada curvada", load_kg: 50, planned_sets: 3, planned_reps: 10, rest_seconds: 90, last_kg: 52, last_reps: 10, notes: "" },
+  { id: "ex-desenvolvimento", name: "Desenvolvimento", load_kg: 32, planned_sets: 3, planned_reps: 8, rest_seconds: 75, last_kg: 30, last_reps: 8, notes: "" },
+  { id: "ex-agachamento", name: "Agachamento", load_kg: 80, planned_sets: 4, planned_reps: 6, rest_seconds: 120, last_kg: 75, last_reps: 6, notes: "" },
+  { id: "ex-terra", name: "Levantamento terra", load_kg: 120, planned_sets: 3, planned_reps: 5, rest_seconds: 150, last_kg: 125, last_reps: 5, notes: "" },
+  { id: "ex-elevacao", name: "Elevação lateral", load_kg: 10, planned_sets: 3, planned_reps: 12, rest_seconds: 60, last_kg: 8, last_reps: 12, notes: "" },
+  { id: "ex-triceps", name: "Tríceps pulley", load_kg: 22, planned_sets: 3, planned_reps: 12, rest_seconds: 60, last_kg: 24, last_reps: 12, notes: "" },
+  { id: "ex-rosca", name: "Rosca direta", load_kg: 16, planned_sets: 3, planned_reps: 10, rest_seconds: 60, last_kg: 14, last_reps: 10, notes: "" },
+  { id: "ex-mesa", name: "Mesa flexora", load_kg: 40, planned_sets: 3, planned_reps: 10, rest_seconds: 75, last_kg: 38, last_reps: 10, notes: "" },
+  { id: "ex-hipthrust", name: "Hip thrust", load_kg: 80, planned_sets: 4, planned_reps: 8, rest_seconds: 90, last_kg: 76, last_reps: 8, notes: "" },
+  { id: "ex-stiff", name: "Stiff", load_kg: 70, planned_sets: 3, planned_reps: 8, rest_seconds: 90, last_kg: 72, last_reps: 8, notes: "" },
+  { id: "ex-avanco", name: "Avanço", load_kg: 24, planned_sets: 3, planned_reps: 10, rest_seconds: 75, last_kg: 22, last_reps: 10, notes: "" },
 ];
 
 export const CUES: Record<string, string> = {
@@ -813,6 +813,7 @@ export const PROOFS: Proof[] = [
     line: "",
     caption: "Rack 3 lotado. Espera 4 min e sobe.",
     volume: "",
+    min: 4,
     pagos: 2,
     cheers: ["huan", "bia"],
     comments: [],
@@ -1219,10 +1220,10 @@ const FICHAS: Record<string, FichaSeed> = {
   vitor: {
     leitura: "140 kg no terra. 4 sessões por semana.",
     rows: [
-      { eixo: "carga", barra: 91, rotulo: "140 kg", proofId: "p-vitor-3" },
+      { eixo: "carga", barra: 60, rotulo: "140 kg", proofId: "p-vitor-3" },
       { eixo: "motor", barra: 0, rotulo: "—" },
       { eixo: "fundo", barra: 44, rotulo: "5 km" },
-      { eixo: "frequencia", barra: 100, rotulo: "4 / semana" },
+      { eixo: "frequencia", barra: 20, rotulo: "4 / semana" },
     ],
   },
   marina: {
@@ -1270,4 +1271,90 @@ export function fichaOf(personId: string): FichaVista {
       };
     }),
   };
+}
+
+const MARK_KEYS: { id: string; keys: string[] }[] = [
+  { id: "ex-supino", keys: ["supino"] },
+  { id: "ex-terra", keys: ["terra"] },
+  { id: "ex-agachamento", keys: ["agachamento"] },
+  { id: "ex-remada", keys: ["remada"] },
+  { id: "ex-desenvolvimento", keys: ["desenvolvimento"] },
+  { id: "ex-rosca", keys: ["rosca"] },
+  { id: "ex-hipthrust", keys: ["hip thrust", "hipthrust"] },
+  { id: "ex-stiff", keys: ["stiff"] },
+];
+
+/** Exercício nomeado na marca do duelo. Sem match, a disputa não é de carga. */
+export function exerciseOfMark(mark: string): Exercise | undefined {
+  const k = mark.toLowerCase();
+  const hit = MARK_KEYS.find((a) => a.keys.some((key) => k.includes(key)));
+  return hit ? CATALOG.find((e) => e.id === hit.id) : undefined;
+}
+
+/**
+ * O número que importa neste confronto. Só aparece se existir testemunho
+ * daquela pessoa naquele movimento — livro, última série, ou leitura da ficha.
+ */
+export function bestOnMark(
+  personId: string,
+  mark: string,
+  book?: Record<string, LoadPoint[]>,
+  last?: Record<string, { kg: number; reps: number }>,
+): { label: string; value: string } | null {
+  const ex = exerciseOfMark(mark);
+  const ficha = fichaOf(personId);
+  const low = mark.toLowerCase();
+
+  if (ex) {
+    const short = ex.name.split(" ")[0]!.toLowerCase();
+    if (personId === YOU_ID) {
+      const peak = Math.max(
+        ex.last_kg ?? 0,
+        last?.[ex.id]?.kg ?? 0,
+        ...(book?.[ex.id] ?? []).map((p) => p.kg),
+      );
+      if (peak > 0) return { label: `melhor ${short}`, value: `${peak} kg` };
+    }
+    const leitura = ficha.leitura?.toLowerCase() ?? "";
+    if (leitura.includes(short)) {
+      const carga = ficha.barras.find((b) => b.eixo === "carga" && b.rotulo !== "—");
+      if (carga) return { label: `melhor ${short}`, value: carga.rotulo };
+    }
+  }
+
+  if (low.includes("fran")) {
+    const motor = ficha.barras.find((b) => b.eixo === "motor" && /fran/i.test(b.rotulo));
+    if (motor) return { label: "melhor fran", value: motor.rotulo.replace(/^fran\s+/i, "") };
+  }
+
+  if (/\d+\s*km/.test(low) || /\bkm\b/.test(low)) {
+    const fundo = ficha.barras.find((b) => b.eixo === "fundo" && b.rotulo !== "—");
+    if (fundo) return { label: "melhor fundo", value: fundo.rotulo };
+  }
+
+  return null;
+}
+
+/** Cartel: histórico julgado quando existe; senão o que a pessoa já trouxe. */
+export function recordOf(personId: string, duels: Duel[] = DUELS) {
+  const live = duelScore(personId, duels);
+  if (live.total > 0) return live;
+  const p = personOf(personId).duelos;
+  return { venceu: p.venceu, empatou: p.empatou, perdeu: p.perdeu, total: p.venceu + p.empatou + p.perdeu };
+}
+
+/** Título = última vitória firme. Emblema = raid desta semana, se ela fez. */
+export function titlesOf(personId: string, duels: Duel[] = DUELS, raid: Raid = RAID): string[] {
+  const out: string[] = [];
+  const lastWin = duelHistory(personId, duels).find((d) => d.veredito?.vencedorId === personId);
+  if (lastWin) out.push(lastWin.mark);
+  if (raid.claimed.includes(personId)) out.push("Raid desta semana");
+  return out.slice(0, 2);
+}
+
+/** Já se enfrentaram. O mais recente julgado. */
+export function theyMet(a: string, b: string, duels: Duel[] = DUELS): Duel | undefined {
+  return duelHistory(a, duels).find(
+    (d) => (d.fromId === a && d.toId === b) || (d.fromId === b && d.toId === a),
+  );
 }

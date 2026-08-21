@@ -92,14 +92,13 @@ export function Scoreboard({
 }) {
   const body = (
     <>
-      <p className="t-kicker">Fecha domingo · grupo vs grupo</p>
-      <div className="mt-3 flex items-end justify-between gap-4">
+      <div className="flex items-end justify-between gap-4">
         <p className="t-body min-w-0 truncate">{home}</p>
-        <p className="t-title">{homeScore}</p>
+        <p className="t-body">{homeScore}</p>
       </div>
       <div className="mt-1 flex items-end justify-between gap-4 text-mute">
         <p className="t-body min-w-0 truncate">{away}</p>
-        <p className="t-title text-mute">{awayScore}</p>
+        <p className="t-body text-mute">{awayScore}</p>
       </div>
       {note ? <p className="t-small mt-3">{note}</p> : null}
     </>
@@ -207,9 +206,14 @@ export function Thumb({
   disabled?: boolean;
 }) {
   return (
-    <button type="button" disabled={disabled} onClick={onPress} className="thumb">
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onPress}
+      className="thumb"
+    >
       <span>{label}</span>
-      {meta ? <span className="t-mono opacity-80">{meta}</span> : null}
+      {meta ? <span className="t-body opacity-80">{meta}</span> : null}
     </button>
   );
 }
@@ -249,7 +253,7 @@ export function HoldTick({ onTick, label }: { onTick: () => void; label: string 
       onPointerUp={stop}
       onPointerLeave={stop}
       onPointerCancel={stop}
-      className="flex h-14 flex-1 items-center justify-center border border-edge bg-raised text-ink t-body active:bg-surface"
+      className="flex h-14 flex-1 items-center justify-center border border-edge bg-transparent text-ink t-body"
     >
       {label}
     </button>
@@ -262,7 +266,7 @@ function personPhoto(id: string) {
 
 export function Face({
   id,
-  size = 36,
+  size = 20,
   ring,
 }: {
   id: string;
@@ -283,7 +287,7 @@ export function Face({
 export function Avatar({
   initials,
   color,
-  size = 36,
+  size = 20,
   photo,
   ring,
 }: {
@@ -314,10 +318,9 @@ export function Avatar({
           <img src={photo} alt="" className="h-full w-full object-cover object-[50%_18%]" />
         ) : (
           <div
-            className="flex h-full w-full items-center justify-center t-mono"
+            className="flex h-full w-full items-center justify-center t-micro"
             style={{
               color: dark ? "var(--color-ink)" : "var(--color-bg)",
-              fontSize: size < 32 ? 10 : 11,
             }}
           >
             {initials}
@@ -417,13 +420,15 @@ export function MediaGrid({
 export function Stamp({
   label = "Tá pago",
   on = true,
+  className,
 }: {
   label?: string;
   on?: boolean;
+  className?: string;
 }) {
   return (
     <span
-      className={cn("t-title tracking-[0.04em]", on ? "text-stamp" : "text-faint")}
+      className={cn("t-body tracking-[0.04em]", on ? "text-stamp" : "text-faint", className)}
       aria-label={on ? label : undefined}
       aria-hidden={!on}
     >
@@ -487,15 +492,15 @@ export function Segment<T extends string>({
   options: { id: T; label: string }[];
 }) {
   return (
-    <div className="mx-5 mb-4 flex gap-5 border-b border-line">
+    <div className="mx-5 mb-4 flex gap-5">
       {options.map((o) => (
         <button
           key={o.id}
           type="button"
           onClick={() => onChange(o.id)}
           className={cn(
-            "h-11 t-body",
-            value === o.id ? "border-b-2 border-ink text-ink" : "text-mute",
+            "min-h-[44px] t-body",
+            value === o.id ? "text-ink" : "text-mute",
           )}
         >
           {o.label}

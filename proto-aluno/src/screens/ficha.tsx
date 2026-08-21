@@ -428,16 +428,14 @@ export function Montar() {
               aria-invalid={nameBad}
               aria-label="Nome do deck"
               className={cn(
-                "t-body h-12 w-full rounded-sm border bg-transparent px-3 outline-none placeholder:text-faint",
-                nameBad ? "border-ink pr-12 text-stamp" : "border-edge text-ink",
+                "t-body h-12 w-full rounded-sm border bg-transparent outline-none placeholder:text-faint",
+                nameBad ? "border-ink px-9 text-stamp" : "border-edge px-3 text-ink",
               )}
             />
             {nameBad ? (
-              <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-stamp tabular-nums">
-                {name.trim().length}
-                <span aria-hidden className="ml-1">
-                  !
-                </span>
+              <span className="pointer-events-none absolute inset-0 flex items-center justify-between px-3 text-stamp tabular-nums">
+                <span>{name.trim().length}</span>
+                <span aria-hidden>!</span>
               </span>
             ) : null}
           </div>

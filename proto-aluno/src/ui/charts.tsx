@@ -22,13 +22,10 @@ export type TrailRow = {
 export function Trail({
   rows,
   base = "tight",
-  accent,
 }: {
   rows: TrailRow[];
   /** `zero` para contagem, `tight` para carga: 55 e 62,5 só se distinguem se o piso sobe. */
   base?: "zero" | "tight";
-  /** a última linha é recorde: acento só no algarismo, nunca na barra */
-  accent?: boolean;
 }) {
   if (!rows.length) return null;
   const values = rows.map((r) => r.value);
@@ -58,7 +55,7 @@ export function Trail({
             <span
               className={cn(
                 "t-small w-12 shrink-0 text-right",
-                now && (accent ? "text-stamp-hi" : "text-ink"),
+                now && "text-ink",
               )}
             >
               {r.text}

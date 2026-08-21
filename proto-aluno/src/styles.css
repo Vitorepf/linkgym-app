@@ -301,7 +301,7 @@
     position: absolute;
     inset-inline: 0;
     bottom: 0;
-    z-index: 2;
+    z-index: 30;
     height: 26%;
     align-items: flex-end;
     padding: 16px 20px 20px;
@@ -369,8 +369,8 @@
   }
 
   .thumb:disabled {
-    background-color: color-mix(in oklab, var(--color-ink) 34%, var(--color-bg));
-    color: var(--color-bg);
+    background-color: color-mix(in oklab, var(--color-ink) 36%, var(--color-bg));
+    color: var(--color-ink);
     box-shadow: none;
   }
 

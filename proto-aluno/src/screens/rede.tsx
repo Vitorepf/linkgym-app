@@ -143,7 +143,6 @@ export function Arena() {
   const openPerson = useLink((s) => s.openPerson);
   const top = ladder[0]?.sessions ?? 0;
   const mine = ladder.find((r) => r.personId === YOU_ID);
-  const seat = ladder.findIndex((r) => r.personId === YOU_ID) + 1;
 
   return (
     <div className="space-y-6 px-4 pb-6">
@@ -162,7 +161,7 @@ export function Arena() {
         <SectionHead>De pé nesta semana</SectionHead>
         {mine ? (
           <p className="t-small mt-1">
-            Você fez {mine.sessions} de {top} do topo. {seat}º de {ladder.length}.
+            Você fez {mine.sessions} sessões. O topo fez {top}.
           </p>
         ) : null}
         {ladder.length > 1 ? (

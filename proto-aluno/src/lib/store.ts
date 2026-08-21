@@ -602,6 +602,8 @@ export const useLink = create<State>()(
         const s = get().session;
         if (!s) return;
         vibrate("confirm");
+        const mark = get().strip ?? stripFrom(s);
+        get().armStrip(mark.n, mark.line);
         const ex = s.items[s.itemIndex]!;
         const logged: LoggedSet[] = [
           ...s.logged.filter((x) => !(x.exerciseId === ex.id && x.setIndex === s.setIndex)),
@@ -628,6 +630,7 @@ export const useLink = create<State>()(
             overlayTrail: [],
             tab: "hoje",
             session: null,
+            strip: mark,
             lastLoads: closed.lastLoads,
             loadBook: closed.loadBook,
             patamarSeen: closed.patamarSeen,
@@ -647,6 +650,7 @@ export const useLink = create<State>()(
             lastLogged: { kg: s.kg, reps: s.reps },
           },
           overlay: "serie",
+          strip: mark,
         });
       },
       skipRest: () => {
@@ -725,7 +729,6 @@ export const useLink = create<State>()(
         set({
           session: { ...s, logged, ...nxt, ...load, restLeft: 0 },
           overlay: "serie",
-          strip: null,
         });
       },
       finishNow: (effort) => {

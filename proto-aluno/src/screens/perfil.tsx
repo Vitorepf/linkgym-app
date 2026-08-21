@@ -32,7 +32,6 @@ import {
   Memory,
   WeekStrip,
   WinPlate,
-  clanSpot,
   weekCount,
   weekDays,
 } from "@/ui/feed";
@@ -248,14 +247,13 @@ export function Perfil() {
         <Block head="Clãs">
           {myClans.length ? (
             myClans.map((g, i) => {
-              const pos = clanSpot(groups, g.id);
               return (
                 <Row
                   key={g.id}
                   title={g.name}
                   sub={`${SPORT_LABEL[g.kind]} · ${roomLine(g)}`}
-                  value={`${pos.pos}º`}
-                  valueSub={`de ${pos.of}`}
+                  value={String(g.weekSessions)}
+                  valueSub="sessões"
                   onPress={() => openGroup(g.id)}
                   last={i === myClans.length - 1}
                 />

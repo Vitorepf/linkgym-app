@@ -30,9 +30,9 @@ export function PhoneShell({ children }: { children: React.ReactNode }) {
           tone,
         )}
       >
-        <div className="flex shrink-0 items-center justify-between px-6 pt-3 pb-2">
-          <span className="t-mono text-faint">{clockShort(NOW)}</span>
-          <span className="t-mono text-faint">{arenaName()}</span>
+        <div className="flex h-11 shrink-0 items-center justify-between px-5">
+          <span className="t-body text-faint">{clockShort(NOW)}</span>
+          <span className="t-body text-faint">{arenaName()}</span>
         </div>
         {children}
       </div>
@@ -60,7 +60,7 @@ export function TabBar() {
             onClick={() => setTab(t.id)}
           >
             <t.Icon color="currentColor" weight={on ? 2.2 : 1.7} />
-            <span className={cn("t-small", on ? "font-semibold" : "font-medium")}>{t.label}</span>
+            <span className={cn("t-body", on ? "font-semibold" : "font-medium")}>{t.label}</span>
           </button>
         );
       })}
@@ -73,7 +73,7 @@ export function Dock({ children }: { children: React.ReactNode }) {
   return (
     <div
       data-dock
-      className="shrink-0 bg-dock px-5 pt-3 pb-[max(14px,env(safe-area-inset-bottom))]"
+      className="mx-auto w-fit min-w-[12rem] max-w-full shrink-0 bg-dock px-5 pt-3 pb-[max(14px,env(safe-area-inset-bottom))]"
     >
       <div className="space-y-0.5">{children}</div>
     </div>

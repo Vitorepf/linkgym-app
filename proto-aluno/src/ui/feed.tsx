@@ -23,6 +23,17 @@ export function markOf(post: Proof): string {
   return post.title || post.volume || "";
 }
 
+/** C8 / C19: grandeza medida — kg, tempo ou contagem. Nunca título nu nem caption. */
+export function magnitudeOf(post: Proof): string {
+  if (post.kg != null && post.kg > 0) return `${post.kg.toLocaleString("pt-BR")} kg`;
+  if (post.min != null && post.min > 0) return `${post.min} min`;
+  if (post.sets != null && post.sets > 0) return `${post.sets} ${post.sets === 1 ? "série" : "séries"}`;
+  if (post.volume && /\d/.test(post.volume)) return post.volume;
+  if (post.pagos > 0) return String(post.pagos);
+  if (post.cheers.length > 0) return String(post.cheers.length);
+  return "1";
+}
+
 /**
  * Metadado do registro. `place` é texto livre que a pessoa escreveu e pode
  * não existir; quando não existe, nada é desenhado no lugar.
@@ -278,7 +289,7 @@ export function Say({
       <button
         type="submit"
         disabled={!ready}
-        className="thumb-line h-11 w-auto gap-1.5 px-4 t-small disabled:border-edge disabled:text-mute"
+        className="thumb-line h-11 w-auto gap-1.5 px-4 t-small"
       >
         <Glyph name="send" size={15} />
         Falar
@@ -305,7 +316,7 @@ function Beat({
   kicker: string;
   onOpen: (id: string) => void;
 }) {
-  const label = post.kg != null ? `${post.kg.toLocaleString("pt-BR")} kg` : markOf(post) || post.caption;
+  const label = magnitudeOf(post);
   return (
     <button type="button" onClick={() => onOpen(post.id)} aria-label={`${kicker}. ${label}`} className="press w-full text-left">
       <Shot src={post.image} video={post.video} still square />
@@ -333,7 +344,7 @@ export function Memory({
   const delta = firstKg && lastKg && lastKg.id !== firstKg.id ? lastKg.kg! - firstKg.kg! : 0;
   const sessions = posts.filter((p) => p.kind === "feito").length;
   const now = path[path.length - 1];
-  const rest = path.slice(0, -1).reverse().slice(0, 4);
+  const rest = path.slice(0, -1).reverse().slice(0, 2);
 
   if (!now) {
     return (
@@ -364,7 +375,7 @@ export function Memory({
             {rest.map((p) => (
               <button key={p.id} type="button" onClick={() => onOpen(p.id)} className="press w-full text-left">
                 <Shot src={p.image} video={p.video} still square />
-                <p className="t-small mt-1">{markOf(p) || p.caption || "Sessão"}</p>
+                <p className="t-small mt-1 tabular-nums">{magnitudeOf(p)}</p>
               </button>
             ))}
           </div>
