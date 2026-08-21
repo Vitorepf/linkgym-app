@@ -9,6 +9,7 @@ import { ComoFazer, FichaSessao, Serie } from "./screens/serie";
 import { Descanso } from "./screens/descanso";
 import { Feito } from "./screens/feito";
 import { Bora, Composer, Pessoa, Prova, Zap } from "./screens/social";
+import { Versus } from "./screens/versus";
 import { MarkStrip } from "./ui/kit";
 import { useLink } from "./lib/store";
 import type { Overlay, TabId } from "./lib/types";
@@ -52,6 +53,7 @@ const OVERLAYS: Record<string, SceneFn> = {
   desafio: scene(grupos, "Desafio"),
   criarGrupo: scene(grupos, "CriarGrupo"),
   composer: Composer,
+  versus: Versus,
   escrever: Escrever,
   montar: Montar,
   oferecer: Oferecer,
@@ -91,9 +93,9 @@ class SceneBoundary extends Component<{ children: ReactNode; onLeave: () => void
 }
 
 /** O rack é uma corrente: avança de lado. Cartão sobe no sítio. Página substitui a aba. */
-const RACK = new Set<string>(["serie", "descanso"]);
-const CARDS = new Set<string>(["como", "fichaSessao", "feito"]);
-const PAGES = new Set<string>(["prova", "pessoa", "composer"]);
+const RACK = new Set<string>();
+const CARDS = new Set<string>(["serie", "descanso", "feito", "como", "fichaSessao"]);
+const PAGES = new Set<string>(["prova", "pessoa", "composer", "versus"]);
 
 function rackUnder(overlay: Overlay, trail: Overlay[]) {
   if (overlay && RACK.has(overlay)) return overlay;
