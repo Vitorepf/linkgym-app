@@ -1,30 +1,48 @@
 # Veredito: oficio-things
-data: 21 ago 2026 (rodada 4)
+data: 21 ago 2026 (rodada 5, crítico cego)
 julgamento: perdeu
 na_barra: true
 refutado: false
-caminho_ref: docs/barra-proto/02-oficio-things.md B1/B15/B20/C0.3 + docs/barra-proto/passada-4-mobbin.md (Things 3 New To-Do + linhas 2–3 das oito)
-caminho_artefato: proto-aluno/src/screens/hoje.tsx, proto-aluno/src/screens/serie.tsx, proto-aluno/src/screens/descanso.tsx, proto-aluno/src/screens/feito.tsx, proto-aluno/src/styles.css, proto-aluno/src/ui/kit.tsx, proto-aluno/src/components/bits.tsx, proto-aluno/src/components/shell.tsx, proto-aluno/src/app-root.tsx
-medidor: `cd proto-aluno && node tools/medir.mjs tudo -v` — 0 fora. escala 0 avulsos, 10 degraus, maior salto 1,24; tipos pior=4; movimento 4 durações; croma 0 faces > 6%; plate não mistura ink. Extremos do sistema 25/11 = 2,27 são verdade no token. O 25 não pinta no Hoje. 0 fora não é a barra.
+caminho_ref: docs/barra-proto/02-oficio-things.md B1 B20 + docs/barra-proto/passada-4-mobbin.md (Things flow b1fa3cd6 + linhas 2–3 das oito)
+caminho_artefato: proto-aluno/src/app-root.tsx, proto-aluno/src/screens/hoje.tsx, proto-aluno/src/screens/serie.tsx, proto-aluno/src/screens/descanso.tsx, proto-aluno/src/screens/feito.tsx, proto-aluno/src/styles.css, proto-aluno/src/components/shell.tsx
+medidor: `cd proto-aluno && node tools/medir.mjs tudo -v` — 0 fora. escala 0 avulsos, 10 degraus, maior salto 1,24; extremos do sistema 25/11 = 2,27. O medidor lê a escada no CSS, não os corpos visíveis na dobra nem o cartão. 0 fora não é vitória.
 
-Afirmação falsificável: o furo de cena 100% da rodada 3 fechou no pixel — `serie` / `descanso` / `feito` estão em `CARDS` e sobem `.sheet-card` a 55% da área útil, com o Hoje como `LiveScene` atrás e véu 0%. O eixo perde Things B1 no mesmo quadro: extremos visíveis no Hoje são 17÷17 = 1,00×; na Série, 17÷15 = 1,13×. Pack e 02 B1 pedem 2,0–2,3×. Conflito conhecido (Hoje 17+21 = 1,24× acerta Linear 1,15–1,30 e falha Things B1) continua — agora pior, porque o 21 saiu da dobra. Sem quarto sistema. Things perde B1.
+Afirmação falsificável: a primeira dobra do Hoje (430×844, chrome incluso) pinta só 15 e 17 — extremos 1,13×, não 2,0–2,3×. Série / Descanso / Feito entram em `RACK` e substituem a cena (LiveScene = RackScene); `CARDS` é vazio; 0 `.sheet` / `.sheet-card`. Nenhuma linha do Hoje fica atrás. Things B1 e B20 + pack linhas 2–3 pedem o contrário. Os dois furos da r4 continuam no pixel.
 
-O que fechou (pixel, não comentário):
-- B20 / pack linha 2 — `RACK` vazio, `CARDS` = serie/descanso/feito/como/fichaSessao (`app-root.tsx:98-99`). `Sheet tall` aplica `.sheet-card` `height: 55%` (`styles.css:258-270`, `app-root.tsx:183`). O comentário em `styles.css:237-239` ainda diz «rack full-bleed»; o pixel é cartão. Véu 0%: o dismiss é `absolute inset-0` sem fundo (`shell.tsx:95`). Topo ~45% da área entre chrome e TabBar mostra Place + data + «O de hoje» + nome + ≥2 linhas da ficha (`hoje.tsx:44-114`). 0 cena 100% nestes três.
-- C0.3 / pack linha 3 (luminância) — `.thumb` é `color-mix(ink 82%, bg)` (`styles.css:342`), ~#cbcbcb, L* ~82. O texto `ink` `#f5f5f5` na dobra tem L* 96,5. Existe pixel de conteúdo mais claro que o botão. Rodada 3: face em ink/branco, L* ~96, o mais claro da tela.
-- B3 Face — padrão 20, call sites do Hoje em 20 (`bits.tsx:263-264`, `hoje.tsx:139,163`). Faixa 18–22. Rodada 3: 36.
-- B7 Segment / Dock — Segment sem `border-b` (`bits.tsx:490-504`). Dock `w-fit min-w-[12rem]` (`shell.tsx:76`). Rodada 3: régua de ponta a ponta e barra 100%.
-- B10 Raid/Scoreboard — `<p>` sem título próprio, sem `onClick` (`hoje.tsx:178-183`). Rodada 3: kicker + alvo na dobra.
+Medido (Vite :5247, 430×844, localStorage limpo):
 
-brechas:
-- hoje.tsx:47-51 + shell.tsx:34-35,63 + styles.css:42-43,163-168 — B1 / pack «extremos visíveis 2,0–2,3×». Chrome, Place, título, lista, ofensiva, Raid, placar, TabBar: um corpo 17. Razão 1,00. 21 (`t-title`) não pinta nesta dobra. 17+21 = 1,24× acertaria Linear e ainda falharia Things. 17/17 falha mais. Não há quarto sistema que mude o Hoje para «só Linear».
-- serie.tsx:65,90-104 — Série no cartão: nome `t-body` 17, rótulos kg/reps `t-small` 15. Extremos 17/15 = 1,13. Fora de 2,0–2,3. Descanso e Feito-patamar pintam 25 e 11 (`descanso.tsx:65-72,91-92`, `feito.tsx:28-34`) = 2,27× — o item não é teto nessas duas; o Hoje e a Série o derrubam.
-- styles.css:334-349 + hoje.tsx:116-120 — B15 / pack «FAB 52–56 pt». No Hoje o Thumb continua `height: 54px; width: 100%` dentro do `Pad` (390 pt úteis), não círculo 52–56. A luminância fechou; a anatomia não. No cartão da Série o Dock é `w-fit`, o Thumb ainda é barra 54×100% do dock, não FAB.
-- hoje.tsx:93,102,115 — `mt-4` 16 pt antes da lista, `py-2.5` 10 pt intra-linha, `mt-5` 20 pt antes do Thumb. Razões 1,6× e 2,0×. B5 pede ≥ 2,5× e cabeçalho→primeira linha menor que última→próximo por ≥ 1,8×.
-- styles.css:4-7 — o comentário da fundação ainda declara um vermelho para vivo, carimbo, recorde e ofensiva. No pixel da dobra densa o stamp não pinta; `stamp-dim` é `#1a1a1a` (`styles.css:34`). B8 julga o pixel, não o comentário. Não reabre sozinho.
-- bits.tsx:181-194 — NoSheet: parágrafo + Thumb + Quiet. B18: ≤ 2 linhas, 0 ilustração, frase nomeia o gesto, sem botão que duplique o da barra.
-- kit.tsx:59-62 + styles.css:228-234 + feito.tsx:27 — `plate` ainda leva sombra `40px`. Things C20 no escuro pede elevação ou fio, não derrame de 40. O cartão de 55% existe sem `plate` no wrapper do Sheet; o Feito-patamar põe `plate` dentro.
+Hoje, chrome incluso:
 
-o que venceria:
-- Cartão 40–55% com ≥2 linhas do Hoje atrás, 0 cena 100%, primária que não seja o pixel mais luminoso — isto já está no pixel de Série/Descanso/Feito.
-- Extremos visíveis 2,0–2,3× na dobra que o crítico mede (Hoje chrome incluso, ou a Série no cartão). 17+21 = 1,24× acerta Linear e falha este item; 17/17 também. Sem um quarto sistema, este eixo não fecha enquanto a densa do Hoje obedecer Linear.
+| y | texto | classe | px |
+| --- | --- | --- | --- |
+| 11–141 | 18:04 / Ferro Bruto / O de hoje / A · Superior | t-body | 17 |
+| 56 | ofensiva 4 / 1 protetor | t-small | 15 |
+| 196–319 | nomes da ficha 17 · 3×8 15 | t-body + t-small | 17 / 15 |
+| 811 | Hoje Ficha Rede Progresso Perfil | t-body | 17 |
+
+Corpos visíveis: {15, 17}. Razão 1,13. Things B1: extremos entre 2,0× e 2,3×. Pack: cinco degraus no fluxo, extremos ~2,15. 1,13 não entra na faixa. Não inventei quarto sistema para mandar os extremos só ao Feito: a dobra densa é o sítio que o pack e a r4 nomearam.
+
+Série (toque em Começar, mesma viewport):
+
+- LiveScene vira Serie. O texto vivo começa em «1 de 3 · série 1 de 3 / Supino reto». Zero linha do Hoje.
+- Corpos amostrados: 7,14 (strike sobre 17), 10,5 (strike sobre 25), 15, 17, 25. Razão se contar strike: 3,50. Sem strike: 25/15 = 1,67. Nenhum dos dois é 2,0–2,3 com vizinho ≤ 1,35.
+- `.sheet` / `.sheet-card`: 0. `RACK` em app-root.tsx:98 = serie / descanso / feito / como / fichaSessao. `CARDS` = `new Set()`.
+- Thumb «Fiz essa série · 90s»: 152×54, fill oklab 0,82, y=714. Pack linha 3: 1 Save no cartão, FAB 52–56. Isto é primária cheia numa cena 100%, não cartão 40–55%.
+
+Descanso e Feito: o mesmo `RACK`. Feito.tsx:25 é `flex-1` full-bleed; o `.plate` (feito.tsx:27) é bloco interno, não overlay sobre o Hoje. 0 linhas do Hoje atrás.
+
+Pack (Creating a new to-do, b1fa3cd6): cartão 40% no piso, When? ≤65%, 0 quadro a 100%, ≥2 linhas do contexto. Linha 2 das oito: Série / Descanso / Feito sobem cartão 40–55% com Hoje atrás. Things B20: 40–70% e o contexto reconhecível. O artefato entrega 100% e apaga o Hoje.
+
+Conflito Linear 17+21: a dobra do Hoje ficou em 15+17 (1,13×) para servir 2 corpos / seção=linha. Things B1 nessa mesma dobra perde. Não desempatar com a escada do CSS (25/11 = 2,27) nem com o 00: a barra deste eixo na dobra é o que o pixel mostra.
+
+Face 22×22 (hoje.tsx:156) continua na faixa B3. Não é o furo da r4 e não vence o eixo.
+
+Para eu estar errado: a dobra do Hoje teria de mostrar extremos de tipo entre 2,0× e 2,3× (dois corpos nomeados, não strike), e Série / Descanso / Feito teriam de ocupar 40–55% da altura com pelo menos duas linhas do Hoje ainda legíveis. O medidor `escala` em 2,27 não refuta: ele não olha a dobra.
+
+brechas que não reabrem B1 nem B20:
+- Face 18–22. Era o ganho da r4. Os extremos e o cartão é que tinham de fechar.
+- Feito em 17+25 (1,47×). Ainda fora de 2,0–2,3, e é cena 100%.
+- Dock `w-fit` no Thumb da Série (152 px). Não vira FAB 52–56 sem rótulo, e não vira cartão.
+
+o que venceria e não está:
+- Extremos 2,0–2,3× visíveis na dobra que o pack mede, e Série / Descanso / Feito em cartão 40–55% com o Hoje atrás. Os dois. Um só não basta.
