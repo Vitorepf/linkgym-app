@@ -23,5 +23,21 @@
       "artefato": "tools/out/design/0/HojeCumprido.png",
       "refutacao": ".gate/revisao/refutacao-ritual.md"
     }
+  },
+  {
+    "ts": "2026-08-21",
+    "rodada": "critico-cego r7 motion-duolingo + objeto-airbnb (instancia nova; nao julgou r3-r6)",
+    "motion-duolingo": {
+      "resultado": "perdeu",
+      "motivo": "D9 cobertura nao e 100%: ramo done chama logSet() sem armStrip — 0 ms de faixa 26% sobre a serie viva. Meio: overlay serie e strip sobrevive ao logSet; tickRest/skipRest cravam strip:null no avanco. Pack linha 7 pede 520 ms e fica. C8/D4 fecham. Default perdeu.",
+      "referencia": "docs/barra-proto/05-motion-duolingo.md",
+      "artefato": "docs/barra-proto/veredito-motion-duolingo.md"
+    },
+    "objeto-airbnb": {
+      "resultado": "empatou",
+      "motivo": "PostCard p1 tem 3 linhas, zero comments/thread/falas no article (C1 fecha). Pack linha 8 card<=4 e pagina=cena fecham. C15 ainda pinta dois, peek ~36%. magnitudeOf ainda inventa numero. Teto com C1 ganho, nao acima no eixo.",
+      "referencia": "docs/barra-proto/06-objeto-airbnb.md",
+      "artefato": "docs/barra-proto/veredito-objeto-airbnb.md"
+    }
   }
 ]

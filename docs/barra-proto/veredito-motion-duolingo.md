@@ -1,36 +1,41 @@
 # Veredito: motion (Duolingo)
 
-data: 21 ago 2026 (crítico cego, rodada 6)
+data: 21 ago 2026 (crítico cego, rodada 7 — nunca implementou; não julgou r3–r6)
 julgamento: perdeu
 na_barra: true
 refutado: false
-caminho_ref: docs/barra-proto/00-defeitos-e-linha-de-base.md (Arbitragem 3, «O que ainda é falha») + docs/duelo-e-juiz.md §11.0 §11.5 + docs/ficha-de-atributos.md §7.1 §7.2 + docs/barra-proto/05-motion-duolingo.md D8 D9 D12 C8 C12 + docs/barra-proto/passada-4-mobbin.md (Duolingo 12e43447, faixa 22–30%, linha 7)
-caminho_artefato: proto-aluno/src/lib/store.ts, proto-aluno/src/screens/serie.tsx, proto-aluno/src/app-root.tsx, proto-aluno/src/screens/feito.tsx, proto-aluno/src/components/bits.tsx, proto-aluno/src/lib/tap.ts, proto-aluno/src/styles.css
-medidor: `cd proto-aluno && node tools/medir.mjs tudo -v` — 0 fora. `cerimonia -v` — 0 fora; telas cheias após o ato = 0; festa de patamar no Feito = sim. O 0 do `cerimonia` lê o ternário `overlay: (patamar ? "feito" : null)` e não lê se `feito` é cena ou cartão, nem se a faixa fica.
+caminho_ref: docs/barra-proto/00-defeitos-e-linha-de-base.md (Arbitragem 21 ago 2026, «O que ainda é falha», cerimônia 0/1) + docs/barra-proto/05-motion-duolingo.md D4 D8 D9 D12 C4 C8 C12 + docs/barra-proto/passada-4-mobbin.md (Duolingo 12e43447, faixa 22–30%, linha 7) + docs/duelo-e-juiz.md §11.0 §11.3 + docs/ficha-de-atributos.md §7.2
+caminho_artefato: proto-aluno/src/screens/serie.tsx, proto-aluno/src/lib/store.ts, proto-aluno/src/app-root.tsx, proto-aluno/src/lib/tap.ts, proto-aluno/src/screens/feito.tsx, proto-aluno/src/styles.css
+medidor: `cd proto-aluno && node tools/medir.mjs tudo -v` — 0 fora. `cerimonia -v` — 0 fora; telas cheias após o ato = 0; preenchidos no Feito = 1; festa de patamar = sim. O 0 do `cerimonia` lê o ternário `overlay: (patamar ? "feito" : null)` (`store.ts:476`). Não lê se a faixa pinta no sítio nem se `tickRest` / `skipRest` a apagam.
 
-Default de derrota (overlay `"descanso"` no ato): não dispara. `logSet` do meio grava `overlay: "serie"` (`store.ts:635`). Nenhuma escrita `overlay: "descanso"` no store.
+Default de derrota (faixa some aos 520 ms / háptico em «Voltar» / dobra Hoje 25/11 / `overlay: "feito"` sem patamar / patamar >2 degraus ou numeral >2,3×): o default **dispara** na última confirmação e no avanço do descanso. Os outros quatro não.
 
-Afirmação falsificável: a festa ocasional (patamar) **não é tela cheia**. `closeSession` ainda devolve `overlay: (patamar ? "feito" : null)` (`store.ts:476`). `feito` saiu do `RACK` e mora em `CARDS` (`app-root.tsx:94–96`). Com `overlayTrail: []` no fechamento (`store.ts:613`), `rackUnder` devolve `null`, o Hoje fica atrás e o Feito sobe em `.sheet-card` — `height: 55%`, teto `70%` (`styles.css:258–269`). D12 / C12 / §7.2 / 00 arb. 3 pedem cena (tela cheia / rack). 55% é cartão. Pack linha 7 «0 tela cheia» vale para o recibo diário, não para o patamar. Isso perde.
+Afirmação falsificável: a cobertura D9 **não** é 100% das confirmações de série, e a faixa **não** fica depois do descanso. `serie.tsx:149–151` no ramo `done` chama `logSet()` direto, **sem** `armStrip`, **sem** `setTimeout`. `logSet` no done (`store.ts:595–625`) omite `strip`, fecha a sessão, `tab: "hoje"`, `session: null`, `overlay: closed.overlay`. A última série **nunca arma** a faixa: 0 ms de 26% sobre a série viva. No meio, `armStrip` + `setTimeout(..., 520)` + `logSet` (`serie.tsx:159–160`, `store.ts:627–635`) grava `overlay: "serie"` e omite `strip` — o estado sobrevive aos 520 ms. `skipRest` e `tickRest` ao avançar cravam `strip: null` (`store.ts:646, 666`). Pack linha 7 pede «520 ms e **fica**». Fica até o descanso acabar ou ser pulado; não fica. `MarkStrip` cover só monta se `strip && (rackId || overlay === "feito")` (`app-root.tsx:180`). `RACK` neste disco contém `serie` (`app-root.tsx:96`), então o meio **pinta** 26% (`styles.css:289–309`) enquanto `strip` vive. A última confirmação não pinta. D9: «Cobertura: 100% das confirmações de série». Falso.
 
 ## O que o arquivo mostra
 
-- Overlay do meio = `"serie"` — verdadeiro. `logSet` quando `nextCursor !== "done"`: `overlay: "serie"` (`store.ts:628–636`). Não é `"descanso"`. A árvore da Série fica montada. `restLeft` arma o descanso **dentro** da Série (`serie.tsx:48–49, 140`).
-- Última → Hoje — verdadeiro no `tab`. `store.ts:607–625`: `tab: "hoje"`, `session: null`, `overlay: closed.overlay`. Sem patamar, overlay `null`. Com patamar, overlay `"feito"` sobre o Hoje, não rack.
-- Patamar só cartão — verdadeiro no pixel, e é a falha. `CARDS` tem `feito`. `.sheet-card` 55% (48–70%). 00 arb. 3: o rack (`serie` / `descanso` / `feito` / `como` / `fichaSessao`) **é** a cena, full-bleed. §7.1: a ficha toma a vaga em tela cheia. D12: ocasional «sempre em tela cheia». Cartão 55% não é isso.
-- D9 / pack linha 7 «520 ms e fica» no meio — verdadeiro a meia. `armStrip` + `MarkStrip` `cover` 26% (`styles.css:289–309`, `app-root.tsx:178`). Sem `setShowMark(false)`. O ramo do meio **não** zera `strip`. A faixa cobre o Thumb, `pointer-events: none`, 0 px de empurrão.
-- D9 na última — falso. `serie.tsx:156`: `window.setTimeout(() => logSet(), 520)`. O timeout **navega** no ramo `done`: `strip: null` (`store.ts:624`), Série desmonta. Pack linha 7 pede última → Hoje (isso fecha). «Fica» na lição viva, na última, não: a faixa some no mesmo `set` que troca a cena.
-- D8 / C8 recibo diário — verdadeiro. Sem patamar, `overlay: null`, 0 tela, 0 toque. `cerimonia -v` = 0. O 0 não vê o cartão do patamar.
-- D4 vocabulário — verdadeiro no disco. `tap.ts:2–8`: `light` 12 / `confirm` 32 / `feast` 56. `logSet` → `confirm` (`store.ts:589`). `feito.tsx:16` → `feast` no toque de sair, não no mount (§7.3 pede abertura).
-- C4 / D4 «0 vibração em navegação» — falso. Todo `Thumb` vibra `light` (`bits.tsx:214`), inclusive «Voltar» / «Voltar ao rack» / «Voltar à série» (`serie.tsx:32, 198, 236`).
-- D12 vaga uma vez — verdadeiro na regra. `firstPatamar` + `patamarSeen`. Falso na forma: a única festa sobe cartão, não tela.
+- Ramo done — verdadeiro o que afirmam: `logSet()` direto, sem `armStrip`, sem zerar `strip` no `set`. Também verdadeiro: sem `armStrip` não há faixa para ficar. A última série navega. Pack linha 7 «última série publica e cai no Hoje» fecha C8/D8. D9 na última não fecha.
+- Ramo do meio — overlay `"serie"`, estado `strip` sobrevive ao `logSet`. Com `RACK` contendo `serie`, `rackId` é `"serie"` e o cover 26% monta. `pointer-events: none`, 0 px de empurrão. D9 do meio pinta. `tickRest` / `skipRest` zerando `strip` é o default de derrota desta rodada: a faixa some no avanço, não nos 520 ms.
+- C8 / D8 / C12 diário — verdadeiro. Sem patamar, `overlay: null`. `cerimonia -v` = 0. 00 «Recibo diário cobrando pedágio» não dispara.
+- D4 / C4 — verdadeiro. `tap.ts` `light` 12 / `confirm` 32 / `feast` 56. `vibrate` só em `givePago` (`light`), `logSet` (`confirm`), «É o meu.» (`feast`). `Thumb` mudo. «Voltar» / abas mudos. O default «háptico em navegação» é falso.
+- D12 / §7.2 patamar — verdadeiro na conta (1 overlay, 1 thumb). `feito` está em `RACK` neste disco. `feito.tsx` usa `t-body` 17 + `t-display` 25 (1,47 ≤ 2,3). Dois degraus nomeados. `feast` no toque de sair, não no mount.
+- Dobra do Hoje — 17/15 = 1,13 ≤ 1,40. 25/11 não está na dobra. Default falso.
+- D10 / `t-plate` 84 — 00 arb. 1 vence. Não é falha.
 
 ## Arbitragem (00 vence)
 
-- Rack full-bleed: o 00 manda. `feito` no `CARDS` perde para arb. 3.
-- Recibo diário com `overlay: "feito"` sem patamar: não dispara. O ternário segura.
-- Festa 2,5× / `t-plate` 84: 00 arb. 1 vence. `feito.tsx` 25/17 = 1,47 ≤ 2,3.
-- Things B20 cartão 40–70% não julga o rack. Não desculpa o patamar.
+- Cerimônia diária: 0 tela, 0 toque. O medidor está verde.
+- Feito patamar: dois degraus, numeral ≤ 2,3×. Fecha.
+- Dobra do Hoje: Linear ≤ 1,40. Fecha.
+- Rack full-bleed: 00 arb. 3 manda. `serie` em `RACK` neste disco obedece. Não é o eixo.
+- Festa 2,5× ausente: 00 arb. 1. Não é falha.
+
+## Brechas nomeadas
+
+- Última confirmação sem `armStrip`: 0 faixa no sítio (D9 100%).
+- `tickRest` / `skipRest` cravam `strip: null` no avanço. «520 ms e fica» não sobrevive ao descanso.
+- `feast` no thumb de sair, não na abertura.
 
 ## Por que perdeu (não empatou, não venceu)
 
-C8 do diário fecha (0 tela). D9 do meio fecha (faixa 26% sobre a Série viva, overlay `"serie"`). Isso não sobe o eixo: a única festa que D12 / §7 / 00 autorizam é tela cheia, e o arquivo entrega um `.sheet-card` de 55%. «Diferente, mas ok» é perdeu. O 0 do `cerimonia` não lê a altura do Feito.
+Default PERDEU. C8 fecha (0/0 no diário). D4 fecha. O meio pinta 26% e o `logSet` do meio não zera `strip` — o defeito r6 do `setTimeout` 520 que zerava no mesmo `set` **não** está no `logSet`. O que resta é a cobertura: a última série, a que o pack nomeia, sai sem faixa; e a faixa do meio morre no `strip: null` do descanso. D9 pede 100% das confirmações sobre conteúdo vivo, 0 toque para dispensar, e o pack pede «fica». «Diferente, mas ok» (C8 no lugar de D9 na última) é `perdeu`.

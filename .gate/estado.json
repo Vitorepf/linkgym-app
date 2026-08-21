@@ -450,5 +450,22 @@
       "PAGAMENTO DENTRO DO APP e o unico pedido escrito que segue inteiro em aberto: nenhum real passa por dentro do produto e a aluna nao tem nem o codigo Pix na tela dela. O desenho esta escrito e defendido em internal/pagamento/pagamento.go (nao somos merchant of record; Pix na Stripe e por convite no BR e sem recorrencia; Fase 1 e Pix DIRETO com taxa ZERO). O meio-passo barato — dar o copia-e-cola na tela DELA, que ela pediu — cabe no loop; conciliacao automatica exige provedor, PJ e KYC, e e decisao do dono."
     ]
   },
-  "vereditos": {}
+  "vereditos": {
+    "motion-duolingo": {
+      "resultado": "perdeu",
+      "referencia": "docs/barra-proto/05-motion-duolingo.md",
+      "artefato": "docs/barra-proto/veredito-motion-duolingo.md",
+      "na_barra": true,
+      "refutado": false,
+      "motivo": "D9 cobertura nao e 100%: ramo done chama logSet() sem armStrip — 0 ms de faixa 26% sobre a serie viva. Meio: overlay serie e strip sobrevive ao logSet (o setTimeout 520 do r6 que zerava no mesmo set nao esta no logSet); tickRest/skipRest cravam strip:null no avanco. Pack linha 7 pede 520 ms e fica. C8/D4 fecham. Default perdeu."
+    },
+    "objeto-airbnb": {
+      "resultado": "empatou",
+      "referencia": "docs/barra-proto/06-objeto-airbnb.md",
+      "artefato": "docs/barra-proto/veredito-objeto-airbnb.md",
+      "na_barra": true,
+      "refutado": false,
+      "motivo": "PostCard p1 tem 3 linhas, zero comments/thread/falas no article (C1 fecha; default se voltaram falas nao dispara). Pack linha 8 card<=4 e pagina=cena fecham. C15 ainda pinta dois (slice 0,2), peek ~36% (B15). magnitudeOf ainda inventa 1/pagos/cheers. Teto com C1 ganho, nao acima no eixo."
+    }
+  }
 }
