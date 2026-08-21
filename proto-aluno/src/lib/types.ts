@@ -25,7 +25,8 @@ export type Overlay =
   | "composer"
   | "escrever"
   | "montar"
-  | "oferecer";
+  | "oferecer"
+  | "versus";
 
 export type Effort = 1 | 2 | 3;
 export type SessionKind = "ficha" | "ultima" | "livre" | "deck";

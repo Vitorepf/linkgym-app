@@ -1,6 +1,6 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { Display, HoldTick, Pad, Place, Quiet, Screen, Thumb } from "@/components/bits";
-import { MarkStrip, Roll } from "@/ui/kit";
+import { Roll } from "@/ui/kit";
 import { Dock } from "@/components/shell";
 import { CATALOG, CUES, LAST_WORKOUT, PRESCRIPTION } from "@/lib/seed";
 import { applyLast, useLink } from "@/lib/store";
@@ -40,10 +40,22 @@ export function Serie() {
   const bumpKg = useLink((s) => s.bumpKg);
   const bumpReps = useLink((s) => s.bumpReps);
   const logSet = useLink((s) => s.logSet);
+  const armStrip = useLink((s) => s.armStrip);
+  const skipRest = useLink((s) => s.skipRest);
   const open = useLink((s) => s.openOverlay);
   const openComo = useLink((s) => s.openComo);
-  const [mark, setMark] = useState<{ n: string; line: string } | null>(null);
   const armed = useRef(false);
+  const restLeft = session?.restLeft ?? 0;
+  const resting = restLeft > 0;
+  const cursor = session ? `${session.itemIndex}:${session.setIndex}` : "";
+  useEffect(() => {
+    armed.current = false;
+  }, [cursor]);
+  useEffect(() => {
+    if (!resting) return;
+    const id = window.setInterval(() => useLink.getState().tickRest(), 1000);
+    return () => window.clearInterval(id);
+  }, [resting]);
   if (!session) return null;
   const items = session.items;
   const item = items[session.itemIndex];
@@ -61,6 +73,7 @@ export function Serie() {
         <div>
           <Place>
             {session.itemIndex + 1} de {items.length} · série {session.setIndex} de {item.planned_sets}
+            {resting ? ` · ${restLeft}s` : ""}
           </Place>
           <h1 className="t-body mt-1">{item.name}</h1>
         </div>
@@ -124,9 +137,13 @@ export function Serie() {
 
       <Dock>
         <Thumb
-          label="Fiz essa série"
-          meta={`${item.rest_seconds}s`}
+          label={resting ? "Pular descanso" : "Fiz essa série"}
+          meta={resting ? `${restLeft}s` : `${item.rest_seconds}s`}
           onPress={() => {
+            if (resting) {
+              skipRest();
+              return;
+            }
             if (armed.current || empty) return;
             armed.current = true;
             const line =
@@ -135,12 +152,11 @@ export function Serie() {
                 : delta === 0
                   ? "igual à última"
                   : `${delta > 0 ? "+" : "−"}${formatKg(Math.abs(delta))} kg`;
-            setMark({ n: kg, line });
+            armStrip(kg, line);
             window.setTimeout(() => logSet(), 520);
           }}
         />
       </Dock>
-      {mark ? <MarkStrip mark={mark.n} line={mark.line} cover /> : null}
     </div>
   );
 }

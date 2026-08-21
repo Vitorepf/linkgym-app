@@ -9,6 +9,7 @@ import { ComoFazer, FichaSessao, Serie } from "./screens/serie";
 import { Descanso } from "./screens/descanso";
 import { Feito } from "./screens/feito";
 import { Bora, Composer, Pessoa, Prova, Zap } from "./screens/social";
+import { MarkStrip } from "./ui/kit";
 import { useLink } from "./lib/store";
 import type { Overlay, TabId } from "./lib/types";
 
@@ -90,8 +91,8 @@ class SceneBoundary extends Component<{ children: ReactNode; onLeave: () => void
 }
 
 /** O rack é uma corrente: avança de lado. Cartão sobe no sítio. Página substitui a aba. */
-const RACK = new Set<string>(["serie", "descanso", "feito"]);
-const CARDS = new Set<string>(["como", "fichaSessao"]);
+const RACK = new Set<string>(["serie", "descanso"]);
+const CARDS = new Set<string>(["como", "fichaSessao", "feito"]);
 const PAGES = new Set<string>(["prova", "pessoa", "composer"]);
 
 function rackUnder(overlay: Overlay, trail: Overlay[]) {
@@ -116,6 +117,7 @@ export function AppRoot() {
   const tab = useLink((s) => s.tab);
   const overlay = useLink((s) => s.overlay);
   const overlayTrail = useLink((s) => s.overlayTrail);
+  const strip = useLink((s) => s.strip);
 
   useEffect(() => {
     let alive = true;
@@ -123,9 +125,9 @@ export function AppRoot() {
       if (!alive) return;
       const s = useLink.getState();
       if (s.session && !s.cumprido) {
-        const keep = s.overlay != null && (RACK.has(s.overlay) || CARDS.has(s.overlay));
+        const keep = s.overlay === "serie" || s.overlay === "como" || s.overlay === "fichaSessao";
         if (!keep) {
-          useLink.setState({ overlay: s.session.restLeft > 0 ? "descanso" : "serie" });
+          useLink.setState({ overlay: "serie" });
         }
       }
       s.setHydrated();
@@ -173,6 +175,7 @@ export function AppRoot() {
             </Suspense>
           </SceneBoundary>
         </motion.div>
+        {strip && (rackId || overlay === "feito") ? <MarkStrip mark={strip.n} line={strip.line} cover /> : null}
         {(isSheet || isCard) && OverlayScene ? (
           <Sheet onDismiss={dismissSheet} tall={isCard}>
             <motion.div

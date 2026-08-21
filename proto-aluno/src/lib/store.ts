@@ -28,6 +28,7 @@ import {
   warSide,
 } from "./seed";
 import { dateShort } from "./format";
+import { vibrate } from "./tap";
 import type {
   Challenge,
   ClanKind,
@@ -128,6 +129,7 @@ type State = {
   cumprido: boolean;
   pagoMensal: boolean;
   session: Session | null;
+  strip: { n: string; line: string } | null;
   lastProof: LastProof | null;
   comoId: string | null;
   proofs: Proof[];
@@ -138,6 +140,7 @@ type State = {
   selectedPersonId: string | null;
   selectedGroupId: string | null;
   selectedBoraId: string | null;
+  selectedDuelId: string | null;
   groups: Group[];
   challenges: Challenge[];
   joinedGroupIds: string[];
@@ -169,6 +172,7 @@ type State = {
   abandonSession: () => void;
   bumpKg: (d: number) => void;
   bumpReps: (d: number) => void;
+  armStrip: (n: string, line: string) => void;
   logSet: () => void;
   skipRest: () => void;
   tickRest: () => void;
@@ -181,6 +185,7 @@ type State = {
   openPerson: (id: string) => void;
   openGroup: (id: string) => void;
   openBora: (id: string) => void;
+  openVersus: (id: string) => void;
   givePago: (id: string) => void;
   speakOnProof: (id: string, text: string) => void;
   composePost: (kind: PostKind, caption: string, image?: string | null) => void;
@@ -350,6 +355,28 @@ function seenFromFicha(personId: string): Record<string, number[]> {
   return out;
 }
 
+/** Passos já cruzados na conta viva. Seed alto não é festa: 90 não vira 100 por +10. */
+function seenFromBars(bars: Record<string, number>): Record<string, number[]> {
+  const out: Record<string, number[]> = {};
+  for (const [eixo, barra] of Object.entries(bars)) {
+    out[eixo] = PATAMAR_STEPS.filter((s) => barra >= s);
+  }
+  return out;
+}
+
+function mergeSeen(
+  ...packs: Array<Record<string, number[]> | undefined>
+): Record<string, number[]> {
+  const out: Record<string, number[]> = {};
+  for (const pack of packs) {
+    if (!pack) continue;
+    for (const [eixo, steps] of Object.entries(pack)) {
+      out[eixo] = [...new Set([...(out[eixo] ?? []), ...steps])];
+    }
+  }
+  return out;
+}
+
 function seedBars(): Record<string, number> {
   return Object.fromEntries(fichaOf(YOU_ID).barras.map((b) => [b.eixo, b.barra]));
 }
@@ -375,6 +402,12 @@ function writeBars(
       ...next.carga,
       barra,
       rotulo: barra >= 100 ? `${barra}` : next.carga.rotulo,
+    };
+  }
+  if (next.frequencia) {
+    next.frequencia = {
+      ...next.frequencia,
+      barra: Math.min(100, next.frequencia.barra + 10),
     };
   }
   return next;
@@ -413,8 +446,9 @@ function closeSession(
   const stats = proofFrom(s);
   const feed = toFeed(s, stats, groupId);
   const ficha = fichaOf(YOU_ID);
-  const nextBars = writeBars(liveBars, logged, session.items);
-  const patamar = firstPatamar(seen, nextBars);
+  const live = liveBars ?? seedBars();
+  const nextBars = writeBars(live, logged, session.items);
+  const patamar = firstPatamar(mergeSeen(seenFromFicha(YOU_ID), seenFromBars(live), seen), nextBars);
   const nextSeen = { ...seen };
   if (patamar) {
     const eixo = ficha.barras.find((b) => b.nome === patamar.eixo)?.eixo;
@@ -462,6 +496,7 @@ const initial = {
   cumprido: false,
   pagoMensal: false,
   session: null as Session | null,
+  strip: null as { n: string; line: string } | null,
   lastProof: null as LastProof | null,
   comoId: null as string | null,
   proofs: PROOFS,
@@ -472,6 +507,7 @@ const initial = {
   selectedPersonId: null as string | null,
   selectedGroupId: null as string | null,
   selectedBoraId: null as string | null,
+  selectedDuelId: null as string | null,
   groups: GROUPS,
   challenges: CHALLENGES,
   joinedGroupIds: ["c-ferro"],
@@ -519,7 +555,7 @@ export const useLink = create<State>()(
         const { session, cumprido } = get();
         if (cumprido) return;
         if (session) {
-          set({ overlay: "serie", overlayTrail: [] });
+          set({ overlay: "serie", overlayTrail: [], strip: null });
           return;
         }
         const last = get().lastLoads;
@@ -528,13 +564,13 @@ export const useLink = create<State>()(
           : kind === "ultima"
             ? { name: LAST_WORKOUT.name, items: applyLast(LAST_WORKOUT.items, last) }
             : { name: PRESCRIPTION.name, items: applyLast(PRESCRIPTION.items, last) };
-        set({ session: emptySession(kind, pack.items, pack.name), overlay: "serie", overlayTrail: [] });
+        set({ session: emptySession(kind, pack.items, pack.name), overlay: "serie", overlayTrail: [], strip: null });
       },
       resumeSession: () => {
         if (!get().session) return;
-        set({ overlay: "serie", overlayTrail: [] });
+        set({ overlay: "serie", overlayTrail: [], strip: null });
       },
-      abandonSession: () => set({ session: null, overlay: null, overlayTrail: [] }),
+      abandonSession: () => set({ session: null, overlay: null, overlayTrail: [], strip: null }),
       bumpKg: (d) => {
         const s = get().session;
         if (!s) return;
@@ -546,9 +582,11 @@ export const useLink = create<State>()(
         if (!s) return;
         set({ session: { ...s, reps: Math.max(1, s.reps + d) } });
       },
+      armStrip: (n, line) => set({ strip: { n, line } }),
       logSet: () => {
         const s = get().session;
         if (!s) return;
+        vibrate("confirm");
         const ex = s.items[s.itemIndex]!;
         const logged: LoggedSet[] = [
           ...s.logged.filter((x) => !(x.exerciseId === ex.id && x.setIndex === s.setIndex)),
@@ -563,7 +601,7 @@ export const useLink = create<State>()(
             proofGroupId(st.joinedGroupIds, st.war),
             st.lastLoads,
             st.loadBook,
-            { ...seenFromFicha(YOU_ID), ...st.patamarSeen },
+            mergeSeen(seenFromFicha(YOU_ID), seenFromBars(st.barras ?? seedBars()), st.patamarSeen),
             st.barras ?? seedBars(),
           );
           set({
@@ -573,7 +611,7 @@ export const useLink = create<State>()(
             cumprido: true,
             overlay: closed.overlay,
             overlayTrail: [],
-            tab: closed.overlay ? st.tab : "hoje",
+            tab: "hoje",
             session: null,
             lastLoads: closed.lastLoads,
             loadBook: closed.loadBook,
@@ -583,6 +621,7 @@ export const useLink = create<State>()(
             arenaLadder: bumpLadder(st.arenaLadder, YOU_ID),
             groups: bumpGroupSessions(st.groups, st.joinedGroupIds),
             challenges: bumpChallenges(st.challenges, st.joinedGroupIds),
+            strip: null,
           });
           return;
         }
@@ -593,7 +632,7 @@ export const useLink = create<State>()(
             restLeft: ex.rest_seconds,
             lastLogged: { kg: s.kg, reps: s.reps },
           },
-          overlay: "descanso",
+          overlay: "serie",
         });
       },
       skipRest: () => {
@@ -605,12 +644,28 @@ export const useLink = create<State>()(
         set({
           session: { ...s, ...nxt, ...load, restLeft: 0 },
           overlay: "serie",
+          strip: null,
         });
       },
       tickRest: () => {
         const s = get().session;
         if (!s || s.restLeft <= 0) return;
-        set({ session: { ...s, restLeft: s.restLeft - 1 } });
+        const left = s.restLeft - 1;
+        if (left > 0) {
+          set({ session: { ...s, restLeft: left } });
+          return;
+        }
+        const nxt = nextCursor(s.items, s.itemIndex, s.setIndex);
+        if (nxt === "done") {
+          set({ session: { ...s, restLeft: 0 } });
+          return;
+        }
+        const load = loadFor(s.items, nxt.itemIndex, s.logged);
+        set({
+          session: { ...s, ...nxt, ...load, restLeft: 0 },
+          overlay: "serie",
+          strip: null,
+        });
       },
       setEffortAndAdvance: (effort) => {
         const s = get().session;
@@ -630,7 +685,7 @@ export const useLink = create<State>()(
             proofGroupId(st.joinedGroupIds, st.war),
             st.lastLoads,
             st.loadBook,
-            { ...seenFromFicha(YOU_ID), ...st.patamarSeen },
+            mergeSeen(seenFromFicha(YOU_ID), seenFromBars(st.barras ?? seedBars()), st.patamarSeen),
             st.barras ?? seedBars(),
           );
           set({
@@ -640,7 +695,7 @@ export const useLink = create<State>()(
             cumprido: true,
             overlay: closed.overlay,
             overlayTrail: [],
-            tab: closed.overlay ? st.tab : "hoje",
+            tab: "hoje",
             session: null,
             lastLoads: closed.lastLoads,
             loadBook: closed.loadBook,
@@ -658,6 +713,7 @@ export const useLink = create<State>()(
         set({
           session: { ...s, logged, ...nxt, ...load, restLeft: 0 },
           overlay: "serie",
+          strip: null,
         });
       },
       finishNow: (effort) => {
@@ -676,7 +732,7 @@ export const useLink = create<State>()(
           proofGroupId(st.joinedGroupIds, st.war),
           st.lastLoads,
           st.loadBook,
-          { ...seenFromFicha(YOU_ID), ...st.patamarSeen },
+          mergeSeen(seenFromFicha(YOU_ID), seenFromBars(st.barras ?? seedBars()), st.patamarSeen),
           st.barras ?? seedBars(),
         );
         set({
@@ -686,7 +742,7 @@ export const useLink = create<State>()(
           cumprido: true,
           overlay: closed.overlay,
           overlayTrail: [],
-          tab: closed.overlay ? st.tab : "hoje",
+          tab: "hoje",
           session: null,
           lastLoads: closed.lastLoads,
           loadBook: closed.loadBook,
@@ -699,7 +755,7 @@ export const useLink = create<State>()(
           ...advanceDeck(st.activeDeckId, st.deckCursor, st.decks),
         });
       },
-      closeFeito: () => set({ overlay: null, overlayTrail: [], tab: "hoje", session: null }),
+      closeFeito: () => set({ overlay: null, overlayTrail: [], tab: "hoje", session: null, strip: null }),
       goRede: () => {
         set({
           overlay: null,
@@ -728,6 +784,10 @@ export const useLink = create<State>()(
       openBora: (id) => {
         const s = get();
         set({ selectedBoraId: id, overlay: "bora", overlayTrail: pushed(s.overlay, s.overlayTrail, "bora") });
+      },
+      openVersus: (id) => {
+        const s = get();
+        set({ selectedDuelId: id, overlay: "versus", overlayTrail: pushed(s.overlay, s.overlayTrail, "versus") });
       },
       givePago: (id) => {
         const { taPagoGiven, proofs } = get();
@@ -1080,7 +1140,7 @@ export const useLink = create<State>()(
       reset: () => set({ ...initial }),
     }),
     {
-      name: "link-aluno-v29",
+      name: "link-aluno-v32",
       skipHydration: true,
       partialize: (s) => ({
         name: s.name,
@@ -1113,6 +1173,7 @@ export const useLink = create<State>()(
         selectedPersonId: s.selectedPersonId,
         selectedGroupId: s.selectedGroupId,
         selectedBoraId: s.selectedBoraId,
+        selectedDuelId: s.selectedDuelId ?? null,
         comoId: s.comoId,
         raid: s.raid ?? RAID,
         youRaids: s.youRaids ?? 1,
