@@ -8,8 +8,9 @@ import { cn } from "@/lib/utils";
 
 /* ---------------------------------------------------------------------------
    O objeto do feed. Foto quase quadrada, sem borda e sem sombra, com o texto
-   assentando direto na página. Três linhas de texto no máximo: quem e quando,
-   marca e grandeza, e a legenda. Nenhuma delas pousa em cima da imagem.
+   assentando direto na página. Quatro linhas no máximo: quem e quando, marca
+   e grandeza, a legenda numa linha, e tá pago. Falas moram na Prova. Duelo,
+   se houver, é objeto — não linha de prosa. Nada pousa em cima da imagem.
 --------------------------------------------------------------------------- */
 
 function kindWord(post: Proof): string {
@@ -73,13 +74,18 @@ export function DiaryRow({ post, last }: { post: Proof; last?: boolean }) {
 
 export function DuelOnPost({ duel, post, name }: { duel: Duel; post: Proof; name: string }) {
   const accept = useLink((s) => s.acceptDuel);
+  const openVersus = useLink((s) => s.openVersus);
   const incoming = duelOpen(duel) && duel.toId === YOU_ID;
   const host = post.personId;
   const third = host !== duel.fromId && host !== duel.toId;
 
   return (
-    <Card tone="outline" className="mt-3 p-3">
-      <div className="flex items-center justify-between gap-2">
+    <Card tone="outline" className="mt-3 overflow-hidden">
+      <button
+        type="button"
+        className="press flex min-h-11 w-full items-center justify-between gap-2 px-3 py-3 text-left"
+        onClick={() => openVersus(duel.id)}
+      >
         <span className="flex min-w-0 items-center gap-2">
           <Portrait id={duel.fromId} size={24} />
           <span className="t-small truncate text-ink">{nameOf(duel.fromId, name)}</span>
@@ -89,10 +95,10 @@ export function DuelOnPost({ duel, post, name }: { duel: Duel; post: Proof; name
           <span className="t-small truncate text-ink">{nameOf(duel.toId, name)}</span>
           <Portrait id={duel.toId} size={24} />
         </span>
-      </div>
-      {third ? <p className="t-small mt-2">Na prova de {nameOf(host, name)}</p> : null}
+      </button>
+      {third ? <p className="t-small px-3 pb-2">Na prova de {nameOf(host, name)}</p> : null}
       {incoming ? (
-        <button type="button" className="quiet mt-1" onClick={() => accept(duel.id)}>
+        <button type="button" className="quiet px-3 pb-2" onClick={() => accept(duel.id)}>
           Aceitar a disputa
         </button>
       ) : null}
@@ -114,7 +120,6 @@ export function PostCard({ post }: { post: Proof }) {
   const seen = cheers.includes(YOU_ID);
   const mark = markOf(post);
   const attr = strongest(post);
-  const thread = post.comments.slice(-2);
   const duel = duels.find((d) => duelOpen(d) && d.postId === post.id) ?? duels.find((d) => d.postId === post.id);
   const canDuel = !mine && (post.kind === "feito" || post.kind === "video");
   const media = post.image || post.video;
@@ -158,7 +163,7 @@ export function PostCard({ post }: { post: Proof }) {
         ) : null}
 
         {post.caption ? (
-          <p className={cn("t-sub line-clamp-2 text-ink", mark ? "mt-1" : "mt-3")}>{post.caption}</p>
+          <p className={cn("t-sub truncate text-ink", mark ? "mt-1" : "mt-3")}>{post.caption}</p>
         ) : null}
 
         {duel ? <DuelOnPost duel={duel} post={post} name={name} /> : null}
@@ -172,7 +177,6 @@ export function PostCard({ post }: { post: Proof }) {
             <Faces ids={cheers} size={22} />
             <span className="t-small truncate">
               <Roll value={cheers.length} /> tá pago
-              {post.comments.length ? ` · ${post.comments.length} falas` : ""}
             </span>
           </button>
 
@@ -200,16 +204,6 @@ export function PostCard({ post }: { post: Proof }) {
             </button>
           )}
         </div>
-
-        {thread.length ? (
-          <ul className="mt-2">
-            {thread.map((c) => (
-              <li key={c.id} className="t-small mt-0.5 truncate">
-                <span className="text-ink">{nameOf(c.personId, name)}</span> {c.text}
-              </li>
-            ))}
-          </ul>
-        ) : null}
       </article>
     </Reveal>
   );
