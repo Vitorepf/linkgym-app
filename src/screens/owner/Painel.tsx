@@ -132,9 +132,59 @@ export function Painel({ token, time }: Props) {
           </Band>
         ) : null}
 
+        {fio ? (
+          <Band pad={false}>
+            <View style={styles.fio}>
+              {/* Número e causa lado a lado: a barra do dia é a decomposição do número,
+                  então ela não pode custar mais uma dobra de rolagem. */}
+              <View style={styles.fioRow}>
+                <Figure
+                  value={fio.value}
+                  unit={`de ${fio.total}`}
+                  label={fio.label}
+                  dir={fio.dir}
+                />
+                <View style={styles.week}>
+                  {fio.days.map((d) => (
+                    <View key={d.key} style={styles.day}>
+                      <View
+                        style={[
+                          styles.bar,
+                          { height: d.height, backgroundColor: calha },
+                        ]}
+                      >
+                        <View
+                          style={{
+                            height: d.fill,
+                            // Hoje contra o resto da semana em TRÊS canais, e nenhum
+                            // sozinho: a letra embaixo (tinta cheia contra apagada), a
+                            // posição na fila e o matiz. Em preto e branco a leitura
+                            // fica inteira — o medidor exige 5 de L* entre os dois.
+                            backgroundColor: d.today ? T.ink : referencia,
+                          }}
+                        />
+                      </View>
+                      <Txt
+                        role="label"
+                        tone={d.today ? "ink" : "dim"}
+                        style={styles.dayName}
+                      >
+                        {d.letter}
+                      </Txt>
+                    </View>
+                  ))}
+                </View>
+              </View>
+              <Txt role="note" tone="dim" style={styles.fioNote}>
+                {fio.note}
+              </Txt>
+            </View>
+          </Band>
+        ) : null}
+
         {data ? (
           <View style={styles.queueHead}>
-            <Txt role="label">
+            <Txt role="body">
               {queue.length === 0
                 ? "Ninguém precisa de um toque"
                 : `${queue.length} ${queue.length === 1 ? "precisa" : "precisam"} de um toque hoje`}
@@ -143,7 +193,7 @@ export function Painel({ token, time }: Props) {
               {/* O número da turma era só texto, e a fila é curta de propósito: quem não
                   está sinalizado hoje não tinha porta nenhuma. Agora ele é a porta. */}
               <Pressable
-                onPress={() => navigation.navigate("Fichas")}
+                onPress={() => navigation.navigate("Alunos")}
                 accessibilityRole="button"
                 hitSlop={12}
                 style={styles.queueLink}
@@ -166,7 +216,7 @@ export function Painel({ token, time }: Props) {
                 hitSlop={12}
                 style={styles.queueLink}
               >
-                <Txt role="label" tone="dim">
+                <Txt role="note" tone="dim">
                   Uma por uma
                 </Txt>
                 <IconChevron color={T.muted2} size={14} />
@@ -227,56 +277,6 @@ export function Painel({ token, time }: Props) {
             </View>
           </View>
         ))}
-
-        {fio ? (
-          <Band pad={false}>
-            <View style={styles.fio}>
-              {/* Número e causa lado a lado: a barra do dia é a decomposição do número,
-                  então ela não pode custar mais uma dobra de rolagem. */}
-              <View style={styles.fioRow}>
-                <Figure
-                  value={fio.value}
-                  unit={`de ${fio.total}`}
-                  label={fio.label}
-                  dir={fio.dir}
-                />
-                <View style={styles.week}>
-                  {fio.days.map((d) => (
-                    <View key={d.key} style={styles.day}>
-                      <View
-                        style={[
-                          styles.bar,
-                          { height: d.height, backgroundColor: calha },
-                        ]}
-                      >
-                        <View
-                          style={{
-                            height: d.fill,
-                            // Hoje contra o resto da semana em TRÊS canais, e nenhum
-                            // sozinho: a letra embaixo (tinta cheia contra apagada), a
-                            // posição na fila e o matiz. Em preto e branco a leitura
-                            // fica inteira — o medidor exige 5 de L* entre os dois.
-                            backgroundColor: d.today ? T.ink : referencia,
-                          }}
-                        />
-                      </View>
-                      <Txt
-                        role="label"
-                        tone={d.today ? "ink" : "dim"}
-                        style={styles.dayName}
-                      >
-                        {d.letter}
-                      </Txt>
-                    </View>
-                  ))}
-                </View>
-              </View>
-              <Txt role="note" tone="dim" style={styles.fioNote}>
-                {fio.note}
-              </Txt>
-            </View>
-          </Band>
-        ) : null}
 
         {data ? (
           <Pressable

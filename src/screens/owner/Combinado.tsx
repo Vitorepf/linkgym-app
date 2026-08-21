@@ -56,10 +56,21 @@ function paraCampo(cents?: number): string {
     : String(Math.trunc(cents / 100));
 }
 
-/** O que o dedo digitou, em centavos. Aceita vírgula e ponto porque o teclado numérico do
- *  iOS oferece os dois e ninguém lembra qual é o certo. `null` = não dá para guardar. */
+/** O que o dedo digitou, em centavos.
+ *
+ *  O SEPARADOR DE MILHAR SAI ANTES da validação. A primeira versão trocava o primeiro ponto
+ *  por vírgula e testava contra dois decimais, então "1.500" virava "1,500" e era recusado —
+ *  e o personal que cobra mil e quinhentos via borda vermelha sem entender por quê. Em
+ *  português o ponto separa milhar e a vírgula separa centavo; quem digita escreve os dois.
+ *
+ *  A regra: ponto ou vírgula seguido de EXATAMENTE três dígitos que terminam o número (ou
+ *  são seguidos de outro separador) é milhar e some. O que sobrar é o decimal. */
 export function centavosDe(texto: string): number | null {
-  const limpo = texto.trim().replace(/\s/g, "").replace(".", ",");
+  const limpo = texto
+    .trim()
+    .replace(/\s/g, "")
+    .replace(/[.,](?=\d{3}(\D|$))/g, "")
+    .replace(".", ",");
   if (!limpo) return null;
   if (!/^\d{1,7}(,\d{0,2})?$/.test(limpo)) return null;
   const [inteiro, decimal = ""] = limpo.split(",");
@@ -146,10 +157,26 @@ export function Combinado({ token, timeName, pessoas }: CombinadoRoute) {
     const l = linhas[p.bond_id];
     return centavosDe(l.valor) !== null && diaDe(l.dia) !== null;
   });
-  const invalidas = pessoas.filter((p) => {
+  // INCOMPLETA é diferente de INTOCADA: quem tem valor e apagou o dia não vai ser gravado
+  // e não ganhava marca nenhuma — a tela fechava anunciando sucesso e o que ele digitou
+  // evaporava.
+  //
+  // O SINAL DE TOQUE É O VALOR, e não "algum campo preenchido". A linha NASCE com
+  // `dia: diaPadrao` (acima), então "tem dia" era verdade em toda linha no primeiro render:
+  // a tela abria com as cinco bordas de erro no Valor e "Falta completar Ana, Bruno, Carla
+  // e mais 2." antes de qualquer toque — acusando o personal de não ter feito o que ele
+  // acabou de abrir a tela para fazer.
+  //
+  // ponytail: dia digitado sem valor deixa de avisar. Essa linha não tem nada a gravar, e
+  // separar dia-nascido de dia-digitado custaria um `tocou` em três funções. Se um dia o
+  // dia deixar de nascer preenchido, este `||` volta.
+  const incompletas = pessoas.filter((p) => {
     const l = linhas[p.bond_id];
-    const vazia = !l.valor.trim() && !l.dia.trim();
-    return !vazia && (centavosDe(l.valor) === null || diaDe(l.dia) === null);
+    return l.valor.trim() !== "" && (centavosDe(l.valor) === null || diaDe(l.dia) === null);
+  });
+  const diaRuimEm = pessoas.filter((p) => {
+    const l = linhas[p.bond_id];
+    return l.dia.trim() !== "" && diaDe(l.dia) === null;
   });
 
   async function guardar() {
@@ -174,7 +201,9 @@ export function Combinado({ token, timeName, pessoas }: CombinadoRoute) {
     );
     const caidas = resultados.filter((r) => !r.ok).map((r) => r.bond);
     setSalvando(false);
-    if (caidas.length === 0) {
+    // Só volta com TUDO resolvido. Fechar a tela com linha por gravar é anunciar sucesso e
+    // jogar fora o que ele digitou — o pior desfecho possível para uma tela de digitação.
+    if (caidas.length === 0 && incompletas.length === 0) {
       // Sem callback de volta: a Operação recarrega sozinha no foco (useFocusEffect), e
       // um callback em parâmetro de rota é estado que não sobrevive a um restore.
       navigation.goBack();
@@ -257,8 +286,9 @@ export function Combinado({ token, timeName, pessoas }: CombinadoRoute) {
 
         {pessoas.map((p) => {
           const l = linhas[p.bond_id];
-          const valorRuim = l.valor.trim() !== "" && centavosDe(l.valor) === null;
-          const diaRuim = l.dia.trim() !== "" && diaDe(l.dia) === null;
+          const incompleta = incompletas.includes(p);
+          const valorRuim = incompleta && centavosDe(l.valor) === null;
+          const diaRuim = incompleta && diaDe(l.dia) === null;
           return (
             <View key={p.bond_id} style={styles.linha}>
               <Initials name={p.name} size={34} />
@@ -290,11 +320,17 @@ export function Combinado({ token, timeName, pessoas }: CombinadoRoute) {
           );
         })}
 
-        {invalidas.length > 0 ? (
+        {/* A faixa NOMEIA quem falta e o que falta. "O dia vai de 1 a 28" quando o
+            problema era o valor mandava o personal conferir o campo certo. */}
+        {incompletas.length > 0 ? (
           <Band rule="none">
             <Txt role="note" tone="dim">
-              O dia do vencimento vai de 1 a 28 — assim ele existe em todo mês, inclusive
-              fevereiro.
+              {diaRuimEm.length > 0
+                ? "O dia do vencimento vai de 1 a 28 — assim ele existe em todo mês, inclusive fevereiro."
+                : `Falta ${incompletas.length === 1 ? "" : "completar "}${incompletas
+                    .slice(0, 3)
+                    .map((p) => p.name.trim().split(/\s+/)[0])
+                    .join(", ")}${incompletas.length > 3 ? " e mais " + (incompletas.length - 3) : ""}.`}
             </Txt>
           </Band>
         ) : null}

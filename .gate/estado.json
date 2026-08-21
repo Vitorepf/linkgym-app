@@ -1,9 +1,9 @@
 {
-  "estado": "estagnado",
-  "fase": 7,
-  "alvo": "CICLO 7 — OPERACAO DO PERSONAL: a aba Operacao vira o produto de manter e escalar. Mensalidade que o personal consegue cadastrar (hoje a rota PUT existe no backend e NENHUMA tela chama), recebimento registravel, produtos criaveis em poucos toques (assinatura/pacote/avulso/fisico), previsao de cancelamento assertiva com acao na linha, e estatistica visual que termina em nome e acao, nunca em percentual. Fase 2: dinheiro de verdade com provedor BR (PIX/split) e taxa da plataforma.",
+  "estado": "em_andamento",
+  "fase": 10,
+  "alvo": "CICLO 10 — O ARSENAL. A meta do dono mudou de foco: Perfil > Aparencia do app é O produto, num ciclo longo com JUIZES de qualidade, simplicidade e inovacao a cada rodada. O que ele pede agora e diferente do ciclo 9: nao mais alavancas isoladas, e sim LINGUAGENS DE DESIGN inteiras — minimalista, flat, moderno e o que mais existir — cada uma completa e de acabamento impecavel, feita a mao. Mais materiais, mais tipos de elemento, mais personalizacao, e acabamento/empacotamento/fluidez em nivel absurdo. Sem rolagem demais. Variedade de VERDADE: se duas opcoes chegam parecidas na tela, sao uma opcao com dois nomes.",
   "spec": "docs/operacao/SPEC.md (em producao pelo ciclo de ideacao+juri)",
-  "motivo": "Ciclos 5 a 8 entregues e medidos. Gate 13/13. O veredito da maquina no ledger e 'estagnado' desde 16:34 (anti-loop disparou em falso positivo durante uma medicao de 10 minutos); qualquer outro estado faz o gate vetar, e relegitimar e ato do humano. ATENCAO: outras DUAS sessoes do Claude escrevem neste mesmo repo e reescrevem este arquivo — decisao do humano: uma sessao por vez, ou um worktree por sessao.",
+  "motivo": "Ciclo 10 rodada 2: carimbo, as oito linguagens, O Palco, e os consertos que os juizes acharam.",
   "fabrica_entregue": {
     "api": [
       "migration 00009 studios.config jsonb + whitelist (internal/owner/config.go): liga nomes|anonima|off, selos, xp, prontidao, passo_kg 0.5|1|2.5, dias_padrao 2-6, boas_vindas <=100 sem URL/fone, retomada <=90; acoplamento liga!=off => xp visivel",
@@ -24,12 +24,15 @@
     "estrutura": "entregue o tier 1; falta: liga anonima mascarada no SERVIDOR (hoje e no cliente), unidade kg/lb (funil formatLoad), campos do onboarding escolhiveis, aba de conteudo do personal (G); NUNCA desligavel: registro de serie, Cumprimento, Retomada, convite unico; matriz de presets no gate quando houver mais flags"
   },
   "medidores": {
-    "gate": "13/13 verdes: tipos 0, contraste 0 pares reprovando, escala 2, soltos 0, culpa 0, proibidas 0, toques_serie 2, inclinacao_lote 0.0526, toques_convite 32, fila 6, telas 36, carga_perdida 0, ritmo 11.9",
-    "aparencia": "12477 pares · 0 reprovam (NOVO, nao registrado)",
-    "kits": "216 montagens em 6 kits · 0 quebradas (NOVO, nao registrado)",
-    "shots": "720 montagens · toda tela montou em toda marca",
-    "api": "go test -p 1 ./... verde, com dois arquivos de teste novos (convite e whitelist da aparencia)",
-    "invariante": "criarTema() sem argumento continua byte a byte identico ao app de hoje — T, SPACE, TYPE, LEAD, TRACK, MOTION e FONT"
+    "aparencia": "tools/aparencia.mjs — 590.705 pares, 0 reprovam. Espaco fechado 11.757.312 aparencias, oito materiais.",
+    "botao": "tools/botao.mjs — 432 combinações, 0 reprovam.",
+    "rolagem": "tools/rolagem.mjs (NOVO) — 56 telas no Chrome. Teto 3 viewports e 30 alvos numa página (listas isentas dos dois). ANTES 5 reprovavam: folha de cores 42 alvos, Perfil 37, folha do botao 33. DEPOIS 0.",
+    "tempo": "tools/tempo.mjs (NOVO) — literal de tempo fora de MOTION e withTiming sem curva. ANTES 9 (duas molas DIFERENTES no mesmo arquivo, um FadeIn de 180, um pulso de 1100 sem curva). DEPOIS 0.",
+    "vaos": "tools/vaos.mjs (NOVO) — literal de espaco fora dos seis degraus de SPACE. ANTES 161 em 31 arquivos. AGORA 144 em 29; Hoje.tsx (12) zerado, Metric, tabChrome e as amostras do editor zerados.",
+    "escala": "1 -> 0. O fontSize: 10 da barra de abas era o ultimo corpo cravado a mao no app, e era ele que fazia a barra ser o unico lugar onde a alavanca de letra nao chegava.",
+    "material": "a alavanca de superficie alcancava 26 das 119 Bands do app: `raised` caia numa bandeira de captura (`__bandRaised`, sempre false em producao) e 93 chamadas nao passavam a prop. Agora quem responde e o material escolhido.",
+    "linguagens": "tools/linguagens.mjs (NOVO) — 8 linguagens, 28 pares, piso de 3 canais grossos de 6. 0 reprovam; o par mais proximo e Moderno x Vitrine com 3. DENTES: contra os SEIS kits antigos, Boutique x Sereno media 2 — dois kits que eram quase o mesmo app.",
+    "juizes": "painel de tres juizes cegos + sintetizador que verificou no codigo: qualidade 6, simplicidade 5, inovacao 5. Quatro achados coincidentes, todos confirmados; um refutado na checagem."
   },
   "perfil_do_personal": {
     "pedido": "dono apontou a tela no aparelho: 'use o simulador e presta atencao no perfil do personal'",
@@ -73,11 +76,78 @@
     "lote_8_ciclo_3": "ENTREGUE por 3 agentes, com DOIS achados REFUTADOS por medicao (nao consertados, derrubados): 'a ultima linha e fatiada pelo dock' era falso (no BottomTabView da react-navigation 7.18 o scroller termina em 807 e o dock comeca em 807 — zero sobreposicao), e 'o rosto sem cor some no chao claro' era falso (T.fill se afasta acima do piso nos sete chaos). Entregue de fato: FORMA.celula (fio/caixa/cartao) derivada de superficie+raio — a celula de numero era o unico lugar onde a alavanca mais cara nao chegava; neutroSobre(fundo) — um helper so, para a peca que pousa em superficie levantada usar o degrau daquele fundo e nao o de bg; e o inset pago em dobro na aba Semana. Achado NOVO: o dock de vidro nao tem o que desfocar (nada passa atras da barra) — registrado em defeitos_abertos.",
     "testes_da_api": "internal/owner/convite_test.go (a marca no codigo, glifo sem ambiguidade, idempotencia por telefone, convite aberto distinto, aluno recusado) e internal/owner/aparencia_test.go (o cardapio inteiro passa; dez valores inventados sao recusados). go test -p 1 ./... verde."
   },
-  "defeitos": {
-    "oficio": 2,
-    "operacao": 2,
-    "ritual": 0
-  },
+  "defeitos": [
+    {
+      "id": "C10-1",
+      "o": "a alavanca de material nao pintava 78% dos blocos do app",
+      "eixo": "oficio",
+      "estado": "fechado",
+      "prova": "raised sai do material escolhido; 93 de 119 Bands passaram a vestir material"
+    },
+    {
+      "id": "C10-2",
+      "o": "faltavam os materiais do silencio e do bloco impresso",
+      "eixo": "oficio",
+      "estado": "fechado",
+      "prova": "nenhuma e carimbo; 8 materiais, 590.705 pares 0 reprovam, 11.757.312 aparencias"
+    },
+    {
+      "id": "C10-3",
+      "o": "seis kits eram documentos pre-preenchidos, nao linguagens",
+      "eixo": "oficio",
+      "estado": "fechado",
+      "prova": "8 linguagens + tools/linguagens.mjs; dentes: Boutique x Sereno media 2 de 6 no conjunto antigo"
+    },
+    {
+      "id": "C10-4",
+      "o": "a porta da aparencia era um indice que so confirmava o que ja fora escolhido",
+      "eixo": "ritual",
+      "estado": "fechado",
+      "prova": "O Palco: o app do aluno em tela cheia, oito linguagens no polegar, zero rolagem vertical"
+    },
+    {
+      "id": "C10-5",
+      "o": "a lista de cartoes encolhia debaixo do dedo e apagava o ajuste manual",
+      "eixo": "ritual",
+      "estado": "fechado",
+      "prova": "achado por tres juizes cegos; lista de tamanho fixo + contentOffset"
+    },
+    {
+      "id": "C10-6",
+      "o": "tempo solto que a alavanca de movimento nao alcancava",
+      "eixo": "oficio",
+      "estado": "fechado",
+      "prova": "tools/tempo.mjs 9 -> 0; duas molas diferentes no mesmo arquivo"
+    },
+    {
+      "id": "C10-7",
+      "o": "161 vaos fora da escada de espaco em 31 arquivos",
+      "eixo": "oficio",
+      "estado": "em andamento",
+      "prova": "tools/vaos.mjs 161 -> 38; os 22 restantes que sobram sao de outra sessao"
+    },
+    {
+      "id": "C10-8",
+      "o": "22 defeitos de acabamento medidos em pixel",
+      "eixo": "oficio",
+      "estado": "em andamento",
+      "prova": "docs/erros/ACABAMENTO.md; 14 fechados"
+    },
+    {
+      "id": "C10-9",
+      "o": "a regua de rolagem contava alvos em telas escondidas",
+      "eixo": "operacao",
+      "estado": "fechado",
+      "prova": "defeito da propria regua: display:none contava; 32 onde o dedo alcanca 15"
+    },
+    {
+      "id": "C10-10",
+      "o": "sete medidores rodam e nao travam nada",
+      "eixo": "operacao",
+      "estado": "aberto",
+      "prova": "registrar eixo e ato do humano; script pronto no scratchpad"
+    }
+  ],
   "defeitos_abertos": {
     "oficio": [
       "`parelha` DESLIGADO colapsa e NAO tem conserto pela tinta: o rotulo aceso ja pousa a 4,51-4,66:1 sobre o cinza medio que degrauNeutro deriva, e ali muted mede 1,59-1,91 e muted2 1,18-1,48. Medido: 12 de 84 com delta L* < 5 entre aceso e apagado, 5 deles com 0,00. O segundo sinal teria que ser o FUNDO do botao (um fundoDesligado que recua o degrau derivado), o que muda o contrato que AccentCTA/GhostCTA PINTAM — alavanca de peso do sistema, nao de tema. A regua nova nao isenta parelha a mao: so nao cobra onde a escada de tintas nao tem degrau para dar, e essa condicao e calculada da paleta.",
@@ -154,18 +224,231 @@
       "recebido_cents/a_vencer_cents/vencido_cents/ultima_marcacao; BarraDoMes substitui o MetricGrid",
       "internal/owner/risco.go: queda contra a linha da pessoa, silencio do personal, estreante com piso de 7d",
       "src/whatsapp.ts extraido de Convite (conhecimento do esquema whatsapp:// num lugar so)",
-      "testes: DefinirMensalidade, sem_combinado, recebi/desfazer, provedor nao apaga, isolamento multi-tenant real, 3 de risco"
+      "testes: DefinirMensalidade, sem_combinado, recebi/desfazer, provedor nao apaga, isolamento multi-tenant real, 3 de risco",
+      "internal/pix/brcode.go: BR Code EMV estatico com valor, CRC-16/CCITT-FALSE ancorado no vetor padrao, sem dependencia nova",
+      "chave_pix/nome_recebedor/cidade_recebedor via PatchTime (refatorado para struct); copia_e_cola por linha",
+      "extras (o que ele vende fora da mensalidade): 2 campos, criar/receber/desfazer, secao A ENTREGAR",
+      "MudarEstadoDoVinculo: encerrar/pausar/reativar — bonds.status nunca tinha sido escrito por nenhuma linha de Go",
+      "secao Dinheiro na tela da pessoa: o combinado, vender a parte, e a saida",
+      "expo-clipboard (via expo install, respeita o pin do SDK 54)",
+      "internal/owner/meses.go: a fita de meses fechados, so a partir de dois, com os nomes de cada coluna",
+      "internal/owner/japaguei.go + tela do aluno: o verbo dele, que nao marca nada e nao cobra ninguem",
+      "em_aberto ordena por quem DISSE que pagou primeiro: conferir vem antes de lembrar"
     ],
     "falta": [
-      "BR Code Pix estatico (~40 linhas EMV, sem txid) — o juiz-personal chamou de melhor ideia das 7 propostas",
-      "ja_paguei: o verbo do aluno, a peca que nenhuma das 7 propostas tinha",
-      "cobrancas_avulsas: o produto em 2 campos (o pedido \"criar produtos em poucos cliques\")",
-      "saidas + encerrar aluno: bonds.status nunca foi escrito por nenhuma linha de Go (achado CRITICO)",
-      "a fita de meses fechados: o unico grafico, e ele devolve nomes",
-      "toques + applied_at no lugar do DELETE em attention.go"
-    ]
+      "FASE 2: subconta do personal no provedor (KYC), repasse com application fee, webhook idempotente, conciliacao",
+      "assinatura recorrente de verdade (PixDireto devolve ErrNaoSuportado de proposito)",
+      "saidas deduzidas por 60 dias de silencio (a saida manual ja existe)"
+    ],
+    "aprendido": {
+      "o gate pegou um erro meu de doutrina": "batizei o conceito de \"Cobranca\" e as catracas culpa e proibidas reprovaram: \"cobranca\"/\"cobrar\" estao na lista CULPA (palavra que vira cracha de pessoa) e \"cobranca\" esta no _Avoid_ do CONTEXT.md, junto com checkout, gateway, boleto, split, inadimplente, plano e dashboard. O produto recusa o vocabulario de sistema de faturamento inteiro. Renomeado para \"extra\" nos dois repos, inclusive a tabela. Tambem reprovou \"estudio\" numa string — a palavra do dominio e Time."
+    },
+    "ciclo_2_revisao": {
+      "como": "6 lentes adversariais sobre o codigo NOVO + cetico refutando cada achado + sintese. 34 sobreviveram.",
+      "veredito_do_revisor": "\"O servidor da Fase 1 esta quase todo de pe... A fase PARA NO APP. Tres pecas chegaram ao servidor e nunca ganharam tela — a chave Pix, o recibo com desfazer, e o verbo da aluna.\" Ou seja: repeti tres vezes exatamente o defeito que a auditoria achou no codigo original (rota sem chamador).",
+      "consertados": [
+        "o \"ja paguei\" agora produz pixel: a nota muda e o botao vira CONFERIR (o trabalho deixa de ser lembrar)",
+        "atraso sai de DATA e da competencia aberta mais antiga: atravessa a virada do mes e alcanca due_day 27/28",
+        "atraso limitado pela idade do vinculo: quem entra hoje nao nasce devendo (era o primeiro uso do produto)",
+        "sessao de HOJE nao e abandono: a fila parou de nomear quem esta treinando na frente dele",
+        "recibo com desfazer: a linha nao some mais no toque, e o recibo e o alvo do desfazer",
+        "tela da chave Pix na Operacao + normalizacao/validacao dos 5 formatos do DICT (o Pix estava morto)",
+        "confirmacao da saida, e o desfazer espera resposta",
+        "ex-aluno sai das filas de trabalho do personal (session_alerts sem filtro de vinculo)",
+        "extra em aberto sobrevive ao pause: divida aberta continua aberta",
+        "Combinado aceita \"1.500\"; linha incompleta ganha borda e a tela nao fecha anunciando sucesso",
+        "toques + applied_at escritos: era a unica perda IRRECUPERAVEL PARA TRAS do lote",
+        "placar do mes (\"tocou em N, M voltaram\") — a unica estatistica agregada, e e sobre ELE",
+        "acessibilidade: Pressable dentro de Pressable engolia o botao da linha de risco no VoiceOver",
+        "estados vazios pararam de afirmar \"as 0 mensalidades estao pagas\" para quem nao tem nada",
+        "disabled passado nas acoes (a prop existia e ninguem usava)",
+        "BR Codes da fixture trocados pela saida real do gerador (os antigos nao passavam num parser TLV)"
+      ],
+      "catracas_pegaram_de_novo": "proibidas reprovou 12: reintroduzi \"cobranca\" ao reescrever uma linha, escrevi \"LinkGym\" numa string de tela (o nome do produto NUNCA aparece — quem assina e o Time) e \"academia\" num comentario SQL. Comentario SQL dentro de raw string Go nao e apagado pelo removedor, que so entende // e /* */."
+    },
+    "decisao_do_dono_pendente": "ENCERRAR significa parar de cobrar, ou tirar o acesso? Hoje encerra o vinculo e o ex-aluno some de todas as contas e filas do personal, mas continua entrando no app e recebendo ficha. Fechar o acesso e uma linha em quatro consultas do lado do aluno — e muda o ritual dele, que e eixo medido. Nao decidi sozinho.",
+    "ciclo_3_o_escopo_que_eu_estreitei": {
+      "o_erro": "Em tres frentes eu estreitei o pedido do dono em nome da doutrina da casa, depois de ele ja ter reafirmado. Escopo pedido e o entregavel; encolher e decisao dele, nao minha.",
+      "produtos": "Ele pediu loja de suplemento, assinatura de marmita e \"qualquer tipo de produto\". Eu entreguei uma venda avulsa de dois campos e o juri vetou o catalogo. Agora existe catalogo: 4 tipos fechados (assinatura/pacote/avulso/fisico), cardapio de modelos (4 toques + 1 campo), pausar como estoque, saldo de pacote por contagem, e a loja da aluna no Perfil com o verbo \"Quero\" — que nao cobra nada e vira um nome na tela dele.",
+      "pagamento": "internal/pagamento: a fronteira do provedor + a taxa 1,99% com TETO de R$14,90. O teto e a decisao: o custo do provedor e fixo (~R$2) e taxa percentual cresce sem limite, e quem fatura mais e exatamente quem tem motivo para desviar para o Pix pessoal. Desintermediacao nao se combate com clausula. PixDireto implementado com taxa ZERO — o dinheiro nao passa por dentro, entao nao ha o que reter. A interface RECUSA por desenho um provedor que custodie: custodiar = ser merchant of record, com responsabilidade solidaria e obrigacao fiscal sobre receita que nao e nossa.",
+      "stripe": "Descartada por fato verificado: Pix na Stripe para empresa sediada no Brasil e por convite, e nao existe recorrencia em Pix. Sem Pix sobra cartao a 3,99%+R$0,39 em D+30 para quem nao tem limite. Fase 2 = provedor nacional com repasse nativo e subconta por API.",
+      "a_catraca_pegou_de_novo": "nomeei o tipo do provedor de \"Cobranca\" e culpa+proibidas reprovaram. Virou \"Ordem\". O nome que se da para uma coisa e o que a proxima pessoa constroi em cima dela."
+    },
+    "ciclo_4_desenho": {
+      "o_pedido": "\"a experiencia, design, estrutura, esta muito porca, horrivel, extremamente amadora e nada premium\" — e ele pediu subagentes especificos para isso. 6 lentes de desenho + juri triplo (direcao de arte, engenharia, e o proprio personal).",
+      "causa_raiz_achada": "A Operacao e a UNICA tela do app que nao le o tema. `grep SPACE Operacao.tsx` devolvia ZERO em 1338 linhas: 24 numeros de espaco cravados na mao, 14 fora da escala e 7 abaixo do piso de 8 que o proprio theme.ts:145 chama de \"defeito de renderizacao\". O mesmo padrao em todo canal: FORMA.alturaMinima=44 existe e os botoes de dinheiro mediam 36; secundario() existe e a tela usava opacity 0.35 (1,78:1); SPACE.room existe e nunca foi usado. Nao faltava desenho — faltava ler o desenho que ja estava escrito.",
+      "leis_aplicadas": [
+        "UM PESO nao basta: 47 de 47 nos em Archivo_800ExtraBold. O texto caiu para Medium e a hierarquia passou a existir.",
+        "Superficie levantada e do que se LE uma vez por dia; linha rente e do que se TOCA. Era 6x `raised`, 3 delas em VAZIOS com `grow` — no dia bom a maior coisa da tela era um paragrafo cinza dizendo que nao havia trabalho.",
+        "A faixa de secao tem DOIS graus e o esqueleto nunca some: quente (trabalho) em tinta cheia com borda; fria (retrovisor) apagada com fio e SPACE.room.",
+        "Todo traco visivel e T.divider; quem ranqueia e a ESPESSURA. O separador entre duas PESSOAS era 1,23:1 e a borda de um botao 3,44:1 no dobro da espessura.",
+        "Alvo de dedo e ALVO.minimo (44). Os 13 botoes de dinheiro subiram de 36 para 44 e a LINHA encurtou de 68 para 60.",
+        "Desligado e a tinta descendo um degrau, nunca opacity no botao inteiro.",
+        "Uma pessoa, uma anatomia: o avatar entrou nas tres filas.",
+        "Numa linha com duas acoes, a caixa fica com quem GRAVA o fato. [Pix] virou discreto."
+      ],
+      "acabamento": [
+        "AccentCTA.tsx: `label: flex:1` (basis 0) colapsava o rotulo para 0pt em pai que encolhe — sobrava um quadradinho com uma seta. Atingia 3 telas. Virou flexBasis auto.",
+        "a prosa do tempo arredonda: \"venceu ha 400 dias\" -> \"venceu ha mais de um ano\"",
+        "o valor da celula nunca quebra em duas linhas (desalinhava a fila inteira)",
+        "o botao nao joga fora o proprio verbo enquanto salva, e nao anuncia \"desativado\"",
+        "hitSlop 8 -> 4: dois botoes vizinhos tinham 4pt de area de toque SOBREPOSTA, entre copiar um Pix e registrar dinheiro",
+        "genero cravado: \"Manda pra ela\" embaixo de Rafael Souza"
+      ],
+      "gate": "13/13. telas 52 (era 36 no inicio do ciclo 7), escala 1, culpa 0, proibidas 0, contraste 0, soltos 0."
+    },
+    "ciclo_5_defeitos_abertos": {
+      "o_que_fechou": [
+        "O BURACO SEM SAIDA: [Recebi] gravava sempre na competencia CORRENTE. Quem devia 5 meses recebia UM toque, agosto era marcado, ela SUMIA da lista, e R$1.750 em 4 competencias ficavam abertos para sempre — invisiveis em toda a tela. O produto sabia criar um estado do qual nao sabia sair. Agora o toque quita a competencia MAIS ANTIGA e o WHERE da lista e `meses > 0`, nao \"nao pagou o mes corrente\".",
+        "A divida tem o tamanho dela na linha: \"14 meses · R$ 4.900\" no lugar de \"venceu ha mais de um ano · R$ 350\".",
+        "A fila e a lista liam a divida por janelas DIFERENTES (risco.go contava do vinculo, operacao.go do combinado): a mesma pessoa aparecia com R$350 numa superficie e R$1.750 na outra.",
+        "Combinado parava de abrir acusando: as 5 linhas nasciam com borda de erro antes de qualquer toque, porque o dia ja nasce preenchido e \"algum campo preenchido\" nunca foi sinal de toque.",
+        "O `error` sobrevivia a propria verdade: nenhum handler limpava no sucesso, entao \"nao deu para marcar a de Ana\" ficava no topo depois de um retry que deu certo."
+      ],
+      "a_barra_continua_sendo_do_MES": "A decisao central: a linha e da PESSOA (a divida inteira), a barra e do MES. Sao objetos diferentes e os rotulos dizem o que sao — recebido+a_vencer+vencido continua fechando em receita_cents. A alternativa (inchar a barra com divida antiga) daria dois numeros com o mesmo nome e sentidos diferentes, que e o defeito que a reconstrucao inteira existiu para matar.",
+      "ainda_feio_e_honesto": "Receber R$1.750 num Pix custa cinco toques em [Recebi], um por competencia. Nenhum numero afirmado e falso em nenhum passo. Pagamento parcial e quitacao em bloco sao conceitos de dominio novos e nao foram inventados por antecipacao.",
+      "ressalva_de_ferramenta": "`go test ./...` reprova em TestPagarMensalidade e TestOwnerApplyBumpsTomorrowDraft por contencao de banco entre internal/owner e cmd/api, que semeiam o mesmo Postgres em paralelo. E PRE-EXISTENTE. Use `-p 1`, como o Makefile ja faz.",
+      "defeitos_abertos_por_eixo": {
+        "operacao": [
+          "saida deduzida por silencio (tabela `saidas` criada e vazia)",
+          "PlacarDoMes contaria o toque 'continua' do [Ainda e minha] como contato",
+          "o mesmo objeto tem tres nomes: \"A entregar\", \"Vender a parte\", \"Criar o extra\"",
+          "a FITA nao informa: 29% de variacao desenham 16pt num trilho de 72",
+          "quitacao em bloco / pagamento parcial nao existem no dominio",
+          "no SEGUNDO dia a grade imprime cinco zeros verdadeiros e inuteis"
+        ],
+        "oficio": [
+          "`busy` e cadeado de TELA para escrita de LINHA: 5 recebidos = 5 latencias em serie",
+          "o erro de escrita nasce no topo da rolagem, longe do dedo que o causou",
+          "`...num` so existe nos papeis value/hero/mega; nove call sites remendam a mao",
+          "tres implementacoes do mesmo formatador de dinheiro, uma por tela",
+          "faxina de prosa: genero cravado, caixa e pontuacao inconsistentes",
+          "a janela das competencias esta em duas copias alinhadas (era tres)"
+        ],
+        "ritual": [
+          "a loja no Perfil do aluno nao foi julgada contra o eixo 3 por critico nenhum",
+          "encerrar o vinculo nao fecha o lado do aluno (decisao do dono)"
+        ]
+      }
+    },
+    "ciclo_6_assinatura": {
+      "o_buraco": "`assinatura` era um ROTULO, nao um comportamento. O cardapio dizia \"Repete todo mes\" na propria linha e nada repetia: vender a marmita criava UMA venda, uma vez, e no mes seguinte nao havia nada. O dono citou \"assinatura de marmita fitness\" nominalmente no pedido.",
+      "como": "A maquina ja existia e nao se inventou outra: a Mensalidade resolve recorrencia DERIVANDO as competencias abertas (generate_series menos os recebimentos), sem gerar linha por antecipacao. Nada de cron, nada de job, nada de \"gerar cobranca do dia 1\" — que e o processo que, quando falha as 3h, deixa a turma inteira sem cobranca e ninguem percebe ate o dia 5. A tabela `jobs` do schema continua vazia, e agora de proposito.",
+      "entregue": [
+        "migration 00013: assinaturas(bond_id, produto_id, valor_cents CONGELADO, desde, ate) + extras.competencia",
+        "idempotencia no SCHEMA: unique(bond_id, produto_id, competencia) — a mesma competencia nao e cobrada duas vezes",
+        "unique parcial (bond_id, produto_id) WHERE ate IS NULL: assinar duas vezes e dedo duplo, nao duas marmitas",
+        "Assinar / ReceberAssinatura (quita a MAIS ANTIGA) / CancelarAssinatura (grava data, nunca apaga)",
+        "VenderProduto RECUSA tipo=assinatura: assinatura nao e venda, e um combinado que repete",
+        "secao \"Todo mes\" na Operacao, com o valor da DIVIDA e nao o de um mes",
+        "teste que anda o relogio de marco a julho e prova que 1 mes vira 4 sem ninguem rodar nada"
+      ]
+    },
+    "defeitos_abertos_por_eixo_atualizado": "operacao caiu de 6 para 5: \"assinatura e rotulo, nao comportamento\" fechou no ciclo 6."
   },
   "concorrencia": "Tres sessoes do Claude escrevendo no mesmo repo ao mesmo tempo. Cada uma invalida a medicao da outra (a impressao do codigo de tools/toques.mjs e tools/cobertura.mjs muda a cada letra em src/), e as tres disputam .gate/estado.json. Decisao do humano: ou uma sessao so mexe no repo por vez, ou cada uma trabalha num worktree proprio.",
   "ciclo_8": "ENTREGUE por 4 agentes. Consertou a REGRESSAO DO PROPRIO CICLO 7 (o dock perdeu o unico canal que separava elevada de solida no chao escuro: 15 de 42 pares colidiam, contra 7 antes) escolhendo a rota do TRACO UNICO e RECUSANDO por medida a rota do fundo: no chao escuro a escada de dock ate raised mede 5,2-6,3 de L*, entao nao cabe la um degrau de 5, e o primeiro degrau acima e fill, onde divider cai para 2,42-2,76:1 e a regua de delimitacao morre. reguaDoDock = elevada && !elevacao ? chao.ink : chao.divider — os dois unicos tokens que a SPEC §3 aceita para traco que carrega informacao. Nos 4 chaos escuros ink da 17,0-20,3:1 contra os dois lados (piso 3) e separa 49,3-56,8 de L* do divider das outras familias (piso 5). Colisao de pixel 15/42 -> 7/42, e o par que sobra (solida x contorno) esta ESCRITO em COLIDE_DE_PROPOSITO. A folha do chrome ficou HONESTA: borda e corDaBorda passaram a ser o que a tela pinta e aresta do chrome e '' para sempre — a §16 parou de comprar 0 colisoes com uma mentira. veuLegivel passou a cobrir os QUATRO tokens da §28 e a grade foi adensada de 224 para 3.264 sementes; o medidor foi de 118.653 para 316.578 pares. eco desligado deixou de ser identico ao ligado (21/21 -> 0/21): apagada() so desce para muted2 quando ha EMPATE, e nas outras hierarquias nao anda um centesimo.",
-  "dentes_do_ciclo_8": "Cada conserto revertido num rascunho e a regua NOVA rodada contra a versao VELHA: dock 20 reprovam (16 pares de pixel + 4 estruturais — as duas molduras liam so `fundo` e `sombra`); veu 14 reprovam, todos divider sobre vidro, pior 2,97, e na grade VELHA o mesmo helper velho da 0 de 14.336 (a regua so ganhou dentes porque a grade foi adensada JUNTO); eco 1.092 de 1.092, 100% das paletas, porque o par velho (ratio(ligada)-ratio(desligada) >= 0) passa na identidade exata por construcao."
+  "dentes_do_ciclo_8": "Cada conserto revertido num rascunho e a regua NOVA rodada contra a versao VELHA: dock 20 reprovam (16 pares de pixel + 4 estruturais — as duas molduras liam so `fundo` e `sombra`); veu 14 reprovam, todos divider sobre vidro, pior 2,97, e na grade VELHA o mesmo helper velho da 0 de 14.336 (a regua so ganhou dentes porque a grade foi adensada JUNTO); eco 1.092 de 1.092, 100% das paletas, porque o par velho (ratio(ligada)-ratio(desligada) >= 0) passa na identidade exata por construcao.",
+  "defeitos_do_ciclo_6": [
+    {
+      "id": "D1",
+      "o": "o botão extraordinariamente grande",
+      "estado": "fechado",
+      "prova": "tools/botao.mjs 100/144 -> 0/432; alavanca de porte 48/52/56 com piso acima do alvo de dedo"
+    },
+    {
+      "id": "D2",
+      "o": "variedade de cor baixíssima",
+      "estado": "fechado",
+      "prova": "cardápio 10->27 em dois passos, 0 colisões nos 7 chãos; segunda cor filtrada (o app movia 19,8% das escolhas)"
+    },
+    {
+      "id": "D3",
+      "o": "vocabulário incompreensível (chão)",
+      "estado": "fechado",
+      "prova": "15 rótulos + 7 nomes de chão reescritos; palavras.mjs 0 proibidas, 0 culpa"
+    },
+    {
+      "id": "D4",
+      "o": "zero variedade de MATERIAL",
+      "estado": "fechado",
+      "prova": "vidro virou BlurView de verdade; fio e vinco entraram; contorno vs fio saiu de 967 pares reprovando para 0"
+    },
+    {
+      "id": "D5",
+      "o": "as letras saem todas iguais",
+      "estado": "fechado",
+      "prova": "herói 53-73pt (era tudo em 2pt), razão 4,2-6,6, 6 faces de número distintas"
+    },
+    {
+      "id": "D6",
+      "o": "rolagem massiva no lugar de modal",
+      "estado": "fechado",
+      "prova": "6333pt -> índice de 10 portas + 10 formSheets; 11 fixtures novas onde a Aparência nunca tinha nenhuma"
+    },
+    {
+      "id": "D7",
+      "o": "três botões empilhados por tela",
+      "estado": "fechado",
+      "prova": "saída foi para o cabeçalho na Aparencia e na ComoFunciona; Descartar virou desfazer de texto"
+    }
+  ],
+  "defeitos_abertos_do_ciclo_7": {
+    "oficio": [
+      "a fita: 6 barras quase iguais (780-1010) informam pouco; a legenda em prosa carrega o peso todo",
+      "o Head repete o nome da tela e custa 84pt em 32 telas — decisao de sistema, nao desta tela",
+      "tabular-nums so no heroi: title e note ficaram sem, e coluna de dinheiro com numero proporcional le torta",
+      "Combinado abre com bordas de aviso antes de qualquer toque quando o dia vem pre-preenchido",
+      "vocabulario do mesmo objeto em tres lugares: \"A entregar\", \"Vender a parte\", \"Criar o extra\"",
+      "o primeiro uso (turma zero, sem combinado, sem produto) nunca foi fotografado nem julgado"
+    ],
+    "operacao": [
+      "divida de dois meses aparece como um mes: em_aberto e escopado por competencia, entao o VALOR mostra R$350 quando o fato e R$700",
+      "a saida deduzida por 60 dias de silencio nao existe; so a saida manual, que o personal tem de assinar",
+      "quem ja foi tocado continua na fila: `toques` esta sendo gravado mas ninguem le para suprimir",
+      "o `busy` unico serializa N escritas independentes e idempotentes — marcar 5 recebidos custa 5 latencias",
+      "o erro de escrita nasce no topo da rolagem, a ~500pt do dedo que o causou"
+    ],
+    "ritual": [
+      "a loja no Perfil do aluno nao foi julgada contra o eixo 3 por critico nenhum",
+      "encerrar o vinculo nao fecha o lado do aluno: ele continua entrando e recebendo ficha (decisao do dono)"
+    ]
+  },
+  "ciclo_8_auditoria": {
+    "pergunta_do_dono": "chegou no estado da perfeicao?",
+    "metodo": "5 lentes (oficio, cobertura do pedido, verdade do dado, primeiro uso, ritual) leram codigo E os PNGs reais; os 2 achados mais graves de cada uma foram a um cetico instruido a DERRUBAR; um juiz ranqueou o que sobrou. 16 agentes, 25 achados, 10 julgados, 4 sobreviveram.",
+    "resposta": "NAO. O gate diz MECANICA-OK 13/13, que e o piso — 13 catracas de 'nada piorou'. Nenhuma julga se a coisa e boa. Dos 10 pedidos escritos do dono, 8 existem na tela; faltavam 2 inteiros (a DATA do nao-pagamento e PAGAMENTO DENTRO DO APP).",
+    "fechados_neste_ciclo": [
+      "IMPEDE — a assinatura entrava com um toque da aluna e nao saia por lugar nenhum. `CancelarAssinatura` existia, a rota existia, zero chamadores. Agora: DesistirDoPedido (DELETE /v1/student/loja/{id}/quero) para ela desfazer o proprio toque enquanto NADA foi recebido, e 'Parar' na pessoa (Aluna.tsx) para ele, depois do primeiro mes. Teste: TestAlunaDesisteEnquantoNadaFoiRecebido.",
+      "IMPEDE — o cardapio esgotava. Sete modelos, e os ja criados saiam da lista: depois do setimo nao existia mais caminho nenhum para criar produto, num app cujo pedido escrito era 'qualquer tipo de produto'. Agora ha a linha 'Outra coisa' com os quatro tipos derivados do servidor, e o campo de sessoes do pacote.",
+      "ATRAPALHA — a fila 'Vai sumir' acusava quem ja tinha respondido: a mesma Marina aparecia na mesma dobra com 'R$ 350 em aberto ha 9 dias' na fila e 'disse que pagou' 275pt abaixo. risco.go nao conhecia ja_paguei. Agora o sinal vira disse_que_pagou_e_sumico, a frase muda de dona e o botao vira [Conferir] — o mesmo verbo da linha de baixo. Ela CONTINUA na fila: responder sobre dinheiro nao desfaz 12 dias sem treinar. Teste: TestFilaMudaDeFraseQuandoElaDizQueJaPagou.",
+      "ATRAPALHA — 'quem nao pagou ainda E A DATA' era pedido escrito e a tela nao tinha uma unica data de calendario; para quem devia mais de um mes nao tinha nem o decorrido. `venceu_em` viaja agora (mesma competencia de onde sai vencido_ha) e a linha diz 'R$ 900 - 3 meses desde 15 de junho'. Teste: TestEmAbertoCarregaADataDoVencimento.",
+      "ATRAPALHA — os quatro R$ 0 voltavam no SEGUNDO dia: com aluno dentro e nenhum valor combinado a grade afirmava 'EM ABERTO R$ 0 - ninguem em aberto', um tudo-certo por cima de um nada-feito. As tres celulas de mensalidade e a de produto agora so existem quando existe o dado.",
+      "ATRAPALHA — o corte de uma linha comia o dinheiro: o valor era o ultimo campo da nota, entao o '...' apagava R$ 900 e preservava o nome do produto que a linha de cima ja repetia. O valor foi para a FRENTE nas quatro notas de dinheiro.",
+      "ATRAPALHA — o `busy` unico serializava N escritas independentes e idempotentes: marcar cinco recebidos custava cinco idas a rede em fila indiana, com as outras linhas desligadas. Agora e um Set de ids em voo, com o guarda no ref (o Set do estado e a foto do render anterior, e receberDoMes quitaria DOIS meses com dois toques no mesmo quadro).",
+      "ATRAPALHA — o aviso de falha nascia no topo da rolagem, a ~500pt do dedo que o causou. Agora a nota da propria linha vira o aviso, em errorInk.",
+      "INCOMODA — 'Criar o extra' era a unica palavra da tela que so existia no schema. Virou 'Vender', que e o verbo do fluxo inteiro."
+    ],
+    "abertos": {
+      "oficio": [
+        "na grade de numeros a unidade voltou para dentro da string: 'R$' e 'meses' saem no mesmo corpo e na mesma tinta do algarismo, enquanto o heroi da dobra ja tem a unidade como elemento proprio a 64% da altura",
+        "na Escada, as contagens moram numa regua no topo em vez de encostadas nas barras: a distancia entre um numero e a barra dele varia de 12,5pt a 71,5pt, e a faixa vazia nao imprime 0",
+        "'Fred Personal' esta chumbado como placeholder no campo de quem recebe o dinheiro, e os tres campos do Pix nao tem rotulo visivel",
+        "o Head repete o nome da tela e custa 84pt em 32 telas — decisao de sistema, nao desta tela"
+      ],
+      "operacao": [
+        "cinco das seis celulas de 'A operacao inteira' nao abrem nada, e o docstring do bloco jura que 'TODO numero abre uma lista de nomes'. Celula sem onPress devolve View cru: sem accessibilityRole e sem label, o leitor de tela tambem perde o par rotulo-numero",
+        "a porta esta fora do catalogo de fotos: nenhuma das 20 marcas passa por Convite ou Acesso, entao nenhuma das 13 catracas pode reprovar as duas telas por onde todo aluno entra",
+        "a saida deduzida por silencio longo nao existe: quem sumiu ha 60 dias e nunca foi encerrado continua contando em student_count e em receita_cents"
+      ],
+      "ritual": [
+        "depois do toque na Loja ela nao sabe o que acontece a seguir — o 'Ja paguei', ao lado, sabe e diz",
+        "quatro selos vazios no Perfil dela sao marca de falta; a Progresso obedece a lei de nao desenhar ausencia e a Perfil quebra"
+      ]
+    },
+    "do_dono": [
+      "PAGAMENTO DENTRO DO APP e o unico pedido escrito que segue inteiro em aberto: nenhum real passa por dentro do produto e a aluna nao tem nem o codigo Pix na tela dela. O desenho esta escrito e defendido em internal/pagamento/pagamento.go (nao somos merchant of record; Pix na Stripe e por convite no BR e sem recorrencia; Fase 1 e Pix DIRETO com taxa ZERO). O meio-passo barato — dar o copia-e-cola na tela DELA, que ela pediu — cabe no loop; conciliacao automatica exige provedor, PJ e KYC, e e decisao do dono."
+    ]
+  },
+  "vereditos": {}
 }

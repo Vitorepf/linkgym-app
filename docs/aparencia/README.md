@@ -22,9 +22,9 @@ cada trava.
 | **respiro** | Compacto · Normal · Arejado | o vão entre blocos — **nunca** a área de toque |
 | **movimento** | Seco · Normal · Generoso | a duração das transições — **nunca** a resposta ao dedo |
 
-São **1.959.552 aparências** fechadas (7 chãos × 6 vozes × 4 botões × 3 segundos botões ×
-2 anéis × 3 números × 3 cantos × 4 superfícies × 3 traços × 3 respiros × 3 movimentos × 2
-forças de tinta), cada uma com qualquer cor de marca — e o chão também aceita hex livre,
+São **11.757.312 aparências** fechadas (7 chãos × 6 vozes × 4 botões × 3 tamanhos de botão ×
+3 segundos botões × 2 anéis × 3 números × 3 cantos × 8 materiais × 3 traços × 3 respiros ×
+3 movimentos × 2 forças de tinta), cada uma com qualquer cor de marca — e o chão também aceita hex livre,
 que é por onde a conta deixa de ser finita e passa a ser AMOSTRADA, como a cor da marca já
 era. Mais seis **kits** prontos, que são só o documento já preenchido: Ferro (o app de
 sempre), Clínica, Boutique, Vitrine, Garagem, Sereno.

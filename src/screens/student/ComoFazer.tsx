@@ -146,17 +146,17 @@ export function ComoFazer({ navigation, route }: Props) {
   );
 }
 
-const usarEstilos = estilos(({ T }) =>
+const usarEstilos = estilos(({ T, SPACE }) =>
   StyleSheet.create({
     scroll: { flex: 1 },
     content: { paddingBottom: 8, flexGrow: 1 },
-    bleed: { paddingHorizontal: 4, paddingVertical: 8 },
+    bleed: { paddingHorizontal: SPACE.hair, paddingVertical: 8 },
     failed: { paddingHorizontal: T.pad, paddingBottom: 12 },
-    word: { marginTop: 6 },
+    word: { marginTop: SPACE.hair },
     step: {
       flexDirection: "row",
       alignItems: "baseline",
-      gap: 14,
+      gap: SPACE.tight,
       paddingHorizontal: T.pad,
       paddingVertical: 18,
       borderBottomWidth: 1,
@@ -165,6 +165,6 @@ const usarEstilos = estilos(({ T }) =>
     ord: { minWidth: 22 },
     stepText: { flex: 1 },
     body: { marginTop: 8 },
-    said: { marginTop: 10, paddingLeft: 12, borderLeftWidth: 2 },
+    said: { marginTop: SPACE.tight, paddingLeft: 12, borderLeftWidth: 2 },
   }),
 );

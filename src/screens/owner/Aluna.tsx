@@ -4,12 +4,13 @@ import { useFocusEffect } from "@react-navigation/native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import * as Clipboard from "expo-clipboard";
 import {
+  cancelarAssinatura,
   applyOwnerAttention,
-  criarCobranca,
+  criarExtra,
   mudarEstadoDoVinculo,
   ownerAttention,
   ownerStudent,
-  type Cobranca,
+  type Extra,
   type OwnerAttention,
   type OwnerStudent,
 } from "../../api";
@@ -18,6 +19,9 @@ import { AccentCTA } from "../../ui/AccentCTA";
 import { Campo } from "../../ui/Campo";
 import { formatKg } from "../../ui/format";
 import { GhostCTA } from "../../ui/GhostCTA";
+// A MESMA leitura de dinheiro do Combinado. Eram duas cópias com o mesmo defeito — "1.500"
+// recusado nas duas —, e duas cópias de uma regra divergem sempre.
+import { centavosDe } from "./Combinado";
 import { Initials } from "../../ui/Initials";
 import { MetricGrid } from "../../ui/Metric";
 import { Band, DockFooter, Head, Phone } from "../../ui/Screen";
@@ -46,7 +50,7 @@ type Props = NativeStackScreenProps<RootStackParamList, "Aluna">;
  *  maior elemento da tela fazendo nada. */
 export function Aluna({ navigation, route }: Props) {
   const styles = usarEstilos();
-  const { errorInk } = useTema();
+  const { T, errorInk } = useTema();
   const { token, personId } = route.params;
   const [card, setCard] = useState<OwnerStudent | null>(null);
   const [flag, setFlag] = useState<OwnerAttention | null>(null);
@@ -152,6 +156,13 @@ export function Aluna({ navigation, route }: Props) {
             <Txt role="body" color={errorInk}>
               {error}
             </Txt>
+            <View style={styles.retry}>
+              <GhostCTA
+                label="Tentar de novo"
+                onPress={() => void load()}
+                fundo={T.bg}
+              />
+            </View>
           </Band>
         ) : null}
 
@@ -223,6 +234,15 @@ export function Aluna({ navigation, route }: Props) {
               ]}
             />
 
+            {card.onboarding ? (
+              <Band rule="hair">
+                <Txt role="label">Na entrada</Txt>
+                <Txt role="body" style={styles.effect}>
+                  {onboardingLine(card.onboarding)}
+                </Txt>
+              </Band>
+            ) : null}
+
             <Dinheiro
               token={token}
               card={card}
@@ -285,6 +305,24 @@ function reasonLine(f: OwnerAttention): string {
     : `${base}.`;
 }
 
+function onboardingLine(
+  ob: NonNullable<OwnerStudent["onboarding"]>,
+): string {
+  const exp =
+    ob.experience === "never"
+      ? "Nunca treinou"
+      : ob.experience === "before"
+        ? "Já treinou antes"
+        : "Treina hoje";
+  const days = `${ob.days_per_week} ${ob.days_per_week === 1 ? "dia" : "dias"} por semana`;
+  const dor = ob.pain ? "Marcou dor na entrada" : "Sem dor na entrada";
+  const corpo =
+    ob.height_cm && ob.weight_kg
+      ? ` · ${ob.height_cm} cm, ${ob.weight_kg} kg`
+      : "";
+  return `${exp}. ${days}. ${dor}${corpo}.`;
+}
+
 function whyPublish(card: OwnerStudent, first: boolean): string {
   if (first) return "Sem ficha publicada, a estreia é o primeiro toque.";
   if (card.suggested === "nudge") return "Sumiu do fio. A próxima ficha é o caminho de volta.";
@@ -337,10 +375,17 @@ function Dinheiro({
   const [descricao, setDescricao] = useState("");
   const [valor, setValor] = useState("");
   const [criando, setCriando] = useState(false);
-  const [criada, setCriada] = useState<Cobranca | null>(null);
+  const [criada, setCriada] = useState<Extra | null>(null);
   const [copiado, setCopiado] = useState(false);
   const [erro, setErro] = useState("");
   const [encerrado, setEncerrado] = useState(false);
+  const [confirmando, setConfirmando] = useState(false);
+  const [mudando, setMudando] = useState(false);
+  const [encerrando, setEncerrando] = useState<string | null>(null);
+  // A assinatura encerrada NAO some da tela no toque: o slot vira a frase do que aconteceu,
+  // e e ela que diz que o mes recebido continua valendo. Sumir e o app apagando a prova de
+  // que ele acabou de mexer no dinheiro de alguem.
+  const [encerrada, setEncerrada] = useState<string | null>(null);
 
   const cents = centavosDe(valor);
   const podeCriar = descricao.trim() !== "" && cents !== null;
@@ -351,7 +396,7 @@ function Dinheiro({
     setErro("");
     try {
       setCriada(
-        await criarCobranca(token, {
+        await criarExtra(token, {
           bond_id: card.bond_id,
           descricao: descricao.trim(),
           valor_cents: cents as number,
@@ -360,18 +405,54 @@ function Dinheiro({
       setDescricao("");
       setValor("");
     } catch {
-      setErro("Não deu para criar. Nada foi cobrado.");
+      setErro("Não deu para criar. Nada foi lançado.");
     } finally {
       setCriando(false);
     }
   }
 
   async function encerrar() {
+    if (mudando) return;
+    setMudando(true);
+    setErro("");
     try {
       await mudarEstadoDoVinculo(token, card.bond_id, "ended");
       setEncerrado(true);
+      setConfirmando(false);
     } catch {
-      setErro("Não deu para encerrar. O vínculo continua ativo.");
+      setErro(`Não deu para encerrar. ${primeiroNomeDe(card.name)} continua no time.`);
+    } finally {
+      setMudando(false);
+    }
+  }
+
+  async function reativar() {
+    if (mudando) return;
+    setMudando(true);
+    setErro("");
+    try {
+      await mudarEstadoDoVinculo(token, card.bond_id, "active");
+      setEncerrado(false);
+    } catch {
+      setErro(`Não deu para desfazer. ${primeiroNomeDe(card.name)} continua fora.`);
+    } finally {
+      setMudando(false);
+    }
+  }
+
+  /** PARAR DE COBRAR não apaga: grava a última competência cobrada. O que ela pagou continua sendo
+   *  fato, e o mês corrente continua devido — encerrar no dia 20 não devolve o mês. */
+  async function pararAssinatura(id: string) {
+    if (encerrando) return;
+    setEncerrando(id);
+    setErro("");
+    try {
+      await cancelarAssinatura(token, id);
+      setEncerrada(id);
+    } catch {
+      setErro("Não deu para encerrar. Continua valendo como estava.");
+    } finally {
+      setEncerrando(null);
     }
   }
 
@@ -420,6 +501,43 @@ function Dinheiro({
         </View>
       </Band>
 
+      {/* O QUE ELA ASSINA — e a porta de saída, que não existia em lugar nenhum.
+          `cancelarAssinatura` estava escrita, roteada e sem um único chamador: a aluna
+          assinava a marmita com um toque no rodapé do Perfil dela e aquilo virava uma dívida
+          mensal para sempre. Ela agora desfaz o próprio toque enquanto nada foi recebido; a
+          partir do primeiro mês na mão dele, é aqui que acaba.
+
+          Mora na PESSOA e não na fila "Todo mês" da Operação de propósito: aquela lista é o
+          trabalho do mês (quem deve o quê), e encerrar não é trabalho do mês — é mudança de
+          combinado, e combinado é assunto da pessoa. É a mesma razão pela qual o valor
+          combinado mora aqui em cima e não na fila de "Em aberto". */}
+      {card.assinaturas.length > 0 ? (
+        <Band rule="hair">
+          <Txt role="label">Todo mês</Txt>
+          {card.assinaturas.map((a) => (
+            <View key={a.id} style={styles.acaoDoDinheiro}>
+              <Txt role="body">
+                {a.nome} · R$ {reaisDaAluna(a.valor_cents)} por mês
+              </Txt>
+              <Txt role="note" tone="dim" style={styles.effect}>
+                {encerrada === a.id
+                  ? "Parou. O que já foi recebido continua no seu mês."
+                  : `Desde ${mesDeAssinatura(a.desde)}. Parar não apaga o que já entrou.`}
+              </Txt>
+              {encerrada === a.id ? null : (
+                <View style={styles.acaoDoDinheiro}>
+                  <GhostCTA
+                    label={encerrando === a.id ? "…" : "Parar"}
+                    fundo={FORMA.folha.peca.composto}
+                    onPress={() => void pararAssinatura(a.id)}
+                  />
+                </View>
+              )}
+            </View>
+          ))}
+        </Band>
+      ) : null}
+
       {/* COBRAR À PARTE: dois campos, e nada mais. Avaliação, whey, marmita, aula avulsa —
           "qualquer tipo de produto" com categoria, foto, estoque, variante e frete são seis
           decisões entre ele e o dinheiro, e nenhuma delas ele sabe tomar às 22h. */}
@@ -431,7 +549,7 @@ function Dinheiro({
             </Txt>
             <Txt role="note" tone="dim" style={styles.effect}>
               {copiado
-                ? "Copiado. Manda pra ela."
+                ? "Copiado. Cole no WhatsApp."
                 : "Entrou em A entregar, na Operação."}
             </Txt>
             <View style={styles.acaoDoDinheiro}>
@@ -446,7 +564,7 @@ function Dinheiro({
                 />
               ) : (
                 <GhostCTA
-                  label="Cobrar outra coisa"
+                  label="Vender outra coisa"
                   fundo={FORMA.folha.peca.composto}
                   onPress={() => {
                     setCriada(null);
@@ -459,7 +577,7 @@ function Dinheiro({
         ) : aberto ? (
           <>
             <Campo
-              label="O que você está cobrando"
+              label="O que você vendeu"
               rotulo
               placeholder="Avaliação física"
               maxLength={60}
@@ -479,7 +597,7 @@ function Dinheiro({
             </View>
             <View style={styles.acaoDoDinheiro}>
               <AccentCTA
-                label="Criar a cobrança"
+                label="Vender"
                 busy={criando}
                 disabled={!podeCriar}
                 onPress={() => void criar()}
@@ -489,13 +607,13 @@ function Dinheiro({
           </>
         ) : (
           <>
-            <Txt role="body">Cobrar à parte</Txt>
+            <Txt role="body">Vender à parte</Txt>
             <Txt role="note" tone="dim" style={styles.effect}>
               Avaliação, suplemento, marmita, aula avulsa. Dois campos.
             </Txt>
             <View style={styles.acaoDoDinheiro}>
               <GhostCTA
-                label="Cobrar à parte"
+                label="Vender à parte"
                 fundo={FORMA.folha.peca.composto}
                 onPress={() => setAberto(true)}
               />
@@ -523,21 +641,44 @@ function Dinheiro({
             </Txt>
             <View style={styles.acaoDoDinheiro}>
               <GhostCTA
-                label="Desfazer"
+                label={mudando ? "…" : "Desfazer"}
                 fundo={FORMA.folha.peca.composto}
-                onPress={() => {
-                  void mudarEstadoDoVinculo(token, card.bond_id, "active");
-                  setEncerrado(false);
-                }}
+                onPress={() => void reativar()}
+              />
+            </View>
+          </>
+        ) : confirmando ? (
+          <>
+            {/* A ÚNICA confirmação do produto, e ela é aqui porque encerrar mexe em todos
+                os números do mês de uma vez — e porque a frase tem que dizer o que vai
+                acontecer, não perguntar "tem certeza?". O resto do app não confirma nada:
+                confirmação em toda ação é o que faz app parecer formulário. */}
+            <Txt role="body">
+              {primeiroNomeDe(card.name)} sai das contas do mês e da fila. O histórico dela
+              fica.
+            </Txt>
+            <View style={styles.acaoDoDinheiro}>
+              <GhostCTA
+                label={mudando ? "…" : "Encerrar"}
+                tom="perigo"
+                fundo={FORMA.folha.peca.composto}
+                onPress={() => void encerrar()}
+              />
+            </View>
+            <View style={styles.acaoDoDinheiro}>
+              <GhostCTA
+                label="Deixar como está"
+                fundo={FORMA.folha.peca.composto}
+                onPress={() => setConfirmando(false)}
               />
             </View>
           </>
         ) : (
           <GhostCTA
-            label={`${primeiroNomeDe(card.name)} saiu do estúdio`}
+            label={`${primeiroNomeDe(card.name)} saiu`}
             tom="perigo"
             fundo={FORMA.folha.peca.composto}
-            onPress={() => void encerrar()}
+            onPress={() => setConfirmando(true)}
           />
         )}
       </Band>
@@ -546,27 +687,28 @@ function Dinheiro({
 }
 
 /** Centavos em prosa de dinheiro: inteiro limpo, quebrado com vírgula. */
+/** "2026-05-01" -> "maio". Fatiado da string, e nao `new Date(iso)`: o construtor le data
+ *  sem hora como UTC e devolve o mes anterior em todo fuso a oeste de Greenwich. */
+const MESES_DA_ASSINATURA = [
+  "janeiro", "fevereiro", "março", "abril", "maio", "junho",
+  "julho", "agosto", "setembro", "outubro", "novembro", "dezembro",
+];
+
+function mesDeAssinatura(iso: string): string {
+  return MESES_DA_ASSINATURA[Number(iso.slice(5, 7)) - 1] ?? "";
+}
+
 function reaisDaAluna(cents: number): string {
   const resto = cents % 100;
   const inteiro = Math.trunc(cents / 100).toLocaleString("pt-BR");
   return resto ? `${inteiro},${String(resto).padStart(2, "0")}` : inteiro;
 }
 
-/** O dedo digitou; quanto é em centavos. Vírgula e ponto porque o teclado numérico do iOS
- *  oferece os dois e ninguém lembra qual é o certo. */
-function centavosDe(texto: string): number | null {
-  const limpo = texto.trim().replace(/\s/g, "").replace(".", ",");
-  if (!limpo || !/^\d{1,7}(,\d{0,2})?$/.test(limpo)) return null;
-  const [i, d = ""] = limpo.split(",");
-  const cents = Number(i) * 100 + Number(d.padEnd(2, "0"));
-  return cents > 0 ? cents : null;
-}
-
 function primeiroNomeDe(n: string): string {
   return n.trim().split(/\s+/)[0];
 }
 
-const usarEstilos = estilos(({ T }) =>
+const usarEstilos = estilos(({ T, SPACE }) =>
   StyleSheet.create({
     scroll: { flex: 1 },
     content: { flexGrow: 1 },
@@ -577,14 +719,14 @@ const usarEstilos = estilos(({ T }) =>
     sectionHead: {
       paddingHorizontal: T.pad,
       paddingTop: 18,
-      paddingBottom: 10,
+      paddingBottom: SPACE.tight,
     },
     loadRow: {
       flexDirection: "row",
       alignItems: "baseline",
-      gap: 6,
+      gap: SPACE.hair,
       paddingHorizontal: T.pad,
-      paddingVertical: 28,
+      paddingVertical: SPACE.block,
       borderTopWidth: 1,
       borderTopColor: T.hairline,
     },
@@ -593,11 +735,12 @@ const usarEstilos = estilos(({ T }) =>
     // fica num degrau tipográfico próprio, do lado de fora do número.
     loadKg: { fontVariant: ["tabular-nums"], minWidth: 76, textAlign: "right" },
     unit: { minWidth: 26 },
-    effect: { marginTop: 6 },
+    effect: { marginTop: SPACE.hair },
     // A decisão fica ACIMA do acento: mesma massa, tinta neutra, e o dedo cai primeiro no
     // trabalho. Sem folga entre os dois — são um par, não duas listas.
     second: { marginBottom: 2 },
     acaoDoDinheiro: { marginTop: 12, alignSelf: "flex-start" },
     valorAvulso: { width: 120 },
+    retry: { marginTop: SPACE.tight, alignSelf: "flex-start" },
   }),
 );

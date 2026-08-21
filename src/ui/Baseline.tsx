@@ -76,13 +76,17 @@ export function Baseline({ value, label }: BaselineSpec) {
 // rótulo na ponta em vez de centrar.
 const ANCHOR = 160;
 
-const usarEstilos = estilos(({ T, FORMA }) =>
+const usarEstilos = estilos(({ T, FORMA, SPACE, LEAD }) =>
   StyleSheet.create({
-    wrap: { marginTop: 14, paddingBottom: 38 },
+    // O RODAPÉ RESERVA A ÂNCORA, e agora ele SABE quanto ela mede: duas linhas de rótulo
+    // mais o tique. Era 38 cravado — um número que ninguém podia conferir e que não andava
+    // quando a voz escolhida tinha entrelinha maior, ou seja, o rótulo da âncora escapava
+    // da reserva justamente nas vozes que precisam de mais espaço.
+    wrap: { marginTop: SPACE.tight, paddingBottom: LEAD.label * 2 + SPACE.hair },
     axis: {
       flexDirection: "row",
       justifyContent: "space-between",
-      paddingBottom: 6,
+      paddingBottom: SPACE.hair,
     },
     // O EIXO é elemento de UI, não fio interno de bloco: é ele que dá lugar ao número, e
     // um eixo que não se vê transforma a âncora em um traço solto no vazio. `T.hairline`

@@ -8,5 +8,6 @@
     "REPETICOES": 4,
     "PARADO": 6
   },
-  "liberado_por": null
+  "liberado_por": "humano",
+  "liberado_motivo": "O dono do repo reabriu o loop na mensagem de 2026-08-19: \"melhorou, mas ainda e uma nota 6, tanto de possibilidades quanto qualidade\" e nomeou sete defeitos (botao gigante, pouca cor, vocabulario \"chao\", zero variedade de MATERIAL, letras iguais, rolagem massiva no lugar de modal, erros gerais). O estagnado de 18:34 foi falso positivo do anti-loop: contou 4 saidas identicas do gate durante uma medicao de 10 minutos que ainda estava em voo. Dono: humano do repo."
 }

@@ -13,6 +13,7 @@ import { AccentCTA } from "../../ui/AccentCTA";
 import { Campo } from "../../ui/Campo";
 import { Figure } from "../../ui/Figure";
 import { IconCheck } from "../../ui/Icons";
+import { GhostCTA } from "../../ui/GhostCTA";
 import { Band, DockFooter, Head, Phone } from "../../ui/Screen";
 import { estilos, useTema } from "../../ui/tema";
 import { Txt } from "../../ui/Txt";
@@ -41,7 +42,6 @@ export function Publicar({ navigation, route }: Props) {
       setError("");
     } catch {
       setError("Não deu para abrir a turma.");
-      setOthers([]);
     }
   }, [token, personId]);
 
@@ -98,9 +98,20 @@ export function Publicar({ navigation, route }: Props) {
         showsVerticalScrollIndicator={false}
       >
         {error ? (
-          <Txt role="body" color={errorInk} style={styles.error}>
-            {error}
-          </Txt>
+          <View style={styles.error}>
+            <Txt role="body" color={errorInk}>
+              {error}
+            </Txt>
+            {sent ? null : (
+              <View style={styles.retry}>
+                <GhostCTA
+                  label="Tentar de novo"
+                  onPress={() => void load()}
+                  fundo={T.bg}
+                />
+              </View>
+            )}
+          </View>
         ) : null}
 
         {!sent ? (
@@ -143,13 +154,13 @@ export function Publicar({ navigation, route }: Props) {
               {rows.length > 0 ? <Txt role="label">Feito na semana</Txt> : null}
             </View>
 
-            {others === null ? (
+            {others === null && !error ? (
               <Txt role="body" tone="muted" style={styles.state}>
                 Carregando a turma.
               </Txt>
             ) : null}
 
-            {others !== null && rows.length === 0 ? (
+            {others !== null && rows.length === 0 && !error ? (
               <Txt role="body" tone="muted" style={styles.state}>
                 Ninguém mais na turma ainda.
               </Txt>
@@ -260,27 +271,28 @@ function Box({ on }: { on: boolean }) {
   );
 }
 
-const usarEstilos = estilos(({ T, FORMA }) =>
+const usarEstilos = estilos(({ T, FORMA, SPACE }) =>
   StyleSheet.create({
     scroll: { flex: 1 },
     content: { flexGrow: 1 },
-    error: { paddingHorizontal: T.pad, paddingTop: 12 },
-    cause: { marginTop: 14 },
+    error: { paddingHorizontal: T.pad, paddingTop: SPACE.tight },
+    retry: { marginTop: SPACE.tight, alignSelf: "flex-start" },
+    cause: { marginTop: SPACE.tight },
     header: {
       flexDirection: "row",
       alignItems: "baseline",
       justifyContent: "space-between",
       paddingHorizontal: T.pad,
-      paddingTop: 20,
-      paddingBottom: 6,
+      paddingTop: SPACE.step,
+      paddingBottom: SPACE.hair,
     },
-    state: { paddingHorizontal: T.pad, paddingVertical: 14 },
+    state: { paddingHorizontal: T.pad, paddingVertical: SPACE.tight },
     row: {
       flexDirection: "row",
       alignItems: "center",
-      gap: 14,
+      gap: SPACE.tight,
       paddingHorizontal: T.pad,
-      paddingVertical: 14,
+      paddingVertical: SPACE.tight,
       borderBottomWidth: FORMA.fio,
       borderBottomColor: T.hairline,
     },
@@ -300,16 +312,16 @@ const usarEstilos = estilos(({ T, FORMA }) =>
       backgroundColor: "rgba(11,10,10,0.86)",
       justifyContent: "flex-end",
       paddingHorizontal: T.pad,
-      paddingBottom: 24,
+      paddingBottom: SPACE.step,
     },
     sheet: {
       backgroundColor: T.surface,
       borderWidth: FORMA.borda,
       borderRadius: FORMA.raio,
       paddingHorizontal: T.pad,
-      paddingTop: 24,
-      paddingBottom: 22,
+      paddingTop: SPACE.step,
+      paddingBottom: SPACE.step,
     },
-    sheetBody: { marginTop: 10 },
+    sheetBody: { marginTop: SPACE.tight },
   }),
 );

@@ -1,10 +1,11 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import {
   configDoTime, today, type Time, type TodayPayload } from "../../api";
+import { GhostCTA } from "../../ui/GhostCTA";
 import { studentHomeTarget } from "../../nav/StudentTabs";
 import type { RootStackParamList } from "../../nav/types";
 import { createSession, newLocalId } from "../../offline/sessionQueue";
@@ -12,7 +13,7 @@ import { AccentCTA } from "../../ui/AccentCTA";
 import { Figure } from "../../ui/Figure";
 import { plannedSets } from "../../ui/format";
 import { Band, D0_STEPS, DockFooter, Head, Phone, StepRail } from "../../ui/Screen";
-import { estilos } from "../../ui/tema";
+import { estilos, useTema } from "../../ui/tema";
 import { Txt } from "../../ui/Txt";
 
 type Props = {
@@ -27,26 +28,27 @@ export function estreiaSeenKey(timeId: string): string {
 
 export function Estreia({ token, time, needsCommitment }: Props) {
   const styles = usarEstilos();
+  const { T } = useTema();
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList, "Estreia">>();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [payload, setPayload] = useState<TodayPayload | null>(null);
+  const [failed, setFailed] = useState(false);
+
+  const load = useCallback(async () => {
+    try {
+      const data = await today(token);
+      setPayload(data);
+      setFailed(false);
+    } catch {
+      setFailed(true);
+    }
+  }, [token]);
 
   useEffect(() => {
-    let alive = true;
-    (async () => {
-      try {
-        const data = await today(token);
-        if (alive) setPayload(data);
-      } catch {
-        if (alive) setPayload(null);
-      }
-    })();
-    return () => {
-      alive = false;
-    };
-  }, [token]);
+    void load();
+  }, [load]);
 
   const prescription = payload?.prescription ?? null;
   const rows = prescription
@@ -167,14 +169,27 @@ export function Estreia({ token, time, needsCommitment }: Props) {
               </Txt>
             </Band>
           </>
-        ) : (
+        ) : failed ? (
+          <Band>
+            <Txt role="body" tone="muted">
+              Não deu para abrir o hoje.
+            </Txt>
+            <View style={styles.retry}>
+              <GhostCTA
+                label="Tentar de novo"
+                onPress={() => void load()}
+                fundo={T.bg}
+              />
+            </View>
+          </Band>
+        ) : payload && !prescription ? (
           <Band>
             <Txt role="body" tone="muted">
               A ficha do {time.name} ainda não chegou. Ela aparece no Hoje assim que
               ele publicar.
             </Txt>
           </Band>
-        )}
+        ) : null}
 
         {/* Falha é dita, não acusada: tinta muda, sem vermelho de erro para o aluno. */}
         {error ? (
@@ -199,7 +214,7 @@ export function Estreia({ token, time, needsCommitment }: Props) {
 
 const ORD = 26;
 
-const usarEstilos = estilos(({ T }) =>
+const usarEstilos = estilos(({ T, SPACE }) =>
   StyleSheet.create({
     scroll: { flex: 1 },
     content: { flexGrow: 1 },
@@ -218,12 +233,13 @@ const usarEstilos = estilos(({ T }) =>
       alignItems: "baseline",
       gap: 8,
       paddingHorizontal: T.pad,
-      paddingVertical: 16,
+      paddingVertical: SPACE.tight,
       borderBottomWidth: 1,
       borderBottomColor: T.hairline,
     },
     ord: { width: ORD },
     name: { flex: 1 },
     sets: { width: 78, textAlign: "right" },
+    retry: { marginTop: SPACE.tight, alignSelf: "flex-start" },
   }),
 );

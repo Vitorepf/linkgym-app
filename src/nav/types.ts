@@ -4,7 +4,7 @@ import type {
   NavigatorScreenParams,
 } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import type { DraftItem, FinishRecord, TodayItem } from "../api";
+import type { DraftItem, FinishRecord, Produto, TodayItem } from "../api";
 import type { CombinadoRoute } from "../screens/owner/Combinado";
 import type { SessionProof } from "../offline/sessionQueue";
 
@@ -30,9 +30,8 @@ export type SessionRoute = {
 export type OwnerTabParamList = {
   Painel: undefined;
   Semana: undefined;
-  Fichas: undefined;
   Operacao: undefined;
-  PerfilTime: undefined;
+  Mais: undefined;
 };
 
 export type StudentTabParamList = {
@@ -50,6 +49,28 @@ export type RootStackParamList = {
   Aparencia: undefined;
   ComoFunciona: undefined;
   Convite: undefined;
+  /** White-label e saída. Era aba; agora mora atrás da Casa, porque a barra só
+   *  carrega o trabalho do dia — Operação, Hoje, Semana. */
+  PerfilTime: undefined;
+  /** A turma inteira: buscar, chamar, conversar. Era a aba Fichas, e Ficha é outra
+   *  coisa — o treino, não a pessoa. */
+  Alunos: undefined;
+  /** As fichas de treino (Modelos). Lista; o detalhe é `Modelo`. */
+  Modelos: undefined;
+  Modelo: {
+    token: string;
+    timeName: string;
+    modelId: string;
+    modelName?: string;
+  };
+  /** Montar ou editar um Modelo. Sem `modelId` é ficha nova; com ele, a estrutura
+   *  que já existe. `modelName` é o título otimista até o GET voltar. */
+  NovaModelo: {
+    token: string;
+    timeName: string;
+    modelId?: string;
+    modelName?: string;
+  };
   Retorno: {
     token: string;
     timeName: string;
@@ -71,6 +92,10 @@ export type RootStackParamList = {
    *  no payload da Operação (ou da própria pessoa): buscar de novo aqui seria uma segunda
    *  ida à rede para o mesmo dado que a tela anterior tem na mão. */
   Combinado: CombinadoRoute;
+  /** O que ele vende fora da mensalidade. `produtos` viaja por parâmetro porque a lista já
+   *  veio no payload da Operação — buscar de novo seria uma segunda ida à rede pelo mesmo
+   *  dado que a tela anterior tem na mão. */
+  Produtos: { token: string; timeName: string; produtos: Produto[] };
   /** `personId` é obrigatório: prescrever é sempre PARA alguém, e o opcional daqui era o
    *  que deixava a tela escolher um aluno sozinha. */
   Base: {

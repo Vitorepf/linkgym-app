@@ -99,7 +99,10 @@ const B = brand(BRAND);
 /** A APARÊNCIA da foto. Sem `?ap=`, é o padrão de fábrica — as 720 montagens de
  *  tools/shots.mjs continuam fotografando exatamente o que fotografavam. Com `?ap=`, o
  *  mesmo host serve para provar QUALQUER kit sem duplicar uma linha de host. */
-const AP = qs.get("ap");
+// A APARÊNCIA pode vir da URL (`?ap=`) OU da própria fixture. O caminho da URL já existia e
+// nenhuma fixture o alcançava — então as oito linguagens de design que o produto vende não
+// tinham uma única fotografia, e "as oito se separam" era um número sem imagem.
+const AP = qs.get("ap") ?? (FX.aparencia ? JSON.stringify(FX.aparencia) : null);
 const TIME = {
   id: "t-shot",
   name: B.name,
@@ -130,7 +133,7 @@ globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
 }) as typeof fetch;
 
 // ---- rotas
-const OWNER_TABS = ["Painel", "Semana", "Fichas", "Operacao", "PerfilTime"];
+const OWNER_TABS = ["Operacao", "Painel", "Semana", "Mais"];
 const STUDENT_TABS = ["Hoje", "MinhaFicha", "Progresso", "Perfil"];
 
 function initialState() {
@@ -154,7 +157,19 @@ function initialState() {
     // A CHAVE da fixture, não o nome da rota. Duas fixtures podem apontar para a mesma
     // tela em estados diferentes (Descanso mudo x Descanso na virada de exercício), e
     // passar o nome da rota fundia as duas numa cópia silenciosa.
-    routes: [{ name: FX.route.name, params: params(SCREEN, TIME) ?? params(FX.route.name, TIME) }],
+    routes: [
+      {
+        name: FX.route.name,
+        params: params(SCREEN, TIME) ?? params(FX.route.name, TIME),
+        // A PILHA DE DENTRO. A Aparência hospeda o próprio navegador — um índice e dez
+        // folhas — porque o rascunho dela mora em `useState` e `src/nav/types.ts` proíbe
+        // passar isso por parâmetro de rota. Sem descer o estado aqui, o medidor pararia
+        // no índice e as dez decisões continuariam sem foto.
+        ...(FX.route.folha
+          ? { state: { index: 1, routes: [{ name: "Indice" }, { name: FX.route.folha }] } }
+          : {}),
+      },
+    ],
   };
 }
 

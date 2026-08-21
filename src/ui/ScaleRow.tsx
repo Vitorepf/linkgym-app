@@ -33,14 +33,14 @@ export function ScaleRow({ name, value, onChange, accent }: Props) {
   );
 }
 
-const usarEstilos = estilos(({ T }) =>
+const usarEstilos = estilos(({ T, SPACE, FORMA }) =>
   StyleSheet.create({
     line: {
-      borderBottomWidth: 2,
+      borderBottomWidth: FORMA.borda,
       borderColor: T.divider,
-      paddingVertical: 4,
+      paddingVertical: SPACE.hair,
     },
-    name: { marginTop: 8, marginBottom: 4 },
+    name: { marginTop: SPACE.hair, marginBottom: SPACE.hair },
     bar: { flexDirection: "row" },
   }),
 );

@@ -72,16 +72,16 @@ async function flow1(context, base, { lote }) {
   let alunos = 0;
   try {
     // Aba do personal. O rótulo é caixa alta por estilo; o nome acessível é o que importa.
-    await tap(page, button(page, /fichas/i));
-    steps.push("Painel -> aba Fichas");
+    await tap(page, button(page, /alunos com você/i));
+    steps.push("Painel -> Alunos");
 
     // ESCOLHER A PESSOA. A aba Fichas montava a Base sem personId e a Base caia no
-    // primeiro nome da semana: abria a ficha de um aluno ARBITRARIO. Agora ela lista a
+    // primeiro nome da semana: abria a ficha de um aluno ARBITRARIO. Agora Alunos lista a
     // turma, e escolher e o primeiro ato de prescrever — entao o medidor escolhe tambem,
     // porque o toque existe de verdade e ele conta. O medidor segue o produto; nunca o
     // contrario.
     await tap(page, button(page, /ana beatriz/i));
-    steps.push("Fichas -> escolheu a pessoa");
+    steps.push("Alunos -> escolheu a pessoa");
 
     await tap(page, button(page, /publicar a (primeira|próxima) ficha/i));
     steps.push("Aluna -> Base");

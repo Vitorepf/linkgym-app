@@ -184,30 +184,30 @@ function SwapCard({
   );
 }
 
-const usarEstilos = estilos(({ T, FORMA }) =>
+const usarEstilos = estilos(({ T, FORMA, SPACE }) =>
   StyleSheet.create({
-    title: { marginTop: 5 },
+    title: { marginTop: SPACE.hair },
     lede: { marginTop: 8 },
     from: {
-      marginTop: 20,
-      paddingTop: 16,
-      paddingBottom: 16,
+      marginTop: SPACE.step,
+      paddingTop: SPACE.tight,
+      paddingBottom: SPACE.tight,
       borderTopWidth: FORMA.borda,
       borderTopColor: T.divider,
       borderBottomWidth: FORMA.borda,
       borderBottomColor: T.divider,
     },
-    fromRow: { marginTop: 4 },
+    fromRow: { marginTop: SPACE.hair },
     fromName: { marginBottom: 2 },
-    error: { marginTop: 14 },
-    pick: { marginTop: 20 },
+    error: { marginTop: SPACE.tight },
+    pick: { marginTop: SPACE.step },
     // O cartao inteiro e o botao: canto de ACAO, nao de superficie.
     card: {
       marginTop: 12,
       borderWidth: FORMA.borda,
       borderRadius: FORMA.raioAcao,
-      paddingVertical: 20,
-      paddingHorizontal: 16,
+      paddingVertical: SPACE.step,
+      paddingHorizontal: SPACE.tight,
       flexDirection: "row",
       alignItems: "center",
       gap: 12,

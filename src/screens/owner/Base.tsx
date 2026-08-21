@@ -1,10 +1,11 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import Animated from "react-native-reanimated";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { draftFromLast, listModels, ownerStudent } from "../../api";
-import type { OwnerStudent } from "../../api";
+import type { ModelSummary, OwnerStudent } from "../../api";
+import { GhostCTA } from "../../ui/GhostCTA";
 import type { RootStackParamList } from "../../nav/types";
 import { AccentCTA } from "../../ui/AccentCTA";
 import { Figure } from "../../ui/Figure";
@@ -84,28 +85,34 @@ export function Base({ token, timeName, personId, personName }: Props) {
   // O NOME do modelo vem do servidor. A tela não pode chumbar um nome de Modelo — nem
   // para achar nem para escrever —, senão carrega no código a palavra que o modelo tiver.
   const [modelName, setModelName] = useState("");
+  const [models, setModels] = useState<ModelSummary[]>([]);
   const [loads, setLoads] = useState<Load[]>([]);
   const [picked, setPicked] = useState<From>("last");
   const [error, setError] = useState("");
+  const [empty, setEmpty] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
     try {
       // A CAUSA na tela: os números que este corpo já carrega, antes do toque. Sem esta
       // chamada a escolha é uma pergunta sem evidência — que é o defeito da barra.
-      const [models, student] = await Promise.all([
+      const [listed, student] = await Promise.all([
         listModels(token),
         ownerStudent(token, personId),
       ]);
-      const modelo = models.items[0];
-      if (!modelo) {
-        setError("Não deu para achar o modelo.");
+      const items = listed.items;
+      setModels(items);
+      setLoads(student.last_loads);
+      if (items.length === 0) {
+        setModelId("");
+        setModelName("");
+        setEmpty(true);
+        setError("");
         return;
       }
-      setModelId(modelo.id);
-      setModelName(modelo.name);
-      setLoads(student.last_loads);
+      setEmpty(false);
       setError("");
+      setModelId((current) => items.find((m) => m.id === current)?.id ?? items[0].id);
     } catch {
       setError("Não deu para abrir a ficha.");
     }
@@ -116,6 +123,11 @@ export function Base({ token, timeName, personId, personName }: Props) {
       void load();
     }, [load]),
   );
+
+  useEffect(() => {
+    const m = models.find((it) => it.id === modelId);
+    if (m) setModelName(m.name);
+  }, [models, modelId]);
 
   async function start(from: From) {
     if (busy || !modelId) return;
@@ -155,10 +167,53 @@ export function Base({ token, timeName, personId, personName }: Props) {
         showsVerticalScrollIndicator={false}
       >
         {error ? (
-          <Txt role="note" color={errorInk} style={styles.error}>
-            {error}
-          </Txt>
+          <View style={styles.error}>
+            <Txt role="note" color={errorInk}>
+              {error}
+            </Txt>
+            <View style={styles.retry}>
+              <GhostCTA
+                label="Tentar de novo"
+                onPress={() => void load()}
+                fundo={T.bg}
+              />
+            </View>
+          </View>
         ) : null}
+
+        {empty ? (
+          <View style={styles.error}>
+            <Txt role="body">
+              Ainda não tem um modelo. Sem ele não dá para publicar a primeira
+              ficha.
+            </Txt>
+            <View style={styles.retry}>
+              <GhostCTA
+                label="Tentar de novo"
+                onPress={() => void load()}
+                fundo={T.bg}
+              />
+            </View>
+          </View>
+        ) : null}
+
+        {models.length === 0 ? null : (
+          <>
+        {models.length > 1
+          ? models.map((m) => (
+              <Origem
+                key={m.id}
+                title={m.name}
+                body="Estrutura deste modelo"
+                selected={modelId === m.id}
+                mark={A.mark}
+                onPress={() => {
+                  setModelId(m.id);
+                  setModelName(m.name);
+                }}
+              />
+            ))
+          : null}
 
         <Origem
           title={`Última ficha de ${who}`}
@@ -226,7 +281,10 @@ export function Base({ token, timeName, personId, personName }: Props) {
             ))}
           </View>
         </View>
+          </>
+        )}
       </ScrollView>
+      {models.length === 0 ? null : (
       <DockFooter>
         <AccentCTA
           label="Continuar"
@@ -236,21 +294,23 @@ export function Base({ token, timeName, personId, personName }: Props) {
           onPress={() => void start(picked)}
         />
       </DockFooter>
+      )}
     </Phone>
   );
 }
 
-const usarEstilos = estilos(({ T, FORMA }) =>
+const usarEstilos = estilos(({ T, FORMA, SPACE }) =>
   StyleSheet.create({
     scroll: { flex: 1 },
     content: { flexGrow: 1, paddingBottom: 8 },
-    error: { paddingHorizontal: T.pad, paddingTop: 12 },
+    error: { paddingHorizontal: T.pad, paddingTop: SPACE.tight },
+    retry: { marginTop: SPACE.tight, alignSelf: "flex-start" },
     row: {
       flexDirection: "row",
       alignItems: "flex-start",
-      gap: 14,
+      gap: SPACE.tight,
       paddingHorizontal: T.pad,
-      paddingVertical: 28,
+      paddingVertical: SPACE.block,
       borderBottomWidth: FORMA.fio,
       borderBottomColor: T.hairline,
       // o traço de seleção é ÊNFASE: um degrau acima do traço forte, senão ele empata
@@ -270,20 +330,20 @@ const usarEstilos = estilos(({ T, FORMA }) =>
     },
     checkOn: { backgroundColor: T.ink },
     rowBody: { flex: 1, minWidth: 0 },
-    rowNote: { marginTop: 4 },
+    rowNote: { marginTop: SPACE.hair },
     evidence: {
       flex: 1,
       justifyContent: "space-between",
       paddingHorizontal: T.pad,
-      paddingTop: 32,
+      paddingTop: SPACE.block,
     },
     empty: { marginTop: 8 },
-    list: { marginTop: 26, borderTopWidth: FORMA.borda, borderTopColor: T.divider },
+    list: { marginTop: SPACE.block, borderTopWidth: FORMA.borda, borderTopColor: T.divider },
     load: {
       flexDirection: "row",
       alignItems: "center",
-      gap: 6,
-      paddingVertical: 24,
+      gap: SPACE.hair,
+      paddingVertical: SPACE.step,
       borderBottomWidth: FORMA.fio,
       borderBottomColor: T.hairline,
     },

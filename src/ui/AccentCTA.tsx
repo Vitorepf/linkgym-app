@@ -23,6 +23,9 @@ type Props = {
   busy?: boolean;
   check?: boolean;
   block?: boolean;
+  /** Encolhe até o rótulo. O padrão é a largura do pai — "Mandar a retomada de 9
+   *  minutos" numa pílula de 120pt vira a merda que o dono fotografou. */
+  fit?: boolean;
   /** ação repetida numa lista: mesma massa, tinta neutra, e não gasta o orçamento. */
   quiet?: boolean;
 };
@@ -36,6 +39,7 @@ export function AccentCTA({
   busy,
   check,
   block,
+  fit,
   quiet,
 }: Props) {
   const styles = usarEstilos();
@@ -50,7 +54,12 @@ export function AccentCTA({
   // ACENDE na cor do personal. `busy` segue com o acento: ali a ação está acontecendo.
   /** A cara do botão sem ação possível: um PAR preenchimento/tinta, a mesma forma que
    *  `useAccentMass` devolve para quem não reivindica o acento. */
-  const DESLIGADO = { fill: T.fill, ink: T.muted, ring: T.divider };
+  /** DESLIGADO NÃO GANHA CONTORNO. Ele tinha `ring: T.divider`, e o resultado media assim:
+   *  o botão LIGADO é acento chapado sem borda nenhuma, e o DESLIGADO ganhava uma borda de
+   *  2pt em volta — ou seja, o controle ganhava um contorno visível exatamente quando
+   *  parava de funcionar, e passava a ler como quebrado em vez de esperando.
+   *  Quem carrega o estado é o preenchimento, que já separa 14,9 de L* do chão. */
+  const DESLIGADO = { fill: T.fill, ink: T.muted, ring: "" };
   /** SÓ CAPTURA, e some junto com a decisão do dono — não é alavanca, não passa pelo
    *  cardápio da Aparência. Mesmo desenho do `__bandRaised` da Band.
    *
@@ -74,7 +83,7 @@ export function AccentCTA({
    *  não é um botão diferente — é a mesma peça em outra ordem. */
   const miolo = (
     <>
-      <Txt role="body" color={ink} style={styles.label}>
+      <Txt role="body" color={ink} style={[styles.label, fit && styles.labelFit]}>
         {FORMA.acao.caixaAlta ? label.toUpperCase() : label}
       </Txt>
       {meta ? (
@@ -97,11 +106,12 @@ export function AccentCTA({
       accessibilityState={{ disabled: !!disabled, busy: !!busy }}
       onPressIn={() => setDown(true)}
       onPressOut={() => setDown(false)}
-      style={block && styles.block}
+      style={fit ? styles.fit : block ? styles.block : undefined}
     >
       <Animated.View
         style={[
           styles.btn,
+          fit && styles.btnFit,
           tone,
           // O ANEL entra SEMPRE no layout, mesmo sem ser pintado. Enquanto a borda só
           // existia quando `ring` existia, a caixa de conteúdo encolhia 2pt no instante em
@@ -158,17 +168,25 @@ export function AccentCTA({
 
 const usarEstilos = estilos(({ SPACE, TRACK, FORMA }) =>
   StyleSheet.create({
+    fit: { alignSelf: "center", maxWidth: "100%" },
     block: { alignSelf: "stretch", marginTop: SPACE.tight },
+    labelFit: { flexGrow: 0 },
+    btnFit: { justifyContent: "center", minWidth: SPACE.max * 2 },
     btn: {
       minHeight: FORMA.alturaAcao,
-      // O respiro vertical é `step` em TODA anatomia, inclusive a empilhada. Medido: com
-      // `tight` — a conta que `FORMA.alturaAcao` faz — o empilhado fica em 66pt enquanto o
-      // GhostCTA ao lado dele mede 80 em `arejada`, e o botão PRINCIPAL vira o menor dos
-      // dois. Com `step` os dois crescem juntos e o empilhado é mais alto por exatamente
-      // uma linha de rótulo, em qualquer densidade — que é o que um botão de duas linhas
-      // deve ser. Ver o relatório: `alturaAcao` conta `2*tight` e os dois CTAs pagam
-      // `2*step`, então hoje o token nunca governa fora de `compacta`.
-      paddingVertical: SPACE.step,
+      // O respiro vertical é `hair`, e quem manda na altura é `FORMA.alturaAcao`.
+      //
+      // Era `step`, com o argumento de que os dois CTAs cresciam juntos. Cresciam mesmo —
+      // juntos e demais: `step` empurrava a ação de uma linha para 60-82pt e a empilhada
+      // para 100pt na densidade arejada, contra os 48-52 que Linear, Things, Whoop e Oura
+      // desenham. O dono olhou três desses empilhados e chamou de slop, com razão.
+      //
+      // `hair` não encolhe o alvo do dedo: `minHeight` continua sendo `alturaAcao`, que
+      // tem `ALVO.acao` como piso e nunca desce dele. O que o degrau menor tira é a sobra
+      // ACIMA do piso — e é a sobra que fazia a laje. `tools/botao.mjs` mede as 144
+      // combinações e prova os dois lados: nada abaixo de 44, nada acima do teto premium.
+      // O mesmo degrau está orçado em `alturaAcao`; trocar um sem o outro reprova.
+      paddingVertical: SPACE.hair,
       paddingHorizontal: SPACE.step,
       flexDirection: "row",
       alignItems: "center",
@@ -183,7 +201,21 @@ const usarEstilos = estilos(({ SPACE, TRACK, FORMA }) =>
     // a ser a coluna, e um `flex: 1` aqui esticaria o texto na vertical.
     pilha: { flex: 1, alignItems: "center" },
     label: {
-      flex: FORMA.acao.empilha ? 0 : 1,
+      // `flexBasis: "auto"`, e NÃO `flex: 1`.
+      //
+      // `flex: 1` é `grow:1 shrink:1 basis:0%`, e a base zero é a armadilha: num pai que
+      // ENCOLHE para o conteúdo (`alignSelf: "flex-start"`, que é como um botão secundário
+      // dentro de uma Band se posiciona), não existe espaço livre para o grow distribuir, o
+      // rótulo resolve para 0pt, e sobra só o chevron — que tem `flexShrink: 0` e sobrevive.
+      // O resultado é um quadradinho com uma seta dentro, sem palavra nenhuma. Aconteceu em
+      // três telas ao mesmo tempo e foi a coisa que mais fez o app parecer amador.
+      //
+      // Com base automática o texto parte da largura natural dele: continua empurrando o
+      // chevron para a direita quando o botão é largo (o motivo de o grow existir), e
+      // continua existindo quando o botão é do tamanho da palavra.
+      flexGrow: FORMA.acao.empilha ? 0 : 1,
+      flexShrink: 1,
+      flexBasis: "auto",
       textAlign: FORMA.acao.alinha === "center" ? "center" : "left",
       letterSpacing: TRACK.body + FORMA.acao.tracking,
     },

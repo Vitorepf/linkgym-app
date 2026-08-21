@@ -1,9 +1,16 @@
 import { useContext, useEffect, useState, type ReactNode } from "react";
 import { BottomTabBarHeightContext } from "@react-navigation/bottom-tabs";
+import { BlurView } from "expo-blur";
 import { StyleSheet, View } from "react-native";
-import Animated, { interpolate, interpolateColor, useAnimatedStyle } from "react-native-reanimated";
+import Animated, {
+  interpolate,
+  interpolateColor,
+  LinearTransition,
+  useAnimatedStyle,
+  useReducedMotion,
+} from "react-native-reanimated";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-import { neutroSobre, type Tema } from "../theme";
+import { neutroSobre, type Folha, type Tema } from "../theme";
 import { AccentBudget } from "./accent";
 import { useProgresso } from "./motion";
 import { estilos, useTema } from "./tema";
@@ -157,13 +164,24 @@ type BandProps = {
  *      dividem o vazio entre elas, e a conta de dividir é o que apaga o buraco único: o
  *      mesmo pixel vazio que era UM vão de 285 vira quatro de 70 com dono.
  */
-/** ponytail: flag SÓ DE CAPTURA, para a decisão pendente "raised vira o padrão da Band?".
- *  `tools/lado-a-lado.mjs` a liga com addInitScript ANTES do bundle carregar e fotografa a
- *  mesma tela nas duas versões sem tocar nas 88 chamadas. Em produção ninguém define isto:
- *  fica `false`, `raised` continua chegando indefinido e a Band é byte a byte a de hoje.
- *  Some junto com a decisão do dono — não é alavanca, não passa pelo cardápio da Aparência. */
-const RAISED_PADRAO =
-  (globalThis as unknown as { __bandRaised?: boolean }).__bandRaised === true;
+/** QUEM DECIDE SE O BLOCO PINTA É O MATERIAL, e esta é a correção de um defeito que estava
+ *  escondido em plena vista desde o ciclo 6.
+ *
+ *  Aqui morava uma bandeira SÓ DE CAPTURA — `globalThis.__bandRaised` —, aberta para uma
+ *  decisão do dono que ficou pendente por quatro ciclos: "raised vira o padrão da Band?".
+ *  Em produção ela era sempre `false`. E como 93 das 119 chamadas de `<Band>` não passam
+ *  `raised`, a consequência era que a alavanca de SUPERFÍCIE — vidro, elevada, fio duplo,
+ *  vinco — não pintava 78% dos blocos de conteúdo do app.
+ *
+ *  Ou seja: o cardápio vendia seis materiais e o app aplicava-os a um quinto das
+ *  superfícies. É exatamente a mesma família de mentira que o `vidro` sem leitores, só que
+ *  na alavanca inteira em vez de num valor dela.
+ *
+ *  A decisão pendente não precisava do dono, porque ela já tinha resposta no cardápio: se
+ *  ele escolheu um material, todo bloco veste esse material; se ele não quer bloco nenhum,
+ *  existe um valor que diz isso com todas as letras (`nenhuma`). A pergunta "raised por
+ *  padrão?" era uma alavanca disfarçada de bandeira, e agora é a alavanca. */
+const pintaBloco = (t: Tema): boolean => t.aparencia.superficie !== "nenhuma";
 
 /** O DEGRAU NEUTRO DE QUEM POUSA DENTRO DE UMA BAND — a cor de toda peça que desenha
  *  um degrau neutro ali dentro (a linha "Você" da Liga, o selo, a calha da
@@ -176,48 +194,165 @@ const RAISED_PADRAO =
  *  no chão, `neutroSobre(T.bg)` devolve exatamente `T.fill`: a conversão não anda um pixel
  *  até o dono responder. */
 export const neutroNaBand = (t: Tema): string =>
-  neutroSobre(RAISED_PADRAO ? t.FORMA.folha.peca.composto : t.T.bg, t.T);
+  neutroSobre(pintaBloco(t) ? t.FORMA.folha.peca.composto : t.T.bg, t.T);
+
+/** O TINT DO `BlurView`, e por que ele é um EXTREMO PURO em vez de um material do meio da
+ *  tabela. `expo-blur` pinta um `rgba()` PRÓPRIO embaixo de todo tint (a tabela está em
+ *  `getBackgroundColor`), e na web ele entra DEPOIS do estilo declarado — não há
+ *  `backgroundColor` que o sobrescreva. Isso mexe no pixel COMPOSTO, que é a invariante
+ *  inteira desta família: o texto sobre vidro pousa num dos quatro fundos que
+ *  `tools/contrast.mjs` mede, e não num vizinho que ninguém sabe olhar.
+ *
+ *  A saída é escolher o tint cujo `rgba` é o extremo PURO do lado OPOSTO ao da tinta:
+ *  branco puro no chão claro, onde a tinta é escura, e preto puro no escuro, onde ela é
+ *  clara. Aí a contribuição do tint é MONÓTONA e sempre a favor — ele afasta o composto da
+ *  tinta, nunca o aproxima —, e o número que `veuLegivel` já resolve SEM o tint vira um
+ *  PISO: o que embarca é igual ou melhor, nunca pior. Exato na web, onde o `rgba` é o da
+ *  tabela do pacote; no iOS vale só a DIREÇÃO, porque lá estes dois nomes viram materiais
+ *  do `UIVisualEffectView` e a cor exata é da Apple, não nossa.
+ *
+ *  Quem responde "de que lado está a tinta" é `escuro`, o mesmo 0,18 que decide a direção
+ *  da escada inteira — conferido nos 7 chãos do cardápio e em 4.096 chãos livres x 2
+ *  contrastes: zero discordâncias contra a direção real de `ink`, `muted`, `muted2` e
+ *  `divider`. */
+const TINTA_DO_VIDRO = {
+  escuro: "systemChromeMaterialDark",
+  claro: "systemChromeMaterialLight",
+} as const;
+
+/** O ENVELOPE DO CARIMBO — e ele existe por um erro meu que os juízes pegaram.
+ *
+ *  Eu tinha posto a laje deslocada como FILHA da peça, com `zIndex: -1`, achando que isso a
+ *  mandava para trás. Não manda: o fundo de um pai é pintado antes dos filhos, então
+ *  `zIndex` negativo põe o filho atrás dos IRMÃOS e na frente do fundo do pai. O que
+ *  apareceu na tela foi um colchete claro atravessando a legenda do próprio material.
+ *
+ *  Irmão de verdade precisa de um pai, e este pai não pinta nada: só empilha a laje e a
+ *  peça, nessa ordem. Ele nasce só quando o material é `carimbo` — nas outras sete famílias
+ *  a árvore continua exatamente a de antes, sem um nó a mais. */
+function Envelope({
+  carimbo,
+  raio,
+  children,
+}: {
+  carimbo: Folha | null;
+  raio: number;
+  children: ReactNode;
+}) {
+  if (!carimbo?.bloco) return <>{children}</>;
+  return (
+    <View>
+      <View
+        pointerEvents="none"
+        style={[
+          StyleSheet.absoluteFillObject,
+          {
+            backgroundColor: carimbo.bloco,
+            transform: [
+              { translateX: carimbo.deslocamento },
+              { translateY: carimbo.deslocamento },
+            ],
+            borderRadius: raio,
+          },
+        ]}
+      />
+      {children}
+    </View>
+  );
+}
 
 export function Band({
   children,
   rule = "strong",
-  raised = RAISED_PADRAO,
+  raised: raisedProp,
   accentTop,
   accent,
   pad = true,
   grow,
 }: BandProps) {
   const styles = usarEstilos();
-  const { T, FORMA, acentoEm } = useTema();
+  const tema = useTema();
+  const { T, FORMA, MOTION, escuro, acentoEm } = tema;
+  const peca = FORMA.folha.peca;
+  // A tela ainda pode PEDIR o bloco explicitamente (as 26 chamadas que já passavam
+  // `raised`), mas quem responde por padrão é o material escolhido.
+  const raised = raisedProp ?? pintaBloco(tema);
   const ground = raised ? T.raised : T.bg;
   const ac = acentoEm(accent, ground, 3);
-  const corpo = (
-    <View
+  // A MOLDURA VAZIA vale para toda superfície SEM FUNDO, e não só para `contorno`: a
+  // pergunta é "esta peça é só borda?", e quem responde é a folha, não o nome da família —
+  // senão cada família nova precisa ser lembrada aqui à mão, que é o defeito que a folha
+  // veio consertar.
+  const reduzido = useReducedMotion();
+  const soBorda = peca.fundo === "transparent";
+  const semBloco = !pintaBloco(tema);
+  const molduraVazia = Boolean(grow && soBorda);
+  return (
+    // ANIMATED, e por um motivo só: `layout`. Quando uma Band aparece ou some — a faixa de
+    // retomada, a linha de erro, o aviso de offline —, tudo abaixo dela SALTAVA a altura
+    // inteira do bloco, num quadro. Não existia uma única transição de layout no app, e o
+    // salto é a coisa que um olho registra como "barato" antes de registrar qualquer outra.
+    //
+    // A duração sai do MOVIMENTO que o personal escolheu, então o mesmo gesto é seco no
+    // Ferro e longo no Sereno. E some inteiro em movimento reduzido: quem pediu ao sistema
+    // para não animar não recebe animação — a lei vale aqui como vale no cronômetro do
+    // descanso.
+    <Envelope carimbo={raised ? peca : null} raio={FORMA.raio}>
+    <Animated.View
+      layout={reduzido ? undefined : LinearTransition.duration(MOTION.state)}
       style={[
         pad ? styles.bandPad : null,
         raised && styles.raised,
-        // `contorno` + `grow` desenhava uma MOLDURA VAZIA: a superfície que engorda para
-        // comer a sobra da tela virava um retângulo de borda em volta de nada. A borda é
-        // do trecho que tem conteúdo; a sobra não tem contorno.
-        raised && grow && FORMA.superficie === "contorno" && styles.semContorno,
+        // Superfície sem fundo + `grow` desenhava uma MOLDURA VAZIA: a superfície que
+        // engorda para comer a sobra da tela virava um retângulo de borda em volta de
+        // nada. A borda é do trecho que tem conteúdo; a sobra não tem contorno.
+        raised && molduraVazia && styles.semContorno,
         grow && styles.grow,
-        rule === "strong" && styles.ruleStrong,
+        // SEM BLOCO EXIGE O FILETE. Um bloco que não pinta nada e também não tem régua não
+        // é um bloco — ele derrete no vizinho. As telas que pedem `rule="none"` o fazem
+        // porque a superfície já as separava; quando ela para de separar, o material cobra
+        // o delimitador de volta. Regra do MATERIAL, resolvida no material.
+        (rule === "strong" || (semBloco && rule === "none")) && styles.ruleStrong,
         rule === "hair" && styles.ruleHair,
         // ALTURA É UM SINAL SÓ, e os três moram na mesma aresta de cima: o fio de luz da
         // folha, a borda da própria folha (contorno e vidro) e a régua de acento que a
         // tela pede. Quando a tela declara `accentTop`, quem fala ali é a marca — o fio
         // sai. Dois traços na mesma aresta leem como erro de renderização.
         raised && !accentTop && styles.fioDeLuz,
+        // E a MESMA lei embaixo, para o `vinco`: ali quem já fala é a régua, então o fio
+        // do rebaixo só existe na Band que não tem régua nenhuma. Trocar a régua pelo fio
+        // seria pôr material no lugar de delimitador — os 44 de 112 pares da §2.7.
+        raised && rule === "none" && styles.vinco,
         accentTop && { borderTopWidth: FORMA.borda, borderTopColor: ac },
       ]}
     >
+      {raised && peca.vidro ? (
+        // O VIDRO, enfim. Três estratos, nesta ordem, que é a ordem física do material:
+        // o desfoque do que passa atrás, o VÉU do tema por cima dele, o conteúdo por
+        // último. O véu sai da folha com o alfa intocado — a família muda a TEXTURA da
+        // superfície, nunca o VALOR dela.
+        //
+        // Numa Band que pousa no chão liso o raio de desfoque não tem o que desfocar, e
+        // isso é honesto: o que muda o pixel aqui é o tint e a saturação do material. O
+        // desfoque vira desfoque de verdade no dia em que uma Band pousar por cima de
+        // conteúdo — a folha e a tela já estarão prontas, sem uma linha a mais.
+        <View pointerEvents="none" style={styles.vidro}>
+          <BlurView
+            intensity={peca.vidro}
+            tint={escuro ? TINTA_DO_VIDRO.escuro : TINTA_DO_VIDRO.claro}
+            style={StyleSheet.absoluteFill}
+          >
+            <View style={styles.veu} />
+          </BlurView>
+        </View>
+      ) : null}
+      {raised && peca.arestaEm === "moldura" && peca.aresta && !molduraVazia ? (
+        <View pointerEvents="none" style={styles.moldura} />
+      ) : null}
       {children}
-    </View>
+    </Animated.View>
+    </Envelope>
   );
-  // O VIDRO só é vidro quando há o que desfocar atrás. Numa Band, que pousa no chão liso,
-  // o desfoque não teria o que fazer — quem carrega a família ali é o véu e a aresta de
-  // luz, que já estão na folha.
-  return corpo;
 }
 
 /** A MOLDURA de baixo das telas empilhadas — o outro dock do app, irmão da barra de abas.
@@ -322,14 +457,19 @@ const usarEstilos = estilos(({ T, SPACE, FORMA }) => {
       paddingHorizontal: T.pad,
       paddingVertical: SPACE.block,
     },
-    // A SUPERFÍCIE em quatro famílias. Nenhuma delas é um tema à parte: são o mesmo bloco
+    // A SUPERFÍCIE em seis famílias. Nenhuma delas é um tema à parte: são o mesmo bloco
     // com outra resposta para "como esta peça se separa do chão".
     //   sólida  — degrau de luz (o app de sempre)
     //   elevada — degrau de luz + sombra
     //   contorno— nenhum fundo, só aresta
-    //   vidro   — véu translúcido + aresta de luz
+    //   vidro   — desfoque real + véu translúcido + aresta de luz
+    //   fio     — moldura dupla: o delimitador fora, o fio de luz numa caixa interna
+    //   vinco   — o avesso de elevada: o fio desce para a aresta de baixo
     raised: {
-      backgroundColor: peca.fundo,
+      // No VIDRO o fundo NÃO é pintado aqui: quem o pinta é o véu, dentro do BlurView e
+      // por cima do desfoque. Pintar nos dois lugares empilharia dois véus, e o pixel de
+      // vidro sobre vidro é um vizinho que medidor nenhum deste repo sabe olhar.
+      backgroundColor: peca.vidro ? "transparent" : peca.fundo,
       marginTop: SPACE.tight,
       marginHorizontal: FORMA.inset,
       borderRadius: FORMA.raio,
@@ -342,18 +482,64 @@ const usarEstilos = estilos(({ T, SPACE, FORMA }) => {
     // Vazio nos outros casos — não é ausência de estilo, é a folha dizendo que ali quem
     // levanta a peça é outro sinal.
     fioDeLuz:
-      peca.aresta && !peca.borda
+      peca.aresta && !peca.borda && peca.arestaEm === "topo"
         ? { borderTopWidth: FORMA.fio, borderTopColor: peca.aresta }
         : {},
+    // O VINCO é o mesmo fio na aresta DE BAIXO — que é onde um rebaixo pega a luz que vem
+    // de cima, e é só nisso que ele difere de `elevada` no chão escuro. É a folha que diz
+    // a aresta (`arestaEm`), não este arquivo: re-derivar aqui é como `solida` e `elevada`
+    // saíram idênticas byte a byte em quatro chãos.
+    vinco:
+      peca.aresta && !peca.borda && peca.arestaEm === "base"
+        ? { borderBottomWidth: FORMA.fio, borderBottomColor: peca.aresta }
+        : {},
+    // A CAIXA QUE RECORTA O VIDRO, e o motivo de ela ser um FILHO e não a própria peça:
+    // `expo-blur` não aplica `borderRadius` posto no BlurView, e `overflow: "hidden"` na
+    // peça mataria a sombra do vidro no chão claro (o iOS descarta a sombra de quem
+    // recorta os filhos) — e no claro é a sombra que separa a superfície do chão, porque
+    // branco sobre quase-branco tem 6,5 de L* de curso inteiro e gastar tudo em opacidade
+    // mataria o desfoque. Recortar num filho sem sombra paga as duas contas de uma vez.
+    vidro: {
+      ...StyleSheet.absoluteFillObject,
+      overflow: "hidden",
+      borderRadius: Math.max(0, FORMA.raio - peca.borda),
+    },
+    veu: { flex: 1, backgroundColor: peca.fundo },
+    // A MOLDURA INTERNA da família `fio`. Ela mora numa caixa própria, afastada, e não
+    // numa segunda borda da peça, porque é essa distância que a torna legal: o
+    // delimitador fica sozinho na aresta de fora com a cor que a SPEC §3 exige, e este
+    // aqui é MATERIAL — alfa de tinta, cobrado em L* e em nada mais (SPEC §2.7). Empilhar
+    // os dois na mesma aresta é o que derrubou 44 de 112 pares no ciclo 7.
+    //
+    // O vão é `hair`, o menor da escala: mais perto lê como espessura, mais longe lê como
+    // duas caixas. Sendo degrau de SPACE, ele acompanha a densidade sem número solto.
+    moldura: {
+      ...StyleSheet.absoluteFillObject,
+      margin: SPACE.hair,
+      borderWidth: FORMA.fio,
+      borderColor: peca.aresta,
+      borderRadius: Math.max(0, FORMA.raio - peca.borda - SPACE.hair),
+    },
     grow: { flex: 1, justifyContent: "center" },
     semContorno: { borderWidth: 0 },
     ruleStrong: {
       borderBottomWidth: FORMA.borda,
       borderBottomColor: T.divider,
     },
+    // O FILETE FINO É FINO NA ESPESSURA, NÃO NA TINTA. Ele pintava `T.hairline`, que mede
+    // 1,23:1 contra o chão e 1,08:1 contra o bloco levantado — abaixo do piso de 3 que a
+    // SPEC §3 exige de TODO delimitador, e portanto invisível. São 26 usos no app.
+    //
+    // O diagnóstico já estava escrito neste repo: `Baseline.tsx` mede exatamente este
+    // 1,23:1, conclui a mesma coisa e conserta dentro de si. O primitivo compartilhado
+    // continuou embarcando o defeito. É o padrão que o crítico de acabamento nomeou — o
+    // gosto está escrito, e não se propaga.
+    //
+    // Quem separa "fino" de "forte" agora é só a espessura, que é o canal certo: o `fio` é
+    // metade da `borda` por construção.
     ruleHair: {
       borderBottomWidth: FORMA.fio,
-      borderBottomColor: T.hairline,
+      borderBottomColor: T.divider,
     },
     dock: {
       paddingHorizontal: T.pad,

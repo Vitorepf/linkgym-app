@@ -25,6 +25,12 @@ export function dateShort(d = new Date()): string {
   return `${d.getDate()} ${["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"][d.getMonth()]}`;
 }
 
+/** Data com ano. Serve validade de convite: "quatro anos" cravado mentia o `expires_at`. */
+export function dateLong(d: Date): string {
+  if (Number.isNaN(d.getTime())) return "";
+  return `${dateShort(d)} ${d.getFullYear()}`;
+}
+
 /** O quilo do app, num lugar só. A grade de carga anda de meio em meio (ver `stepKg`),
  *  então o formato ANCORA nela: arredonda no meio quilo e escreve em português. Eram dois
  *  formatKg com semânticas diferentes — este e um em offline/sessionQueue — e a Serie

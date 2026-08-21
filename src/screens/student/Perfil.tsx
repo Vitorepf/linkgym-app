@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Pressable,
   ScrollView,
@@ -7,13 +7,20 @@ import {
 } from "react-native";
 import {
   configDoTime,
+  dizerQueJaPaguei,
+  minhaLoja,
+  minhaMensalidade,
+  desistirDoPedido,
+  queroEsse,
   patchMe,
   progress,
+  type ItemDaLoja,
+  type MensalidadeDoAluno,
   type Person,
   type ProgressPayload,
   type Time,
 } from "../../api";
-import { ACCENT_CHOICES, nomeDaCor } from "../../theme";
+import { CORES_DE_ROSTO, nomeDaCor } from "../../theme";
 import { AccentCTA } from "../../ui/AccentCTA";
 import { Avatar } from "../../ui/Avatar";
 import { Campo } from "../../ui/Campo";
@@ -74,23 +81,19 @@ export function Perfil({ token, person, time, onPersonChange, onLeave }: Props) 
   // prévia imediata da foto que acabou de subir, antes de o /v1/me devolver a URL.
   const [fotoLocal, setFotoLocal] = useState("");
 
-  useEffect(() => {
-    let alive = true;
-    (async () => {
-      try {
-        const payload = await progress(token);
-        if (alive) {
-          setData(payload);
-          setError("");
-        }
-      } catch {
-        if (alive) setError("Não deu para abrir o perfil.");
-      }
-    })();
-    return () => {
-      alive = false;
-    };
+  const load = useCallback(async () => {
+    try {
+      const payload = await progress(token);
+      setData(payload);
+      setError("");
+    } catch {
+      setError("Não deu para abrir o perfil.");
+    }
   }, [token]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   const cfg = configDoTime(time);
   const name = person.name.trim() || "Você";
@@ -173,9 +176,18 @@ export function Perfil({ token, person, time, onPersonChange, onLeave }: Props) 
         showsVerticalScrollIndicator={false}
       >
         {error ? (
-          <Txt role="body" color={errorInk} style={styles.error}>
-            {error}
-          </Txt>
+          <View style={styles.error}>
+            <Txt role="body" color={errorInk}>
+              {error}
+            </Txt>
+            <View style={styles.retry}>
+              <GhostCTA
+                label="Tentar de novo"
+                onPress={() => void load()}
+                fundo={T.bg}
+              />
+            </View>
+          </View>
         ) : null}
 
         {/* COMO VOCÊ APARECE: nome, foto e avatar — para o Fred e para a liga. Foto e
@@ -216,7 +228,7 @@ export function Perfil({ token, person, time, onPersonChange, onLeave }: Props) 
                 justamente na cor quase-branca, a única em que o aluno precisaria dele.
                 A tinta de dentro vem do mesmo motor que pinta a peça, então ela existe
                 sobre QUALQUER uma das dez, por construção. */}
-            {ACCENT_CHOICES.map((c) => (
+            {CORES_DE_ROSTO.map((c) => (
               <Pressable
                 key={c}
                 onPress={() => void corDeAvatar(c)}
@@ -244,6 +256,10 @@ export function Perfil({ token, person, time, onPersonChange, onLeave }: Props) 
             </View>
           ) : null}
         </Band>
+
+        <MinhaMensalidade token={token} timeName={time.name} />
+
+        <Loja token={token} timeName={time.name} />
 
         {data ? (
           <>
@@ -328,11 +344,225 @@ export function Perfil({ token, person, time, onPersonChange, onLeave }: Props) 
   );
 }
 
+/** O COMBINADO DELA, e o único verbo que ela tem sobre dinheiro.
+ *
+ *  A LEI desta peça, e ela é do domínio, não de estilo: esta linha NUNCA muda de tom. Nunca
+ *  diz vencido, nunca diz atrasado, nunca diz em aberto, nunca fica vermelha, nunca vira
+ *  push. Ela enuncia o combinado e oferece "já paguei". O app não cobra o aluno — quem cobra
+ *  é o personal, com a frase dele, e um robô cobrando estraga exatamente a relação que este
+ *  produto vende. O payload do servidor nem sequer TEM um campo de atraso, para que nenhuma
+ *  tela futura consiga desenhar um.
+ *
+ *  Por que ela existe: a Operação inteira é aritmética sobre o personal lembrar de tocar
+ *  "Recebi" 28 vezes por mês, para sempre. No terceiro mês ele para — e como "em aberto" é
+ *  ausência de linha, o esquecimento dele fica indistinguível de calote e a tela passa a
+ *  acusar a turma inteira. Ela é a única outra pessoa do sistema com incentivo próprio de
+ *  corrigir isso: quem pagou não quer aparecer devendo. O que ela diz não marca nada — vira
+ *  um nome no topo da lista dele, para o dedo dele confirmar. */
+function MinhaMensalidade({ token, timeName }: { token: string; timeName: string }) {
+  const styles = usarEstilos();
+  const { FORMA } = useTema();
+  const [m, setM] = useState<MensalidadeDoAluno | null>(null);
+  const [dizendo, setDizendo] = useState(false);
+
+  useEffect(() => {
+    let vivo = true;
+    minhaMensalidade(token)
+      .then((got) => vivo && setM(got))
+      .catch(() => {
+        /* sem combinado, sem bloco: dinheiro não é assunto do ritual dela */
+      });
+    return () => {
+      vivo = false;
+    };
+  }, [token]);
+
+  async function dizer() {
+    if (dizendo || !m) return;
+    setDizendo(true);
+    try {
+      await dizerQueJaPaguei(token);
+      setM({ ...m, ja_disse: true });
+    } catch {
+      /* silêncio: falar de novo depois não custa nada, e um erro aqui não é dela */
+    } finally {
+      setDizendo(false);
+    }
+  }
+
+  // Sem combinado digitado, ou mês já fechado pelo personal: a peça não existe. Não desenhar
+  // é a resposta certa — não há placeholder de dinheiro na tela de quem treina.
+  if (!m || m.valor_cents === null || m.due_day === null || m.recebido) return null;
+
+  return (
+    <Band rule="hair">
+      <Txt role="label">Do {timeName}</Txt>
+      <Txt role="body" style={styles.mensalidade}>
+        R$ {reaisDoAluno(m.valor_cents)} por mês, todo dia {m.due_day}.
+      </Txt>
+      {m.ja_disse ? (
+        <Txt role="note" tone="dim" style={styles.avisado}>
+          Avisado. Ele confirma quando vir.
+        </Txt>
+      ) : (
+        <View style={styles.avisado}>
+          <GhostCTA
+            label={dizendo ? "…" : "Já paguei"}
+            fundo={FORMA.folha.peca.composto}
+            onPress={() => void dizer()}
+          />
+        </View>
+      )}
+    </Band>
+  );
+}
+
+/** A LOJA — e o que ela NÃO é.
+ *
+ *  Não tem busca, filtro, categoria, ordenação nem carrinho: é a lista do que o personal
+ *  DELA vende, com um verbo por linha. Vinte e oito alunos não são um marketplace, e uma
+ *  vitrine dentro de um app de treino não é navegada — ela também TIRA o personal da
+ *  transação, e o personal dentro da transação é o produto inteiro.
+ *
+ *  Mora no PERFIL, nunca na Hoje. A Hoje é o ritual, e o ritual é o único lugar onde "isto
+ *  pertence aqui?" não se responde com medidor: quando o medidor acusar, já custou a
+ *  confiança de quem abriu o app para treinar.
+ *
+ *  E o verbo não é COMPRAR. Ela não paga aqui, não escolhe forma de pagamento e não recebe
+ *  cobrança nenhuma: ela diz "quero", e isso vira um nome na tela dele. Quem fecha é o dedo
+ *  do personal, com a frase dele — a mesma lei do "já paguei". */
+function Loja({ token, timeName }: { token: string; timeName: string }) {
+  const styles = usarEstilos();
+  const { FORMA } = useTema();
+  const [itens, setItens] = useState<ItemDaLoja[]>([]);
+  const [pedindo, setPedindo] = useState<string | null>(null);
+
+  useEffect(() => {
+    let vivo = true;
+    minhaLoja(token)
+      .then((r) => vivo && setItens(r.items))
+      .catch(() => {
+        /* sem loja, sem bloco: o personal dela não vende nada além da mensalidade */
+      });
+    return () => {
+      vivo = false;
+    };
+  }, [token]);
+
+  async function quero(id: string) {
+    if (pedindo) return;
+    setPedindo(id);
+    try {
+      await queroEsse(token, id);
+      setItens((l) => l.map((i) => (i.produto_id === id ? { ...i, ja_pedi: true } : i)));
+    } catch {
+      /* silêncio: pedir de novo depois não custa nada, e o erro não é dela */
+    } finally {
+      setPedindo(null);
+    }
+  }
+
+  /** O DESFAZER, e ele é o que torna o toque de cima aceitável.
+   *
+   *  "Assinar" numa marmita criava uma dívida MENSAL RECORRENTE com um toque, sem
+   *  confirmação, e o botão virava "Assinado" e acabava: um dedo errado no rodapé do Perfil
+   *  comprometia ela com um valor todo mês, e o caminho de volta não existia — nem aqui, nem
+   *  na tela dele. A casa recusa diálogo de confirmação ("confirmação em toda ação é o que
+   *  faz app parecer formulário"), e a saída que ela prescreve é esta: o desfazer É a
+   *  confirmação.
+   *
+   *  Vale enquanto nada foi recebido. Depois disso o servidor não desfaz, e a linha volta
+   *  ao estado dela sozinha — o dinheiro na mão dele é fato, e fato não se apaga por aqui. */
+  async function desisto(id: string) {
+    if (pedindo) return;
+    setPedindo(id);
+    try {
+      await desistirDoPedido(token, id);
+      setItens((l) => l.map((i) => (i.produto_id === id ? { ...i, ja_pedi: false } : i)));
+    } catch {
+      /* silêncio: a linha continua como estava, que é a verdade */
+    } finally {
+      setPedindo(null);
+    }
+  }
+
+  // Sem produto no cardápio dele, a peça não existe. Não desenhar é a resposta certa.
+  if (itens.length === 0) return null;
+
+  return (
+    <Band rule="hair">
+      {/* Rótulo próprio: o bloco da mensalidade logo acima também diz "Do Fred", e duas
+          faixas iguais seguidas leem como uma peça repetida. */}
+      <Txt role="label">{timeName} também vende</Txt>
+      {itens.map((i) => (
+        <View key={i.produto_id} style={styles.itemDaLoja}>
+          <View style={styles.itemCopy}>
+            <Txt role="body" numberOfLines={1}>
+              {i.nome}
+            </Txt>
+            <Txt role="note" tone="dim">
+              R$ {reaisDoAluno(i.preco_cents)}
+              {i.tipo === "assinatura" ? " por mês" : ""}
+              {i.sessoes ? ` · ${i.sessoes} sessões` : ""}
+            </Txt>
+          </View>
+          {/* ASSINAR É OUTRO VERBO, e o botão tem que dizer o que vai acontecer. "Quero"
+              numa marmita que repete todo mês esconde que o toque combina um valor MENSAL,
+              e o rótulo depois do toque ("Pedido") diria que aconteceu uma compra única —
+              enquanto o que existe do outro lado é uma assinatura que repete. */}
+          {i.ja_pedi ? (
+            <GhostCTA
+              label={
+                pedindo === i.produto_id
+                  ? "…"
+                  : i.tipo === "assinatura"
+                    ? "Assinado"
+                    : "Pedido"
+              }
+              fundo={FORMA.folha.peca.composto}
+              onPress={() => void desisto(i.produto_id)}
+            />
+          ) : (
+            <GhostCTA
+              label={
+                pedindo === i.produto_id
+                  ? "…"
+                  : i.tipo === "assinatura"
+                    ? "Assinar"
+                    : "Quero"
+              }
+              fundo={FORMA.folha.peca.composto}
+              onPress={() => void quero(i.produto_id)}
+            />
+          )}
+        </View>
+      ))}
+    </Band>
+  );
+}
+
+/** Centavos em prosa: inteiro limpo, quebrado com vírgula. */
+function reaisDoAluno(cents: number): string {
+  const resto = cents % 100;
+  const inteiro = Math.trunc(cents / 100).toLocaleString("pt-BR");
+  return resto ? `${inteiro},${String(resto).padStart(2, "0")}` : inteiro;
+}
+
 const usarEstilos = estilos(({ T, SPACE, FONTES, FORMA, acento }) =>
   StyleSheet.create({
     scroll: { flex: 1 },
     content: { flexGrow: 1 },
     error: { paddingHorizontal: T.pad, paddingTop: SPACE.tight },
+    retry: { marginTop: SPACE.tight, alignSelf: "flex-start" },
+    mensalidade: { marginTop: SPACE.hair },
+    itemDaLoja: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: SPACE.tight,
+      marginTop: SPACE.tight,
+    },
+    itemCopy: { flex: 1, minWidth: 0 },
+    avisado: { marginTop: SPACE.tight, alignSelf: "flex-start" },
 
     editRow: {
       flexDirection: "row",
@@ -357,7 +587,7 @@ const usarEstilos = estilos(({ T, SPACE, FONTES, FORMA, acento }) =>
       borderWidth: FORMA.borda,
       borderColor: T.divider,
       paddingVertical: 8,
-      paddingHorizontal: 14,
+      paddingHorizontal: SPACE.tight,
       borderRadius: FORMA.raioAcao,
     },
     corAvatar: {

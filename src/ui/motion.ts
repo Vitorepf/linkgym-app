@@ -17,9 +17,16 @@ export const EASE = Easing.bezier(...MOTION.ease);
  *  para a mesma mudança andam em velocidades diferentes: a altura saltava no quadro zero
  *  enquanto a cor levava MOTION.enter para chegar. Um progresso só, todo mundo junto. */
 export function useProgresso(active: boolean, duracao?: number) {
+  // O HOOK VEM PRIMEIRO, SEMPRE. Isto era `duracao ?? useTema().MOTION.state`, e o lado
+  // direito de um `??` só roda quando o esquerdo é nulo: `useContext` ficava condicionado a
+  // um argumento. Nenhum chamador de hoje alterna esse argumento, então nunca quebrou — e é
+  // exatamente assim que este defeito espera. No dia em que um componente passar duração às
+  // vezes, o React derruba a tela inteira com "Rendered fewer hooks than expected", no
+  // arquivo por onde passa toda animação do app.
+  const tema = useTema();
   // Sem duração explícita quem manda é o MOVIMENTO do personal. Enquanto o padrão vinha
   // do módulo, "seco" e "generoso" mudavam só os quatro pontos que passavam número na mão.
-  const duration = duracao ?? useTema().MOTION.state;
+  const duration = duracao ?? tema.MOTION.state;
   const p = useSharedValue(active ? 1 : 0);
   const reduce = useReducedMotion();
   useEffect(() => {

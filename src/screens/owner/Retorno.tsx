@@ -2,7 +2,14 @@ import { useCallback, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { applyOwnerReturn, ownerReturns, type OwnerReturn } from "../../api";
+import {
+  applyOwnerReturn,
+  configDoTime,
+  ownerReturns,
+  type OwnerReturn,
+  type Time,
+} from "../../api";
+import { GhostCTA } from "../../ui/GhostCTA";
 import type { RootStackParamList } from "../../nav/types";
 import { AccentCTA } from "../../ui/AccentCTA";
 import { Choice } from "../../ui/Choice";
@@ -15,19 +22,23 @@ import { Txt } from "../../ui/Txt";
 import { formatKg } from "../../ui/format";
 import { estilos, useTema } from "../../ui/tema";
 
-type Bump = 2.5 | 0 | -2.5;
+type Bump = number;
 
-type Props = NativeStackScreenProps<RootStackParamList, "Retorno">;
+type Props = NativeStackScreenProps<RootStackParamList, "Retorno"> & {
+  time: Time;
+};
 
-const BUMPS: Bump[] = [-2.5, 0, 2.5];
+function bumpsOf(passo: number): Bump[] {
+  return [-passo, 0, passo];
+}
 
 /** A decisão já vem pronta: o esforço que o aluno marcou É a causa do peso de amanhã.
  *  Antes o 0 vinha selecionado para todo mundo, então "fácil" e "difícil" custavam DOIS
  *  toques cada. Com a sugestão no lugar, o caminho feliz é UM toque por aluno e a
  *  inclinação de 1 para 20 alunos deixa de dobrar. */
-function suggest(effort: number): Bump {
-  if (effort === 1) return 2.5;
-  if (effort === 3) return -2.5;
+function suggest(effort: number, passo: number): Bump {
+  if (effort === 1) return passo;
+  if (effort === 3) return -passo;
   return 0;
 }
 
@@ -67,10 +78,12 @@ function hourOf(iso: string): string {
   return `${d.getHours()}h${String(d.getMinutes()).padStart(2, "0")}`;
 }
 
-export function Retorno({ route }: Props) {
+export function Retorno({ route, time }: Props) {
   const styles = usarEstilos();
   const { T, acento, errorInk } = useTema();
   const { token, timeName } = route.params;
+  const passo = configDoTime(time).passo_kg;
+  const BUMPS = bumpsOf(passo);
   const A = acento(undefined, T.raised);
   const [items, setItems] = useState<OwnerReturn[]>([]);
   const [bumpFor, setBumpFor] = useState<Record<string, Bump>>({});
@@ -115,7 +128,8 @@ export function Retorno({ route }: Props) {
 
   const head = items.find((it) => it.alert_id === focusId) ?? items[0];
   const rest = head ? items.filter((it) => it.alert_id !== head.alert_id) : [];
-  const bumpOf = (row: OwnerReturn) => bumpFor[row.alert_id] ?? suggest(row.effort);
+  const bumpOf = (row: OwnerReturn) =>
+    bumpFor[row.alert_id] ?? suggest(row.effort, passo);
   const bump = head ? bumpOf(head) : 0;
 
   return (
@@ -124,13 +138,17 @@ export function Retorno({ route }: Props) {
         kicker={timeName}
         kickerMuted
         title={
-          loaded
-            ? items.length === 1
+          !loaded || (error && items.length === 0)
+            ? undefined
+            : items.length === 1
               ? "1 sessão voltou"
               : `${items.length} sessões voltaram`
+        }
+        body={
+          loaded && head && !(error && items.length === 0)
+            ? "O que fizeram, e o peso de amanhã."
             : undefined
         }
-        body={loaded && head ? "O que fizeram, e o peso de amanhã." : undefined}
       />
 
       <ScrollView
@@ -139,9 +157,18 @@ export function Retorno({ route }: Props) {
         showsVerticalScrollIndicator={false}
       >
         {error ? (
-          <Txt role="body" color={errorInk} style={styles.error}>
-            {error}
-          </Txt>
+          <View style={styles.error}>
+            <Txt role="body" color={errorInk}>
+              {error}
+            </Txt>
+            <View style={styles.retry}>
+              <GhostCTA
+                label="Tentar de novo"
+                onPress={() => void load()}
+                fundo={T.bg}
+              />
+            </View>
+          </View>
         ) : null}
 
         {!loaded ? (
@@ -283,11 +310,12 @@ export function Retorno({ route }: Props) {
   );
 }
 
-const usarEstilos = estilos(({ T }) =>
+const usarEstilos = estilos(({ T, SPACE }) =>
   StyleSheet.create({
     scroll: { flex: 1 },
     content: { flexGrow: 1, paddingBottom: 24 },
-    error: { paddingHorizontal: T.pad, paddingTop: 12 },
+    error: { paddingHorizontal: T.pad, paddingTop: SPACE.tight },
+    retry: { marginTop: SPACE.tight, alignSelf: "flex-start" },
     emptyLine: { marginTop: 8 },
     who: {
       flexDirection: "row",

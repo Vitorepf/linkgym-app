@@ -1,14 +1,20 @@
 import {
   Archivo_500Medium,
   Archivo_800ExtraBold,
+  Archivo_900Black,
   useFonts,
 } from "@expo-google-fonts/archivo";
-import { Inter_500Medium, Inter_700Bold } from "@expo-google-fonts/inter";
-import { Nunito_600SemiBold, Nunito_800ExtraBold } from "@expo-google-fonts/nunito";
-import { Oswald_600SemiBold } from "@expo-google-fonts/oswald";
-import { PlayfairDisplay_700Bold } from "@expo-google-fonts/playfair-display";
 import {
-  SpaceGrotesk_500Medium,
+  Inter_400Regular,
+  Inter_400Regular_Italic,
+  Inter_600SemiBold,
+  Inter_700Bold,
+} from "@expo-google-fonts/inter";
+import { Nunito_400Regular, Nunito_900Black } from "@expo-google-fonts/nunito";
+import { Oswald_400Regular, Oswald_600SemiBold } from "@expo-google-fonts/oswald";
+import { PlayfairDisplay_900Black } from "@expo-google-fonts/playfair-display";
+import {
+  SpaceGrotesk_300Light,
   SpaceGrotesk_700Bold,
 } from "@expo-google-fonts/space-grotesk";
 import { DarkTheme, NavigationContainer } from "@react-navigation/native";
@@ -61,19 +67,28 @@ export function criarNavTheme(tema: Tema) {
 export const navTheme = criarNavTheme(criarTema());
 
 export default function App() {
-  // As CINCO VOZES sobem juntas no boot. A alternativa — carregar só o par do personal
-  // depois do /v1/me — trocaria 700 KB de bundle por uma tela de texto sem fonte em toda
-  // primeira abertura, que é o defeito que este arquivo já pagou uma vez (D1).
+  // AS SEIS VOZES sobem juntas no boot. A alternativa — carregar só o par do personal
+  // depois do /v1/me — trocaria bundle por uma tela de texto sem fonte em toda primeira
+  // abertura, que é o defeito que este arquivo já pagou uma vez (D1).
+  //
+  // Os pacotes trazem 84 faces e o app carregava 10 — todas as dez apertadas na faixa 500
+  // a 800, que é literalmente a razão de as seis vozes saírem parecidas. Estas treze
+  // ocupam de 300Light a 900Black e incluem um itálico. Nenhuma dependência nova: cada
+  // face já estava em disco dentro de um pacote que o app já instala.
   const [loaded] = useFonts({
-    Archivo_800ExtraBold,
     Archivo_500Medium,
+    Archivo_800ExtraBold,
+    Archivo_900Black,
+    SpaceGrotesk_300Light,
     SpaceGrotesk_700Bold,
-    SpaceGrotesk_500Medium,
-    PlayfairDisplay_700Bold,
-    Inter_500Medium,
+    PlayfairDisplay_900Black,
+    Inter_400Regular,
+    Inter_400Regular_Italic,
+    Inter_600SemiBold,
     Inter_700Bold,
-    Nunito_800ExtraBold,
-    Nunito_600SemiBold,
+    Nunito_400Regular,
+    Nunito_900Black,
+    Oswald_400Regular,
     Oswald_600SemiBold,
   });
   const [boot, setBoot] = useState(true);

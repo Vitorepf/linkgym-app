@@ -75,7 +75,9 @@ export function Revisao({ token, timeName }: Props) {
 
   useFocusEffect(
     useCallback(() => {
-      if (done) return;
+      // Voltar para a aba é pedido de ver a semana de novo: o recibo é de um ato, não um
+      // estado da tela.
+      if (done) setDone(null);
       void load();
     }, [load, done]),
   );
@@ -154,10 +156,29 @@ export function Revisao({ token, timeName }: Props) {
         />
         <Band rule="none">
           <Txt role="label">O que cada um recebe</Txt>
+          {/* O QUE ESTAVA ESCRITO AQUI NÃO ACONTECIA. A tela prometia, entre aspas, que o
+              aluno recebia "{time} revisou sua semana" — e essa frase foi APAGADA do app do
+              aluno no ciclo 5, com o motivo escrito em Hoje.tsx: ninguém revisou semana
+              nenhuma. `approveOwnerWeek` devolve uma contagem e mais nada; tela nenhuma do
+              aluno desenha aviso algum. O recibo do trabalho da semana dele era uma
+              afirmação falsa sobre a tela de outra pessoa. Agora diz o que o app faz. */}
           <Txt role="body" style={styles.gap}>
-            {`"${timeName} revisou sua semana"`}, com o ajuste dele em uma linha.
+            A carga ajustada entra na próxima ficha de cada uma. Nada é avisado hoje.
           </Txt>
         </Band>
+        <DockFooter>
+          {/* SEM ISTO A ABA TRANCAVA. Revisão é aba montada, o recibo só sai quando `done`
+              volta a ser nulo, e ninguém o zerava — o `useFocusEffect` inclusive
+              early-retornava por causa dele. Depois de aprovar a semana uma vez, a aba
+              mostrava o recibo até o app ser morto. */}
+          <AccentCTA
+            label="Ver a semana"
+            onPress={() => {
+              setDone(null);
+              void load();
+            }}
+          />
+        </DockFooter>
       </Phone>
     );
   }

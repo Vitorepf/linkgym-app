@@ -165,18 +165,18 @@ export function RetomadaBand({
   );
 }
 
-const usarEstilos = estilos(({ T }) =>
+const usarEstilos = estilos(({ T, SPACE }) =>
   StyleSheet.create({
     row: { flexDirection: "row", alignItems: "center", gap: 12 },
     grow: { flex: 1, minWidth: 0 },
-    stands: { marginTop: 14 },
+    stands: { marginTop: SPACE.tight },
     line: {
-      marginTop: 14,
-      paddingTop: 14,
+      marginTop: SPACE.tight,
+      paddingTop: SPACE.tight,
       borderTopWidth: 1,
       borderTopColor: T.hairline,
     },
-    cta: { marginTop: 16 },
-    failed: { marginTop: 10 },
+    cta: { marginTop: SPACE.tight },
+    failed: { marginTop: SPACE.tight },
   }),
 );

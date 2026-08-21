@@ -1,7 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { patchPrescriptionItem, type DraftItem } from "../../api";
+import {
+  configDoTime,
+  patchPrescriptionItem,
+  type DraftItem,
+  type Time,
+} from "../../api";
+import { Campo } from "../../ui/Campo";
 import type { RootStackParamList } from "../../nav/types";
 import { AccentCTA } from "../../ui/AccentCTA";
 import { Figure } from "../../ui/Figure";
@@ -11,10 +17,9 @@ import { Txt } from "../../ui/Txt";
 import { formatKg } from "../../ui/format";
 import { estilos, useTema } from "../../ui/tema";
 
-type Props = NativeStackScreenProps<RootStackParamList, "Ajustar">;
-
-/** 2,5 kg é o menor par de anilhas. Um passo, dois botões, zero teclado. */
-const STEP = 2.5;
+type Props = NativeStackScreenProps<RootStackParamList, "Ajustar"> & {
+  time: Time;
+};
 
 /** A PROCEDÊNCIA. `load_source` já vinha na resposta e a tela jogava fora — que é o mesmo
  *  defeito da barra (o histórico existe, o campo abre em branco) com outro rosto. Toda
@@ -26,6 +31,15 @@ function fromLabel(src: DraftItem["load_source"], who: string): string {
   return "posta à mão";
 }
 
+function patchBody(row: DraftItem) {
+  return {
+    load_kg: row.load_kg,
+    planned_sets: row.planned_sets,
+    planned_reps: row.planned_reps,
+    ...(typeof row.notes === "string" ? { notes: row.notes.trim() } : {}),
+  };
+}
+
 function fromProse(src: DraftItem["load_source"], who: string): string {
   if (src === "history") return `É a carga da última série que ${who} fez neste exercício.`;
   if (src === "prescription")
@@ -34,11 +48,12 @@ function fromProse(src: DraftItem["load_source"], who: string): string {
   return "Carga posta à mão. O histórico deste corpo não entrou.";
 }
 
-export function Ajustar({ navigation, route }: Props) {
+export function Ajustar({ navigation, route, time }: Props) {
   const styles = usarEstilos();
   const { T, acento, errorInk } = useTema();
   const { token, timeName, prescriptionId, personId, personName } =
     route.params;
+  const passo = configDoTime(time).passo_kg;
   const A = acento(undefined, T.raised);
   const who = personName.trim().split(/\s+/)[0] || "o aluno";
 
@@ -69,11 +84,12 @@ export function Ajustar({ navigation, route }: Props) {
     if (prev) clearTimeout(prev);
     timers.current[next.id] = setTimeout(() => {
       delete timers.current[next.id];
-      void patchPrescriptionItem(token, prescriptionId, next.id, {
-        load_kg: next.load_kg,
-        planned_sets: next.planned_sets,
-        planned_reps: next.planned_reps,
-      }).catch(() => setError("Não deu para ajustar."));
+      void patchPrescriptionItem(
+        token,
+        prescriptionId,
+        next.id,
+        patchBody(next),
+      ).catch(() => setError("Não deu para ajustar."));
     }, 300);
   }
 
@@ -100,11 +116,12 @@ export function Ajustar({ navigation, route }: Props) {
       ids.map((id) => {
         const row = byId.get(id);
         if (!row) return Promise.resolve();
-        return patchPrescriptionItem(token, prescriptionId, row.id, {
-          load_kg: row.load_kg,
-          planned_sets: row.planned_sets,
-          planned_reps: row.planned_reps,
-        });
+        return patchPrescriptionItem(
+          token,
+          prescriptionId,
+          row.id,
+          patchBody(row),
+        );
       }),
     );
   }
@@ -144,9 +161,9 @@ export function Ajustar({ navigation, route }: Props) {
                 <View style={styles.stepper}>
                   <Pressable
                     accessibilityRole="button"
-                    accessibilityLabel="Menos 2,5 kg"
+                    accessibilityLabel={`Menos ${formatKg(passo)} kg`}
                     style={styles.sq}
-                    onPress={() => bump(row, -STEP)}
+                    onPress={() => bump(row, -passo)}
                   >
                     <Txt role="title">−</Txt>
                   </Pressable>
@@ -162,9 +179,9 @@ export function Ajustar({ navigation, route }: Props) {
                   </View>
                   <Pressable
                     accessibilityRole="button"
-                    accessibilityLabel="Mais 2,5 kg"
+                    accessibilityLabel={`Mais ${formatKg(passo)} kg`}
                     style={styles.sq}
-                    onPress={() => bump(row, STEP)}
+                    onPress={() => bump(row, passo)}
                   >
                     <Txt role="title">+</Txt>
                   </Pressable>
@@ -181,6 +198,22 @@ export function Ajustar({ navigation, route }: Props) {
                     {fromProse(row.load_source, who)}
                   </Txt>
                 )}
+                <Campo
+                  label="Uma frase para ela"
+                  rotulo
+                  nota="Ela lê isto como a sua voz neste exercício."
+                  value={row.notes ?? ""}
+                  onChangeText={(text) => {
+                    const next: DraftItem = { ...row, notes: text };
+                    schedulePatch(next);
+                    setItems((prev) =>
+                      prev.map((it) => (it.id === row.id ? next : it)),
+                    );
+                  }}
+                  placeholder="Cotovelo no banco. Sem impulso."
+                  maxLength={140}
+                  style={styles.nota}
+                />
               </View>
             );
           }
@@ -257,7 +290,7 @@ export function Ajustar({ navigation, route }: Props) {
   );
 }
 
-const usarEstilos = estilos(({ T, FORMA }) =>
+const usarEstilos = estilos(({ T, FORMA, SPACE }) =>
   StyleSheet.create({
     scroll: { flex: 1 },
     content: { flexGrow: 1 },
@@ -274,8 +307,8 @@ const usarEstilos = estilos(({ T, FORMA }) =>
     stepper: {
       flexDirection: "row",
       alignItems: "center",
-      gap: 10,
-      marginTop: 6,
+      gap: SPACE.tight,
+      marginTop: SPACE.hair,
     },
     // O quadrado do ± perdeu o acento de propósito: ele não é o elemento dominante da tela
     // (o dominante é o número da carga, e a massa do acento é do Publicar).
@@ -291,26 +324,27 @@ const usarEstilos = estilos(({ T, FORMA }) =>
       flexShrink: 0,
     },
     loadBlock: { flex: 1 },
-    prose: { marginTop: 10 },
-    drift: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 10 },
+    prose: { marginTop: SPACE.tight },
+    nota: { marginTop: SPACE.step },
+    drift: { flexDirection: "row", alignItems: "center", gap: SPACE.hair, marginTop: SPACE.tight },
     row: {
       flexDirection: "row",
       alignItems: "center",
-      gap: 6,
+      gap: SPACE.hair,
       paddingHorizontal: T.pad,
       paddingVertical: 18,
       borderBottomWidth: FORMA.fio,
       borderBottomColor: T.hairline,
     },
     rowBody: { flex: 1, minWidth: 0 },
-    rowFrom: { flexDirection: "row", alignItems: "center", gap: 5 },
+    rowFrom: { flexDirection: "row", alignItems: "center", gap: SPACE.hair },
     rowLoad: { fontVariant: ["tabular-nums"] },
     foot: {
       paddingHorizontal: T.pad,
-      paddingTop: 24,
-      paddingBottom: 22,
+      paddingTop: SPACE.step,
+      paddingBottom: SPACE.step,
     },
-    footLine: { marginTop: 6 },
-    footNote: { marginTop: 6 },
+    footLine: { marginTop: SPACE.hair },
+    footNote: { marginTop: SPACE.hair },
   }),
 );

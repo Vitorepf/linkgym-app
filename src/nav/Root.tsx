@@ -10,7 +10,13 @@ import { Aparencia } from "../screens/owner/Aparencia";
 import { ComoFunciona } from "../screens/owner/ComoFunciona";
 import { Combinado } from "../screens/owner/Combinado";
 import { Convite } from "../screens/owner/Convite";
+import { Modelo } from "../screens/owner/Modelo";
+import { Modelos } from "../screens/owner/Modelos";
+import { NovaModelo } from "../screens/owner/NovaModelo";
+import { PerfilTime } from "../screens/owner/PerfilTime";
+import { Produtos } from "../screens/owner/Produtos";
 import { Base } from "../screens/owner/Base";
+import { Turma } from "../screens/owner/Turma";
 import { Publicar } from "../screens/owner/Publicar";
 import { Revisao } from "../screens/owner/Revisao";
 import { Retorno } from "../screens/owner/Retorno";
@@ -147,11 +153,11 @@ export function Root({
               />
             )}
           </Stack.Screen>
-          <Stack.Screen
-            name="Retorno"
-            component={Retorno}
-            options={{ animation: "slide_from_right" }}
-          />
+          <Stack.Screen name="Retorno" options={{ animation: "slide_from_right" }}>
+            {({ navigation, route }) => (
+              <Retorno navigation={navigation} route={route} time={time} />
+            )}
+          </Stack.Screen>
           <Stack.Screen
             name="Atencao"
             component={Atencao}
@@ -159,6 +165,28 @@ export function Root({
           />
           <Stack.Screen name="Convite" options={{ animation: "slide_from_right" }}>
             {() => <Convite token={token} time={time} />}
+          </Stack.Screen>
+          <Stack.Screen name="PerfilTime" options={{ animation: "slide_from_right" }}>
+            {() => (
+              <PerfilTime
+                token={token}
+                time={time}
+                onTimeChange={onTimeChange}
+                onLeave={onLeave}
+              />
+            )}
+          </Stack.Screen>
+          <Stack.Screen name="Alunos" options={{ animation: "slide_from_right" }}>
+            {() => <Turma token={token} timeName={time.name} />}
+          </Stack.Screen>
+          <Stack.Screen name="Modelos" options={{ animation: "slide_from_right" }}>
+            {() => <Modelos token={token} timeName={time.name} />}
+          </Stack.Screen>
+          <Stack.Screen name="Modelo" options={{ animation: "slide_from_right" }}>
+            {({ route }) => <Modelo {...route.params} />}
+          </Stack.Screen>
+          <Stack.Screen name="NovaModelo" options={{ animation: "slide_from_right" }}>
+            {({ route }) => <NovaModelo {...route.params} />}
           </Stack.Screen>
           <Stack.Screen name="Aparencia" options={{ animation: "slide_from_right" }}>
             {() => (
@@ -181,14 +209,21 @@ export function Root({
           <Stack.Screen name="Combinado" options={{ animation: "slide_from_right" }}>
             {({ route }) => <Combinado {...route.params} />}
           </Stack.Screen>
+          <Stack.Screen name="Produtos" options={{ animation: "slide_from_right" }}>
+            {({ route }) => <Produtos {...route.params} />}
+          </Stack.Screen>
           <Stack.Screen name="Base" options={{ animation: "slide_from_right" }}>
             {({ route }) => <Base {...route.params} />}
           </Stack.Screen>
-          <Stack.Screen
-            name="Ajustar"
-            component={Ajustar}
-            options={{ animation: "slide_from_right" }}
-          />
+          <Stack.Screen name="Ajustar" options={{ animation: "slide_from_right" }}>
+            {({ navigation, route }) => (
+              <Ajustar
+                navigation={navigation}
+                route={route}
+                time={time}
+              />
+            )}
+          </Stack.Screen>
           <Stack.Screen
             name="Publicar"
             component={Publicar}

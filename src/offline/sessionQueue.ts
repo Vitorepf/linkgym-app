@@ -193,7 +193,29 @@ export function sessionProof(session: LocalSession | null): SessionProof | undef
 
 export type FlushResult =
   | { ok: true; finish?: FinishPayload }
-  | { ok: false };
+  | { ok: false; finish?: FinishPayload };
+
+/** Sem confirmação do servidor, XP e ofensiva não crescem. O flush chama isto
+ *  no fechamento da sessão — pending não inventa pontos. */
+export function resultadoDaSessao(
+  finish: FinishPayload | undefined,
+  pending: boolean,
+  atual: { ofensiva: number; xpTotal: number },
+): FinishPayload {
+  if (pending || !finish) {
+    return {
+      ofensiva: { current_count: atual.ofensiva, protector_available: true },
+      xp_gained: 0,
+      xp_total: atual.xpTotal,
+      records: [],
+      badge_keys: [],
+    };
+  }
+  return {
+    ...finish,
+    xp_gained: Math.max(0, finish.xp_gained),
+  };
+}
 
 export async function flush(token: string, localId?: string): Promise<FlushResult> {
   const session = localId
@@ -228,13 +250,25 @@ export async function flush(token: string, localId?: string): Promise<FlushResul
     if (session.finished) {
       const finish = await finishSession(token, started.id, session.finished.effort);
       await dropSession(session.local_id);
-      return { ok: true, finish };
+      return {
+        ok: true,
+        finish: resultadoDaSessao(finish, false, {
+          ofensiva: finish.ofensiva.current_count,
+          xpTotal: finish.xp_total,
+        }),
+      };
     }
 
     await saveSession(session);
     return { ok: true };
   } catch {
     await saveSession(session);
+    if (session.finished) {
+      return {
+        ok: false,
+        finish: resultadoDaSessao(undefined, true, { ofensiva: 0, xpTotal: 0 }),
+      };
+    }
     return { ok: false };
   }
 }

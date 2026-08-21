@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Share, StyleSheet, View } from "react-native";
 import { abrirWhatsApp, temTelefone } from "../../whatsapp";
 import { criarConvite, type Time } from "../../api";
+import { dateLong } from "../../ui/format";
 import { AccentCTA } from "../../ui/AccentCTA";
 import { Avatar } from "../../ui/Avatar";
 import { Campo } from "../../ui/Campo";
@@ -38,7 +39,11 @@ export function Convite({ token, time }: Props) {
   const navigation = useNavigation();
   const { T, FORMA, errorInk } = useTema();
   const [fone, setFone] = useState("");
-  const [convite, setConvite] = useState<{ code: string; phone: string } | null>(null);
+  const [convite, setConvite] = useState<{
+    code: string;
+    phone: string;
+    expires_at: string;
+  } | null>(null);
   const [busy, setBusy] = useState(false);
   const [erro, setErro] = useState("");
 
@@ -53,7 +58,11 @@ export function Convite({ token, time }: Props) {
     setErro("");
     try {
       const c = convite ?? (await criarConvite(token, temFone ? fone.trim() : undefined));
-      setConvite({ code: c.code, phone: c.phone ?? "" });
+      setConvite({
+        code: c.code,
+        phone: c.phone ?? "",
+        expires_at: c.expires_at,
+      });
       await abrir(c.code);
     } catch {
       setErro("Não deu para criar o convite.");
@@ -68,7 +77,12 @@ export function Convite({ token, time }: Props) {
     // time, e no convite também.
     const abertura = `Aqui é o ${time.name}. Te chamei para treinar comigo.`;
     if (temFone) {
-      return `${abertura}\n\nBaixe o app e entre com este número: ${fone.trim()}\nJá deixei liberado — não precisa de código nem de senha.`;
+      // "não precisa de código nem de senha" era FALSO, e falso na voz dele. A porta pelo
+      // número matou o convite, não a autenticação: `Access.tsx` continua pedindo os quatro
+      // dígitos que chegam por SMS, e tem que continuar — sem eles qualquer pessoa entra na
+      // conta de qualquer aluno digitando o número dele. O personal mandava, com as próprias
+      // palavras, uma promessa que a primeira tela do app desmentia.
+      return `${abertura}\n\nBaixe o app e entre com este número: ${fone.trim()}\nJá deixei liberado — não precisa de convite. O app manda um código por SMS só para confirmar que o número é seu.`;
     }
     return `${abertura}\n\nBaixe o app, entre com o seu número e use este convite: ${code}`;
   }
@@ -109,7 +123,7 @@ export function Convite({ token, time }: Props) {
         }
         kicker={time.name}
         title="Chamar um aluno"
-        body="Você digita o número, ele entra com o mesmo número. Sem código e sem senha."
+        body="Você digita o número, ele entra com o mesmo número. Sem convite para decorar."
       />
 
       <View style={styles.corpo}>
@@ -144,10 +158,13 @@ export function Convite({ token, time }: Props) {
                   {fone.trim()}
                 </Txt>
                 <Txt role="body" tone="muted">
-                  É só ele abrir o app e colocar este número.
+                  É só ele abrir o app e colocar este número. O app confirma por SMS.
                 </Txt>
                 <Txt role="note" tone="dim" style={styles.nota}>
-                  convite {convite.code} · guardado por quatro anos, caso você precise dele
+                  convite {convite.code}
+                  {vale(convite.expires_at)
+                    ? ` · vale até ${vale(convite.expires_at)}`
+                    : ""}
                 </Txt>
               </>
             ) : (
@@ -160,7 +177,10 @@ export function Convite({ token, time }: Props) {
                   {convite.code}
                 </Txt>
                 <Txt role="body" tone="muted">
-                  Serve para quem receber. Vale por quatro anos.
+                  Serve para quem receber
+                  {vale(convite.expires_at)
+                    ? `. Vale até ${vale(convite.expires_at)}.`
+                    : "."}
                 </Txt>
               </>
             )}
@@ -212,6 +232,10 @@ export function Convite({ token, time }: Props) {
       </DockFooter>
     </Phone>
   );
+}
+
+function vale(iso: string): string {
+  return dateLong(new Date(iso));
 }
 
 function rotulo(busy: boolean, temFone: boolean, jaTem: boolean): string {

@@ -35,6 +35,15 @@ export type ParDeFontes = {
   numero: string;
   /** altura de CAIXA ALTA da face de display, em em. Lida do OS/2 do arquivo. */
   cap: number;
+  /** altura de CAIXA ALTA da face do NÚMERO, em em.
+   *
+   *  Existe porque `cap` sozinha estava corrigindo a óptica dos degraus errados. `value`,
+   *  `hero` e `mega` desenham na face do NÚMERO (ver Txt.tsx), e vinham sendo escalados
+   *  pela caixa alta do DISPLAY. Na voz condensada isso saía caro e visível: a caixa alta
+   *  0,81 do Oswald encolhia dígitos que são de Archivo em 15%, e a voz lia como "bloco,
+   *  só que menor" em vez de ler como condensada. Cada degrau agora é corrigido pela
+   *  métrica da face que ele realmente desenha. */
+  capNumero: number;
   /** altura de X da face de texto, em em. */
   x: number;
   /** a maior linha natural do par, em em (ascender - descender + gap do hhea). */
@@ -42,6 +51,25 @@ export type ParDeFontes = {
   /** correção de tracking do par, somada ao TRACK do degrau. Face estreita pede mais ar,
    *  face larga pede menos: sem isto, trocar a voz estraga o ritmo da linha. */
   ajuste: number;
+  /** O GRAU DA VOZ: quanto ela fala mais alto que a referência, no NÚMERO e no TÍTULO.
+   *
+   *  Esta é a alavanca que faltava, e a falta dela foi o defeito. A correção óptica acima
+   *  existe para que trocar a voz não mude o tamanho aparente — e o efeito colateral era
+   *  que voz nenhuma PODIA mudar de tamanho. Seis opções saíam com o mesmo número, no
+   *  mesmo corpo, e o dono escreveu "letras, todas basicamente iguais". Ele tinha razão:
+   *  o tamanho é o canal mais alto da tipografia e estava travado em 1.
+   *
+   *  Multiplica só o TÍTULO e o NÚMERO, nunca o rótulo nem o corpo. Assim ele move a
+   *  RAZÃO herói:rótulo — que é o que se lê como personalidade — sem mexer na densidade de
+   *  leitura de um parágrafo, que não é gosto. `bloco` é 1 por definição: é a referência. */
+  grau: number;
+  /** A CAIXA DO RÓTULO. Canal binário e impossível de confundir num sample de polegar —
+   *  o único que não depende de o olho reconhecer um desenho de letra. */
+  caixa: "alta" | "natural";
+  /** tracking SÓ do rótulo, separado do `ajuste` do par. A legenda (`note`) fica de fora
+   *  de propósito: o par rótulo/legenda usa tracking como um dos seus dois canais, e somar
+   *  aqui e lá mataria o par. Ver o bloco `note` em Txt.tsx. */
+  trackRotulo: number;
 };
 
 /** A REFERÊNCIA ÓPTICA é o Archivo, que é a voz de hoje: assim `bloco` sai com
@@ -50,57 +78,106 @@ const CAP_REF = 0.686;
 const X_REF = 0.526;
 
 export const VOZES: Record<Voz, ParDeFontes> = {
-  bloco: { display: FONT, texto: FONT, numero: FONT, cap: 0.686, x: 0.526, linha: 1.088, ajuste: 0 },
+  // O PRODUTO. A face de texto é `500Medium` e NÃO a ExtraBold do display: o app inteiro
+  // desenhava rótulo, corpo e legenda no mesmo ExtraBold do herói, o que é a razão de
+  // fundo de tudo ler com o mesmo peso. Uma face de texto tem que ter para onde o título
+  // subir.
+  bloco: {
+    display: FONT,
+    texto: "Archivo_500Medium",
+    numero: FONT,
+    cap: 0.686,
+    capNumero: 0.686,
+    x: 0.526,
+    linha: 1.088,
+    ajuste: 0,
+    grau: 1,
+    caixa: "alta",
+    trackRotulo: 0,
+  },
   // A face mais bem resolvida do repo em métrica: caixa alta 0,728, altura de x 0,546 e
-  // `tnum` presente. Sai de graça — o pacote já estava instalado por causa da editorial.
+  // `tnum` presente. Fala BAIXO — grau 0,92, rótulo em caixa natural, número em 600 e não
+  // em 700. É a voz de software: quer que se leia o dado, não a fonte.
   neutra: {
     display: "Inter_700Bold",
-    texto: "Inter_500Medium",
-    numero: "Inter_700Bold",
+    texto: "Inter_400Regular",
+    numero: "Inter_600SemiBold",
     cap: 0.728,
+    capNumero: 0.728,
     x: 0.546,
     linha: 1.21,
     ajuste: 0,
+    grau: 0.92,
+    caixa: "natural",
+    trackRotulo: 0,
   },
+  // PAINEL DE INSTRUMENTO: número grande e pesado sobre rótulo fino e espaçado. O 300Light
+  // no corpo contra o 700Bold no número é a maior distância de peso do cardápio.
   tecnica: {
     display: "SpaceGrotesk_700Bold",
-    texto: "SpaceGrotesk_500Medium",
+    texto: "SpaceGrotesk_300Light",
     numero: "SpaceGrotesk_700Bold",
     cap: 0.7,
+    capNumero: 0.7,
     x: 0.486,
     linha: 1.276,
     ajuste: 0.2,
+    grau: 1.06,
+    caixa: "alta",
+    trackRotulo: 0.8,
   },
+  // REVISTA. Playfair Black no título, itálico no corpo, caixa natural no rótulo. O número
+  // fica em Inter porque Playfair tem `lnum` e não tem `tnum` — mas com grau 1,15 e um
+  // título Didone em cima, ninguém mais confunde esta voz com a neutra, que era
+  // literalmente a mesma imagem antes deste ciclo.
   editorial: {
-    display: "PlayfairDisplay_700Bold",
-    texto: "Inter_500Medium",
-    // Playfair tem `lnum` e não tem `tnum`: serve ao título, não ao cronômetro.
+    display: "PlayfairDisplay_900Black",
+    texto: "Inter_400Regular_Italic",
     numero: "Inter_700Bold",
     cap: 0.708,
+    capNumero: 0.728,
     x: 0.546,
     linha: 1.333,
     ajuste: 0.1,
+    grau: 1.15,
+    caixa: "natural",
+    trackRotulo: 0,
   },
+  // REDONDA E CALMA. Nunito não tem feature de dígito nenhuma, então o número cai numa
+  // face tabular — mas cai no `500Medium`, não no ExtraBold do produto: um número leve é
+  // o que faz esta voz ser a mais baixa do cardápio, junto do grau 0,88.
   suave: {
-    display: "Nunito_800ExtraBold",
-    texto: "Nunito_600SemiBold",
-    // Nunito não tem nenhuma feature de dígito: o número cai na face do produto.
-    numero: FONT,
+    display: "Nunito_900Black",
+    texto: "Nunito_400Regular",
+    numero: "Archivo_500Medium",
     cap: 0.705,
+    capNumero: 0.686,
     x: 0.484,
     linha: 1.364,
     ajuste: 0.1,
+    grau: 0.88,
+    caixa: "natural",
+    trackRotulo: 0.3,
   },
+  // ESTREITA E ALTA, a voz de cartaz. O corpo TAMBÉM é Oswald: era Archivo, e uma voz
+  // chamada condensada cujo texto não é condensado só é condensada no título. O número é
+  // o Archivo `900Black` — o mais pesado do cardápio — porque Oswald não tem `tnum` e um
+  // cronômetro que dança a cada dígito é defeito, não estilo.
   condensada: {
     display: "Oswald_600SemiBold",
-    texto: "Archivo_500Medium",
-    numero: FONT,
+    texto: "Oswald_400Regular",
+    numero: "Archivo_900Black",
     cap: 0.81,
+    capNumero: 0.686,
     x: 0.578,
     linha: 1.482,
     ajuste: 0.4,
+    grau: 1.2,
+    caixa: "alta",
+    trackRotulo: 0.6,
   },
 };
+
 
 /** Escala tipográfica fechada. Razão 1,5 — seis degraus para o app inteiro.
  *  Consequência que o Whoop mede e esta razão entrega de graça: a UNIDADE fica exatamente
@@ -320,17 +397,78 @@ export type Paleta = {
  *  proíbe cor literal fora deste arquivo — e é o certo: cor é decisão de sistema, não de
  *  tela. Cada cor passa por accentOn/accentSet na hora de pintar, então os casos extremos
  *  (branco, quase-preto) continuam legíveis nos quatro fundos. */
+/** O CARDÁPIO DA MARCA: oito famílias de matiz, três tons cada, mais três neutros.
+ *
+ *  Eram dez cores soltas, e o dono chamou a variedade de horrível. A resposta óbvia —
+ *  "então põe cinquenta" — foi MEDIDA e é pior: passando cada candidata pelo motor de
+ *  peça (`accentMassa`) nos sete chãos e perguntando ao `separadasNoMatiz` do próprio app
+ *  se as duas ainda chegam como duas cores, o cardápio começa a mentir cedo.
+ *
+ *    10 cores (o de antes) .................... 1 colisão no pior chão
+ *    12 matizes, um tom cada .................. 6
+ *    12 matizes, dois tons .................... 19
+ *    24 matizes, três tons .................... 173
+ *
+ *  A causa é uma lei que já estava escrita neste arquivo: `separadas` exige 40° de matiz,
+ *  e 360/40 = 9 é o teto de FAMÍLIAS. Acima disso a fila cresce e a escolha não.
+ *
+ *  O que a medida também mostrou é onde o teto NÃO está: a 45° de distância entre
+ *  famílias, 100% das colisões acontecem DENTRO de uma família e nenhuma entre duas. Ou
+ *  seja, família é de graça e tom é o que custa — e o tom para em três:
+ *
+ *    8 famílias x 5 tons ...................... 3 colisões no pior chão
+ *    8 famílias x 4 tons ...................... 1
+ *    8 famílias x 3 tons ...................... 0   <- é aqui que o motor para de mentir
+ *
+ *  Daí 27: 8 x 3 + 3 neutros, zero colisão nos sete chãos, e 24 nomes distintos em
+ *  `nomeDaCor` — que é o outro teto, porque um cardápio com mais resolução que o nomeador
+ *  entrega duas cores com o mesmo nome falado ao leitor de tela.
+ *
+ *  A ordem é família a família, tom escuro -> claro, e a tela lê isso: oito fichas de
+ *  família primeiro, três tons depois. Ele vê nove coisas e alcança vinte e sete.
+ *  `tools/aparencia.mjs` varre esta constante inteira, então uma cor ruim reprova sozinha
+ *  no dia em que entrar. */
 export const ACCENT_CHOICES = [
-  "#ec3013",
-  "#f59e0b",
-  "#ffd400",
-  "#22aa55",
-  "#00b8b8",
-  "#2d7ef7",
-  "#7b61ff",
-  "#e754a6",
-  "#f3f2f2",
-  "#121111",
+  "#881807", "#e75740", "#eaccc8",
+  "#887907", "#e7d440", "#eae6c8",
+  "#368807", "#7ee740", "#d4eac8",
+  "#078838", "#40e780", "#c8ead5",
+  "#077788", "#40d1e7", "#c8e5ea",
+  "#071688", "#4054e7", "#c8ccea",
+  "#590788", "#aa40e7", "#ddc8ea",
+  "#880756", "#e740a7", "#eac8dd",
+  "#121111", "#808080", "#f3f2f2",
+] as const;
+
+/** As oito famílias, na ordem do cardápio. Cada uma abre três tons — os três hexes
+ *  consecutivos de `ACCENT_CHOICES` a partir de `i * 3`. Os três neutros fecham a fila e
+ *  não têm família porque não têm matiz: são o preto, o cinza e o branco. */
+export const FAMILIAS_DA_MARCA = [
+  "Vermelho",
+  "Amarelo",
+  "Verde-limão",
+  "Verde",
+  "Turquesa",
+  "Azul",
+  "Roxo",
+  "Rosa",
+] as const;
+export const TONS_DA_FAMILIA = ["escuro", "vivo", "claro"] as const;
+
+/** AS CORES DE ROSTO — o cardápio da ALUNA, que não é o do personal.
+ *
+ *  Ela não escolhe uma marca; escolhe uma cor para o próprio rosto na lista. Vinte e sete
+ *  fichinhas ali é uma parede: `tools/rolagem.mjs` contou 37 alvos de toque no Perfil dela
+ *  contra um teto de 30, e a maior parte vinha daqui — o cardápio da marca cresceu de 10
+ *  para 27 no ciclo 9 e esta tela herdou os 27 sem ninguém pedir.
+ *
+ *  São o tom VIVO de cada família mais os três neutros: onze cores que o próprio motor do
+ *  app já prova separadas duas a duas nos sete chãos, porque famílias distam 45° e a
+ *  medida do ciclo 9 mostrou que colisão só acontece DENTRO de uma família. Escolha de
+ *  rosto não precisa de profundidade de tom; precisa de onze cores que ninguém confunde. */
+export const CORES_DE_ROSTO = [
+  ...FAMILIAS_DA_MARCA.map((_, i) => ACCENT_CHOICES[i * 3 + 1]),
+  ...ACCENT_CHOICES.slice(FAMILIAS_DA_MARCA.length * 3),
 ] as const;
 
 /** A COR LIVRE, que a doc vende desde sempre ("livre + 10 sugestões") e o app não tinha:
@@ -405,6 +543,24 @@ export const MOTION = {
   turn: 3700,
   reveal: 5900,
   ease: [0.2, 0, 0, 1],
+  /** A RESPIRAÇÃO de um elemento parado — o pulso que diz "estou esperando você". Estava
+   *  cravado em 1100ms dentro de `Entity.tsx`, e sem curva nenhuma: caía no padrão do
+   *  Reanimated, que é `inOut(quad)`, a curva de app de template. */
+  respira: 1100,
+  /** A troca de um passo por outro dentro da MESMA tela. Estava cravado como
+   *  `FadeIn.duration(180)` numa linha só do D0. */
+  troca: 180,
+  /** AS DUAS MOLAS. Uma peça que MONTA (o corpo do D0 se assumindo) e uma que se AJUSTA
+   *  (a mesma peça respondendo a um número novo) não podem usar a mesma mola — montar tem
+   *  que assentar mais devagar, senão a peça pisca pronta.
+   *
+   *  Estavam as duas escritas à mão no mesmo arquivo, com números diferentes e nenhum
+   *  nome: quem lesse `{ damping: 14, stiffness: 90, mass: 0.9 }` seis linhas depois de
+   *  `{ damping: 16, stiffness: 140, mass: 0.8 }` não tinha como saber se a diferença era
+   *  intenção ou descuido. Aqui a diferença tem nome, e `tools/tempo.mjs` garante que a
+   *  próxima nasça aqui também. */
+  molaAjuste: { damping: 16, stiffness: 140, mass: 0.8 },
+  molaMonta: { damping: 14, stiffness: 90, mass: 0.9 },
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -741,7 +897,67 @@ export function pressedFill(fill: string, ink: string): string {
 // qualquer primária. `tools/aparencia.mjs` percorre isso inteiro e reprova o que raspa o
 // piso. É essa a diferença entre "dá para customizar" e "customizar não estraga".
 
-export type Superficie = "solida" | "contorno" | "vidro" | "elevada";
+/** COMO A SUPERFÍCIE SE SEPARA DO CHÃO, e nenhuma das seis respostas é COR — o defeito
+ *  que o dono nomeou é que o app troca de aparência trocando tinta, e material nenhum.
+ *    solida   — degrau de luz.
+ *    contorno — nenhum fundo, só o traço que delimita.
+ *    elevada  — degrau de luz mais o sinal de altura (fio no escuro, sombra no claro).
+ *    vidro    — véu translúcido POR CIMA do desfoque do que passa atrás.
+ *    fio      — moldura DUPLA: o delimitador na borda de fora e um segundo traço numa
+ *               caixa interna, afastada dele. Os dois nunca dividem a mesma aresta (a
+ *               §2.7 mediu 44 de 112 pares abaixo de 3:1 no ciclo 7 exatamente por isso),
+ *               e o de dentro é material — não delimita nada. É GEOMETRIA e não luz:
+ *               entrega o mesmo desenho no chão claro e no escuro.
+ *    vinco    — o avesso de `elevada`: o fio de luz desce para a aresta DE BAIXO, que é
+ *               onde um rebaixo pega a luz que vem de cima, e no chão claro a sombra sai
+ *               por cima em vez de por baixo. Mesma folha, direção invertida. */
+/** O PORTE DA AÇÃO — o piso de altura do botão principal, em pontos.
+ *
+ *  O dono pediu isto duas vezes. Primeiro perguntando ("esses botoes grandes eu sinto que
+ *  faz muito sentido, mas dimunuir eles um pouco nao deixaria mais ultra premium?") e
+ *  depois afirmando, com três botões empilhados na frente ("nunca que isso aqui e ultra
+ *  premium, isso e ia slop").
+ *
+ *  A alavanca só desce, e nunca até o chão: `justo` para em 48, quatro pontos acima do
+ *  alvo de dedo de 44 com que a Apple e o Material concordam, então nenhuma escolha do
+ *  personal consegue produzir um botão difícil de acertar. E o TETO é o tamanho de hoje —
+ *  crescer não é oferta. Se `folgado` passasse de 56, o teto de `tools/botao.mjs` teria que
+ *  virar função do porte, e "folgado + arejada + empilhada" traria de volta, calada, a laje
+ *  de 100pt que este ciclo acabou de matar. Um número que a régua conhece vale mais que uma
+ *  opção a mais no cardápio. */
+export type Porte = "justo" | "padrao" | "folgado";
+
+export type Superficie =
+  | "solida"
+  | "contorno"
+  | "vidro"
+  | "elevada"
+  | "fio"
+  | "vinco"
+  | "carimbo"
+  | "nenhuma";
+
+/** OS SEIS MATERIAIS, como LISTA e não só como tipo.
+ *
+ *  O tipo some na compilação, e por causa disso `tools/aparencia.mjs` carregava a mesma
+ *  lista escrita à mão em seis lugares. Quando `fio` e `vinco` entraram no cardápio, a
+ *  varredura continuou medindo quatro: dois materiais chegariam à tela do personal sem um
+ *  par medido, no medidor cujo trabalho é garantir que nenhuma combinação seja feia. E não
+ *  reprovou nada, que é pior que reprovar — silêncio lido como aprovação.
+ *
+ *  A lista mora aqui, ao lado do tipo, e o `satisfies` garante que os dois nunca divirjam:
+ *  material novo no tipo e fora da lista não compila. */
+export const SUPERFICIES = [
+  "solida",
+  "contorno",
+  "vidro",
+  "elevada",
+  "fio",
+  "vinco",
+  "carimbo",
+  "nenhuma",
+] as const satisfies readonly Superficie[];
+
 export type NomeDaForma = "reta" | "macia" | "pilula";
 export type Peso = "fino" | "medio" | "grosso";
 export type Densidade = "compacta" | "normal" | "arejada";
@@ -809,6 +1025,8 @@ export type Aparencia = {
   /** a anatomia da célula de número. Ver Numero. */
   numero: Numero;
   forma: NomeDaForma;
+  /** o tamanho do botão principal. Ver Porte. */
+  porte: Porte;
   superficie: Superficie;
   peso: Peso;
   densidade: Densidade;
@@ -828,6 +1046,10 @@ export const APARENCIA_PADRAO: Aparencia = {
   anel: "resgate",
   numero: "empilhado",
   forma: "reta",
+  // `padrao` são 52 e não os 56 de antes: 56 era o piso herdado, e as ações principais de
+  // Linear, Things, Whoop e Oura medem entre 48 e 52. O dono reclamou do tamanho duas
+  // vezes; o padrão desce com ele.
+  porte: "padrao",
   superficie: "solida",
   peso: "medio",
   densidade: "normal",
@@ -898,6 +1120,23 @@ export type Folha = {
    *  escuro: preto sobre preto não é sombra, é nada). Vazio quando quem levanta é a
    *  sombra — nunca os dois no mesmo chão, senão são dois sinais para uma altura só. */
   aresta: string;
+  /** EM QUE ARESTA o fio de luz mora. `elevada` e `vidro` o põem em cima, `vinco` embaixo
+   *  e `fio` numa moldura interna afastada da borda. Sem este campo `vinco` e `elevada`
+   *  saem byte a byte iguais nos quatro chãos escuros — que é o mesmo defeito que
+   *  `solida ≡ elevada` já custou uma vez, e a §16 compara a folha inteira. */
+  arestaEm: "topo" | "base" | "moldura";
+  /** O BLOCO IMPRESSO ATRÁS DA PEÇA — a sombra que não é sombra: opaca, sem desfoque,
+   *  deslocada. Vazio em toda família que não é `carimbo`.
+   *
+   *  Ele existe porque a única sombra que este tema sabe fazer é borrada, preta e a 12% —
+   *  e só aparece em chão claro (preto sobre preto é nada). O bloco resolve os dois: é um
+   *  DEGRAU da escada, então tem contraste garantido por construção nos dois lados. Medido:
+   *  ΔL* de `fill` contra `bg` é 14,9 no carvão e 15,5 no papel, e em hex livre é invariante
+   *  porque `ESCADA.fill` vale 15,2 para qualquer chão que `escada()` aceite. Nenhum outro
+   *  candidato a material tem essa garantia. */
+  bloco: string;
+  /** quanto o bloco anda, em pontos. Zero quando não há bloco. */
+  deslocamento: number;
   sombra: Sombra;
 };
 
@@ -1013,7 +1252,42 @@ const DENSIDADES: Record<Densidade, (keyof typeof SPACE)[]> = {
   arejada: ["hair", "tight", "block", "room", "max", "max"],
 };
 
-const MOVIMENTOS: Record<Movimento, number> = { seco: 0.55, normal: 1, generoso: 1.45 };
+/** O MOVIMENTO DEIXA DE SER UM BOTÃO DE VELOCIDADE.
+ *
+ *  Ele era três números que multiplicavam quatro durações — e o app inteiro só anima COR.
+ *  Nada neste produto se move no espaço: o único `translate` que existe é o bonequinho de
+ *  uma tela de entrada. Então "seco" e "generoso" eram o mesmo app em duas velocidades, e a
+ *  alavanca vendida como movimento não tocava nem a troca de aba nem a entrada de tela.
+ *
+ *  Cada valor passa a carregar uma coreografia: a CURVA (como a coisa desacelera), a
+ *  DISTÂNCIA que uma peça percorre ao entrar, e a CASCATA entre irmãs numa lista. Os nomes
+ *  ficam — são palavras que qualquer pessoa entende, e trocá-los custaria migração no
+ *  servidor por nada.
+ *
+ *  `normal` é o app de hoje byte a byte: mesma curva, multiplicador 1, distância zero. É a
+ *  regra desta fábrica desde sempre — trocar o motor não pode mexer num pixel de quem não
+ *  mexeu — e de quebra ele é o teste de regressão dos outros dois. */
+export type Coreografia = {
+  /** o multiplicador das durações. Era a alavanca inteira. */
+  duracao: number;
+  /** a curva de saída, em pontos de bézier. */
+  ease: readonly [number, number, number, number];
+  /** quanto uma peça percorre ao entrar, em degraus de SPACE. `nenhuma` = só tom, nada
+   *  translada — que é o desenho de hoje e continua sendo uma escolha legítima. */
+  distancia: "nenhuma" | "hair" | "tight";
+  /** milissegundos entre irmãs numa fila. Zero = a fila inteira chega como um objeto só. */
+  cascata: number;
+};
+
+const MOVIMENTOS: Record<Movimento, Coreografia> = {
+  // O CONTRA-TEMPO: chega rápido e para seco, sem nada percorrendo distância. É a leitura
+  // de quem conta a repetição em voz alta.
+  seco: { duracao: 0.55, ease: [0.3, 0, 0.2, 1], distancia: "nenhuma", cascata: 0 },
+  normal: { duracao: 1, ease: MOTION.ease, distancia: "nenhuma", cascata: 0 },
+  // A EXCÊNTRICA LONGA: desacelera por muito tempo no fim, as peças sobem um degrau, e uma
+  // lista chega uma linha de cada vez. É a leitura de um estúdio, de uma sala quente.
+  generoso: { duracao: 1.45, ease: [0.16, 1, 0.3, 1], distancia: "tight", cascata: 60 },
+};
 
 /** A sombra é PRETA e ponto. Sombra colorida é o primeiro sintoma de app de template, e
  *  no chão escuro ela não aparece de qualquer jeito — quem levanta a superfície ali é o
@@ -1385,14 +1659,20 @@ function sombraDe(elevacao: number): Sombra {
   };
 }
 
-const ELEVACAO: Record<Superficie, number> = {
+/** O RAIO DO DESFOQUE, que a partir deste ciclo é desfoque de verdade: até aqui `vidro`
+ *  era o único valor do cardápio que arquivo NENHUM lia — o número existia, `Band` o
+ *  ignorava, e quem escolhia Vidro recebia sombra. Vai inteiro como `intensity` do
+ *  `BlurView`. */
+const VIDRO: Record<Superficie, number> = {
   solida: 0,
   contorno: 0,
-  vidro: 0.18,
-  elevada: 0.3,
+  vidro: 26,
+  elevada: 0,
+  fio: 0,
+  vinco: 0,
+  carimbo: 0,
+  nenhuma: 0,
 };
-
-const VIDRO: Record<Superficie, number> = { solida: 0, contorno: 0, vidro: 26, elevada: 0 };
 
 /** DUAS CORES SÓ SÃO DUAS SE O OLHO SEPARA. Três caminhos, e basta um: luz (uma diferença
  *  de luminância que já se enxerga), matiz (dois matizes distantes), ou croma (vermelho
@@ -1458,6 +1738,28 @@ function afastar(
  *  brigar) e não some nela (30° é a mesma cor). Saturação um degrau abaixo, porque a
  *  segunda cor é subordinada por definição. Marca sem matiz (cinza, branco, preto) não
  *  ganha matiz inventado: a segunda cor dela é ela mesma. */
+/** ESTA SEGUNDA COR CHEGA COMO FOI ESCOLHIDA?
+ *
+ *  A tela oferece dez cores para a segunda e o app fica com outra em uma escolha a cada
+ *  cinco. Medido nas 1.400 combinações de sete chãos x vinte marcas x dez escolhas: o app
+ *  MOVEU a cor escolhida em 277 delas — 19,8% —, com distância média de 26 em L\* e pior
+ *  caso 53,6. O personal toca no vermelho, recebe salmão, e nada na tela conta isso.
+ *
+ *  O movimento em si está certo: `afastarAte` empurra a escolha até ela se separar da
+ *  marca depois do motor de peça E do vermelho do aviso, senão o app desenha duas séries
+ *  na mesma cor ou pinta uma comparação com a cara de um erro. O errado é OFERECER o que
+ *  vai ser recusado.
+ *
+ *  Então a régua vira porta: a tela pergunta antes e só mostra o que ela consegue manter.
+ *  Medido no cardápio de 27: sobram 24 em média e 22 no pior caso — mais escolha de
+ *  verdade do que as dez de antes, das quais metade era promessa que o app quebrava.
+ *
+ *  Uma função só, exportada, porque a tela que oferece e o medidor que prova têm que usar
+ *  a MESMA — duas cópias divergem, e a que diverge é a que mente para o personal. */
+export function segundaValida(a: Aparencia, candidata: string): boolean {
+  return criarTema({ ...a, secundaria: candidata }).secundaria === candidata;
+}
+
 export function secundariaDe(primaria: string, chao: string = productTheme.bg): string {
   const [h, s, l] = toHsl(rgb(primaria));
   // Marca sem matiz não ganha matiz inventado — um cinza que vira roxo não é derivação, é
@@ -1500,20 +1802,34 @@ function afastarAte(cor: string, aceita: (c: string) => boolean): string {
 
 export type Escala<K extends string> = Record<K, number>;
 
-const DISPLAY = ["title", "value", "hero", "mega"] as const;
+/** Os degraus que desenham na face do NÚMERO, e os que desenham na de DISPLAY. A divisão
+ *  não é estética, é literal: é o que `Txt.tsx` liga a `FONTES.numero` e a `FONTES.display`.
+ *  Enquanto os quatro andavam juntos como "DISPLAY", três deles eram corrigidos pela
+ *  métrica de uma face que não os desenha. */
+const NUMERO = ["value", "hero", "mega"] as const;
+const TITULO = ["title"] as const;
 type DegrauDeCorpo = keyof typeof TYPE;
 
-/** Os seis degraus, corrigidos pela ÓPTICA da voz. Display e texto andam por
- *  multiplicadores diferentes porque são duas faces diferentes: quem decide o tamanho
- *  aparente de um título é a caixa alta, e o de um parágrafo é a altura de x. */
+/** O multiplicador óptico de cada degrau, e o GRAU da voz onde ele vale.
+ *
+ *  Duas coisas em uma função porque são a mesma decisão vista dos dois lados: a correção
+ *  óptica APAGA a diferença de tamanho entre as faces (para que trocar a voz não mude o
+ *  corpo do texto sem querer), e o grau REPÕE a diferença onde ela é a personalidade da
+ *  voz. Aplicar um sem o outro é o que produzia seis opções do mesmo tamanho.
+ *
+ *  O grau não alcança rótulo nem corpo: densidade de leitura não é gosto do personal. */
+function fator(par: ParDeFontes, k: DegrauDeCorpo): number {
+  if ((NUMERO as readonly string[]).includes(k)) return (CAP_REF / par.capNumero) * par.grau;
+  if ((TITULO as readonly string[]).includes(k)) return (CAP_REF / par.cap) * par.grau;
+  return X_REF / par.x;
+}
+
+/** Os seis degraus, corrigidos pela ÓPTICA da voz. Cada degrau anda pelo multiplicador da
+ *  face que ele desenha: caixa alta para o título, caixa alta da face do número para o
+ *  número, altura de x para o texto — que é o que decide se um parágrafo lê grande. */
 function corpos(par: ParDeFontes): Escala<DegrauDeCorpo> {
-  const kd = CAP_REF / par.cap;
-  const kt = X_REF / par.x;
   const out = {} as Escala<DegrauDeCorpo>;
-  for (const k of Object.keys(TYPE) as DegrauDeCorpo[]) {
-    const display = (DISPLAY as readonly string[]).includes(k);
-    out[k] = Math.round(TYPE[k] * (display ? kd : kt));
-  }
+  for (const k of Object.keys(TYPE) as DegrauDeCorpo[]) out[k] = Math.round(TYPE[k] * fator(par, k));
   return out;
 }
 
@@ -1524,15 +1840,17 @@ function entrelinhas(par: ParDeFontes): Escala<DegrauDeCorpo> {
   const corpo = corpos(par);
   const out = {} as Escala<DegrauDeCorpo>;
   for (const k of Object.keys(LEAD) as DegrauDeCorpo[]) {
-    const display = (DISPLAY as readonly string[]).includes(k);
-    const escalado = Math.round(LEAD[k] * (display ? CAP_REF / par.cap : X_REF / par.x));
+    const display =
+      (NUMERO as readonly string[]).includes(k) || (TITULO as readonly string[]).includes(k);
+    const escalado = Math.round(LEAD[k] * fator(par, k));
     // Dois pisos, um por natureza de degrau. TEXTO precisa caber a LINHA NATURAL da face,
     // senão o Á, o Ç e o Õ raspam a base — em português isso é metade das palavras.
     // DISPLAY usa entrelinha negativa de propósito (é o que faz um número de 92pt ler como
     // número e não como parágrafo), e o piso dele é só a própria letra com acento: caixa
     // alta mais o espaço do agudo. Aplicar a linha natural aqui engordaria o herói do app
     // de hoje em nove pontos.
-    out[k] = Math.max(escalado, Math.ceil(corpo[k] * (display ? par.cap + 0.15 : par.linha)));
+    const caixaDoDegrau = (NUMERO as readonly string[]).includes(k) ? par.capNumero : par.cap;
+    out[k] = Math.max(escalado, Math.ceil(corpo[k] * (display ? caixaDoDegrau + 0.15 : par.linha)));
   }
   return out;
 }
@@ -1559,6 +1877,10 @@ export type Tema = {
     turn: number;
     reveal: number;
     ease: readonly [number, number, number, number];
+    /** distância que uma peça percorre ao entrar, em pontos. 0 = só tom. */
+    entra: number;
+    /** ms entre irmãs numa fila. 0 = todas juntas. */
+    cascata: number;
   };
   FORMA: Forma;
   /** a marca do personal, já resolvida contra ESTA paleta */
@@ -1610,6 +1932,10 @@ function espacos(d: Densidade): Escala<DegrauDoEspaco> {
  *  gate mede altura de alvo, então isso passaria calado. */
 export const ALVO = { minimo: 44, chip: 52, acao: 56, linha: 64 } as const;
 
+/** Os três portes em pontos. `folgado` É `ALVO.acao` — o teto do cardápio é o tamanho que
+ *  o app tinha, e não um degrau novo acima dele. */
+export const PORTES: Record<Porte, number> = { justo: 48, padrao: 52, folgado: ALVO.acao };
+
 /** A FÁBRICA. Documento entra, tokens saem. Sem React, sem import: `tools/contrast.mjs` e
  *  `tools/aparencia.mjs` chamam isto em node puro e medem exatamente o que a tela desenha
  *  — nenhuma cópia de token, nenhuma fórmula duplicada, nada em que acreditar. */
@@ -1653,7 +1979,8 @@ export function criarTema(a: Aparencia = APARENCIA_PADRAO): Tema {
       separadas(accentFill(c, T).fill, marcaEmPeca) &&
       separadas(accentOn(c, T.bg, 4.5), aviso),
   );
-  const mov = MOVIMENTOS[a.movimento] ?? 1;
+  const coreo = MOVIMENTOS[a.movimento] ?? MOVIMENTOS.normal;
+  const mov = coreo.duracao;
   const par = VOZES[a.voz] ?? VOZES.bloco;
   const raios = RAIOS[a.forma] ?? RAIOS.reta;
   // A borda nunca passa de um quarto do menor vão — contorno grosso na densidade compacta
@@ -1694,7 +2021,15 @@ export function criarTema(a: Aparencia = APARENCIA_PADRAO): Tema {
       // depois parava seis segundos, e no generoso a espera não crescia junto.
       turn: Math.round(MOTION.turn * mov),
       reveal: Math.round(MOTION.reveal * mov),
-      ease: MOTION.ease,
+      // A CURVA SAI DA COREOGRAFIA, e não do módulo. Era `MOTION.ease` fixo: as três
+      // opções mudavam quatro inteiros e nenhuma curva, e curva é a metade da personalidade
+      // que o olho lê sem saber que está lendo.
+      ease: coreo.ease,
+      // QUANTO UMA PEÇA PERCORRE AO ENTRAR, resolvido em pontos aqui e não no componente —
+      // é a mesma lei do PISO 8: distância é vão, e vão sai da escada.
+      entra: coreo.distancia === "nenhuma" ? 0 : espaco[coreo.distancia],
+      // E o atraso entre irmãs numa fila. Zero = a fila chega como um objeto só.
+      cascata: coreo.cascata,
     },
     FORMA: (() => {
       const ehVidro = a.superficie === "vidro";
@@ -1712,12 +2047,19 @@ export function criarTema(a: Aparencia = APARENCIA_PADRAO): Tema {
       // idênticas —, então ali quem levanta é um FIO DE LUZ no topo da peça, que é como
       // toda interface escura boa mostra altura.
       const elevada = a.superficie === "elevada";
+      // AS DUAS FAMÍLIAS NOVAS SÃO AS DUAS VELHAS COM A DIREÇÃO TROCADA, e é de propósito:
+      // material que inventa cor nova sai do cardápio fechado e vira loteria de marca.
+      //   `fio`   é `contorno` mais um segundo traço, numa caixa INTERNA — nunca na mesma
+      //           aresta do delimitador (SPEC §2.7).
+      //   `vinco` é `elevada` com o sinal de altura ao contrário.
+      const emFio = a.superficie === "fio";
+      const vinco = a.superficie === "vinco";
       // No chão CLARO o vidro também ganha sombra. Ali o véu não alcança a separação de
       // luz sozinho — branco sobre quase-branco tem 6,5 de L* de curso inteiro, e gastar
       // tudo em opacidade mataria o desfoque. Então a separação vem de onde ela pode vir
       // no claro: da sombra. No escuro isso não existe (sombra preta sobre preto), e lá o
       // véu de tinta clara resolve sozinho.
-      const elevacao = claro && (elevada || ehVidro) ? 0.12 : 0;
+      const elevacao = claro && (elevada || ehVidro || vinco) ? 0.12 : 0;
       const veuComposto = ehVidro
         ? compor(tintaDoVeu(chao), alfaDoVeu(chao), chao.bg)
         : a.superficie === "contorno"
@@ -1725,6 +2067,15 @@ export function criarTema(a: Aparencia = APARENCIA_PADRAO): Tema {
           : chao.raised;
       const semSombra = sombraDe(0);
       const sombra = sombraDe(elevacao);
+      // O VINCO É A MESMA SOMBRA COM O SINAL TROCADO. Não é sombra interna — React Native
+      // não tem uma, e forjá-la custaria um estrato a mais em toda Band —, é a mesma peça
+      // deitando a sombra para CIMA, que é o que o olho lê como rebaixo quando a luz do
+      // resto do app vem de cima. Sai de `sombraDe` para o raio e a opacidade nunca
+      // divergirem dos de `elevada`: as duas famílias são a mesma medida, ao contrário.
+      const sombraDoVinco: Sombra = {
+        ...sombra,
+        shadowOffset: { width: 0, height: -sombra.shadowOffset.height },
+      };
       const fioDeLuz = withAlpha(chao.ink, claro ? 0.1 : 0.16);
       // A RÉGUA DO DOCK — UM traço, DUAS perguntas, e é ele que as duas molduras pintam.
       //
@@ -1760,6 +2111,9 @@ export function criarTema(a: Aparencia = APARENCIA_PADRAO): Tema {
             borda: fio,
             corDaBorda: fioDeLuz,
             aresta: fioDeLuz,
+            arestaEm: "topo",
+            bloco: "",
+            deslocamento: 0,
             sombra,
             tinta: chao.muted,
           };
@@ -1772,6 +2126,87 @@ export function criarTema(a: Aparencia = APARENCIA_PADRAO): Tema {
             borda,
             corDaBorda: chao.divider,
             aresta: "",
+            arestaEm: "topo",
+            bloco: "",
+            deslocamento: 0,
+            sombra: semSombra,
+            tinta: chao.muted,
+          };
+        }
+        // SEM BLOCO. O conteúdo pousa direto no chão: nenhum preenchimento, nenhum traço,
+        // nenhum brilho, nenhuma sombra. Quem separa dois blocos é o VÃO e um filete.
+        //
+        // Não é o `contorno` com menos tinta — é o oposto dele. O contorno é uma caixa de
+        // quatro lados, ou seja, MAIS cromo, não menos; sem este valor o minimalismo só
+        // podia escolher entre cartão e gaiola, e caía em cima da sólida. Duas opções que
+        // chegam iguais na tela são uma opção com dois nomes.
+        if (a.superficie === "nenhuma") {
+          return {
+            fundo: "transparent",
+            composto: pousa,
+            vidro: 0,
+            borda: 0,
+            corDaBorda: "transparent",
+            aresta: "",
+            arestaEm: "topo",
+            bloco: "",
+            deslocamento: 0,
+            sombra: semSombra,
+            tinta: chao.muted,
+          };
+        }
+        // A MOLDURA DUPLA. Ela POUSA (é `raised` como a sólida, não a moldura vazada do
+        // contorno) e desenha dois traços que nunca se encostam: o delimitador na aresta
+        // de fora, na cor que a SPEC §3 exige, e o fio de luz numa caixa interna afastada
+        // dele. Empilhar os dois na mesma aresta é o que derrubou 44 de 112 pares no ciclo
+        // 7 (§2.7, cobrado pela §31) — aqui o que os separa é geometria, não cor.
+        //
+        // O delimitador vem no traço FINO e não no forte, e é isso que faz a família
+        // caber: dois traços grossos em volta do mesmo bloco não leem como moldura, leem
+        // como gaiola. É também o que separa esta moldura da do `contorno` no PIXEL, e não
+        // só no nome — o dock e o chip inclusive, que são onde `fio` colidia com
+        // `contorno` em 7 chãos antes disto.
+        if (emFio) {
+          return {
+            fundo: opaco,
+            composto: opaco,
+            vidro: 0,
+            borda: fio,
+            corDaBorda: chao.divider,
+            aresta: fioDeLuz,
+            arestaEm: "moldura",
+            bloco: "",
+            deslocamento: 0,
+            sombra: semSombra,
+            tinta: chao.muted,
+          };
+        }
+        // O CARIMBO. Não é "contorno grosso" — isso já existe e é `contorno` com o traço
+        // no peso forte, uma regulagem, não um material. O que faz esta família é o BLOCO
+        // OPACO DESLOCADO ATRÁS: a sombra que não borra, não tem alfa e não depende do chão.
+        //
+        // Ele é `chao.fill`, um degrau da escada, e é aí que está a garantia: `ESCADA.fill`
+        // vale 15,2 e `ESCADA.raised` 6,6, então ΔL* do bloco contra o chão fica em ~15 e
+        // contra a peça em ~8,6 para QUALQUER chão que `escada()` aceite — inclusive hex
+        // livre. Nenhuma outra família tem contraste garantido por construção nos dois
+        // lados; todas as outras precisam de um ramo por polaridade.
+        //
+        // A borda vai em `chao.ink` porque aqui ela carrega informação, e a SPEC §3 permite
+        // `divider` ou `ink` para traço que informa. E a sombra fica em `semSombra`: o
+        // bloco É a sombra, e as duas juntas seriam dois sinais para uma altura só.
+        if (a.superficie === "carimbo") {
+          return {
+            fundo: opaco,
+            composto: opaco,
+            vidro: 0,
+            borda,
+            corDaBorda: chao.ink,
+            aresta: "",
+            arestaEm: "topo",
+            bloco: chao.fill,
+            // Anda o dobro do traço: menos que isso e o bloco lê como borda dupla mal
+            // alinhada, que é o defeito de 44/112 do ciclo 7 entrando pela porta nova.
+            deslocamento: borda * 2,
             sombra: semSombra,
             tinta: chao.muted,
           };
@@ -1787,8 +2222,15 @@ export function criarTema(a: Aparencia = APARENCIA_PADRAO): Tema {
           // o fio; no claro quem levanta é a sombra e somar o fio seria dois sinais para
           // uma altura só. É o conserto do defeito medido: hoje `elevada` e `solida` saem
           // IDÊNTICAS byte a byte em carvão, breu, grafite e tabaco.
-          aresta: elevada && !elevacao ? fioDeLuz : "",
-          sombra,
+          // O VINCO usa o MESMO fio e pelo mesmo motivo (no escuro a sombra preta sobre
+          // preto não existe), só que na aresta de baixo — e é `arestaEm` que carrega
+          // isso. Sem esse campo `vinco` e `elevada` sairiam byte a byte iguais nos quatro
+          // chãos escuros, que é exatamente a colisão que esta folha nasceu para matar.
+          aresta: (elevada || vinco) && !elevacao ? fioDeLuz : "",
+          arestaEm: vinco ? "base" : "topo",
+          bloco: "",
+          deslocamento: 0,
+          sombra: vinco ? sombraDoVinco : sombra,
           tinta: chao.muted,
         };
       };
@@ -1818,6 +2260,26 @@ export function criarTema(a: Aparencia = APARENCIA_PADRAO): Tema {
       // o pixel composto de vidro sobre vidro é um vizinho que medidor nenhum deste repo
       // sabe olhar. Ali a peça pequena é a aresta sobre o mesmo composto da superfície.
       const miudaDe = (dentroDe: string): Folha => {
+        // UM CAMPO SEM FRONTEIRA NÃO É UM CAMPO. `nenhuma` tira o bloco do CONTEÚDO, que se
+        // separa pelo vão e pelo filete — mas a peça miúda é um alvo de toque: um campo de
+        // texto, uma ficha, um seletor. Sem borda ela deixa de ter onde começar e o dedo
+        // deixa de saber onde bater. Aqui o material cai na forma do `contorno`: sem
+        // preenchimento, com o traço do delimitador. Silêncio no conteúdo, não no controle.
+        if (a.superficie === "nenhuma") {
+          return {
+            fundo: "transparent",
+            composto: dentroDe,
+            vidro: 0,
+            borda,
+            corDaBorda: chao.divider,
+            aresta: "",
+            arestaEm: "topo",
+            bloco: "",
+            deslocamento: 0,
+            sombra: semSombra,
+            tinta: chao.muted,
+          };
+        }
         if (ehVidro) {
           return {
             fundo: "transparent",
@@ -1826,6 +2288,9 @@ export function criarTema(a: Aparencia = APARENCIA_PADRAO): Tema {
             borda: fio,
             corDaBorda: fioDeLuz,
             aresta: fioDeLuz,
+            arestaEm: "topo",
+            bloco: "",
+            deslocamento: 0,
             sombra: semSombra,
             tinta: chao.muted,
           };
@@ -1836,7 +2301,13 @@ export function criarTema(a: Aparencia = APARENCIA_PADRAO): Tema {
           return { ...f, fundo: "transparent", composto: dentroDe, borda, corDaBorda: chao.divider, sombra: semSombra, aresta: "" };
         }
         const f = folhaDe(cheia, dentroDe);
-        return { ...f, sombra: semSombra, aresta: elevada ? fioDeLuz : "" };
+        // O POÇO. A peça pequena dentro de uma superfície REBAIXADA ganha o anel do poço,
+        // não um lábio de luz: um fio de meio ponto na aresta de baixo de um chip de 44pt
+        // lê como erro de renderização, e não como rebaixo. O anel inteiro, na cor que
+        // delimita, é o que sobra de legível naquele tamanho — e é ele que separa o chip
+        // do `vinco` do chip da `elevada`, que fora isso seriam o mesmo pixel.
+        if (vinco) return { ...f, sombra: semSombra, borda, corDaBorda: chao.divider, aresta: "" };
+        return { ...f, sombra: semSombra, aresta: elevada || emFio ? fioDeLuz : "" };
       };
       // A tinta de apoio é DERIVADA da folha, e por isso ela é a última coisa a se
       // resolver: só depois de saber em que pixel a peça pousou dá para dizer o que se
@@ -1860,11 +2331,23 @@ export function criarTema(a: Aparencia = APARENCIA_PADRAO): Tema {
           // folha ele perguntava só `vidro`, e por isso `solida`, `contorno` e `elevada`
           // produziam o MESMO dock: 21 dos 42 pares de superfície colidiam ali.
           chrome: (() => {
-            const base = folhaDe(chao.dock, chao.bg);
+            // A MOLDURA REBAIXADA NÃO PINTA DEGRAU PRÓPRIO: ela afunda até o nível do
+            // chão, e o que a separa do conteúdo passa a ser só a régua de cima. É o
+            // avesso exato do que `elevada` faz no escuro (lá a moldura SOBE trocando a
+            // COR da régua) — e é o único movimento disponível, porque abaixo de `bg` a
+            // escada não tem degrau nenhum. `bg` é um dos quatro fundos medidos, então
+            // nada do que se escreve na moldura sai da régua por causa disto.
+            const base = folhaDe(vinco ? chao.bg : chao.dock, chao.bg);
             // No contorno o chrome continua opaco: um dock transparente deixaria a lista
             // correr por baixo de rótulo nenhum.
+            // A MOLDURA NUNCA VAZA, e `nenhuma` entra nesta lista pelo mesmo motivo que o
+            // contorno: a §10.4 mediu o que acontece com um dock transparente — o rótulo
+            // inativo cai de 4,52 para 1,04 de contraste com conteúdo real passando por
+            // baixo. "Sem bloco" é uma decisão sobre a superfície de CONTEÚDO; o cromo é
+            // cromo. Aqui ela veste o dock da sólida, e o par que isso cria com a sólida é
+            // registrado como colisão de propósito no medidor, com este motivo.
             const opaca =
-              a.superficie === "contorno"
+              a.superficie === "contorno" || a.superficie === "nenhuma" || emFio
                 ? { ...base, fundo: chao.dock, composto: chao.dock }
                 : base;
             // O TRAÇO DE CIMA DA MOLDURA É UM SÓ, e a folha o declara inteiro — espessura e
@@ -1877,7 +2360,26 @@ export function criarTema(a: Aparencia = APARENCIA_PADRAO): Tema {
             // `aresta` é vazia de propósito e para sempre: a moldura não tem fio de luz
             // (ver `reguaDoDock`). Um campo que a folha declara e ninguém pinta é o defeito
             // que este repo já pagou três vezes.
-            return comTinta({ ...opaca, borda, corDaBorda: reguaDoDock, aresta: "" });
+            // A ESPESSURA TAMBÉM É DA FOLHA, e é ela que faz a moldura dupla existir no
+            // dock: ali o segundo traço não cabe (a aresta de cima é o delimitador e nada
+            // mais pode encostar nela), então o que a família diz na moldura é o traço
+            // FINO — o mesmo que ela usa na peça. Sem isto o dock de `fio` saía byte a
+            // byte igual ao de `solida` nos sete chãos.
+            // O CARIMBO NÃO CARIMBA A MOLDURA — ela está colada na borda da tela e não há
+            // para onde o bloco deslocar. O que ela carrega da família é a RÉGUA: traço em
+            // `ink`, o mesmo que a peça usa, e que a SPEC §3 permite para delimitador. Sem
+            // isto o dock do carimbo sairia byte a byte igual ao da sólida — uma família a
+            // mais no cardápio e uma moldura a menos na tela.
+            return comTinta({
+              ...opaca,
+              // E a espessura, porque a COR sozinha não basta: no chão escuro `elevada` já
+              // pinta a régua em `ink` (lá a sombra não existe, então quem levanta é o
+              // traço), e as duas sairiam iguais. O carimbo dobra o traço — que é
+              // literalmente a linguagem dele, a mesma que a peça pinta.
+              borda: emFio ? fio : a.superficie === "carimbo" ? borda * 2 : borda,
+              corDaBorda: a.superficie === "carimbo" ? chao.ink : reguaDoDock,
+              aresta: "",
+            });
           })(),
           miuda: comTinta(miudaDe(peca.composto)),
         },
@@ -1906,22 +2408,46 @@ export function criarTema(a: Aparencia = APARENCIA_PADRAO): Tema {
         // kits de fábrica desenhavam os dois traços com a mesma espessura, e a hierarquia
         // que o comentário anterior prometia não existia em nenhum deles.
         fio,
+        // A CÉLULA DE NÚMERO SEGUE O BLOCO. `cartao` é a forma de quem pinta uma superfície;
+        // sem bloco não existe cartão para a célula pousar, e o medidor pega isso na hora —
+        // "em cartão a tinta é o pixel de trás" reprova porque não há pixel de trás. Sem
+        // bloco a célula é a mesma coisa que o resto do material: um fio.
         celula:
-          raio === 0 && a.superficie === "solida"
-            ? { modo: "fio" as const, tinta: chao.hairline }
-            : a.superficie === "contorno"
-              ? { modo: "caixa" as const, tinta: chao.divider }
-              : { modo: "cartao" as const, tinta: veuComposto },
+          a.superficie === "nenhuma"
+            ? // Sem bloco, o separador é a GRADE — mas grade é fio reto, e fio reto cruzando
+              // um canto arredondado é o defeito que a régua "o fio da grade não cruza o
+              // canto" existe para pegar. Com canto, a célula vira caixa: continua sem
+              // preenchimento, e o traço passa a acompanhar o arco em vez de atravessá-lo.
+              raio === 0
+              ? { modo: "fio" as const, tinta: chao.divider }
+              : { modo: "caixa" as const, tinta: chao.divider }
+            : raio === 0 && a.superficie === "solida"
+              ? { modo: "fio" as const, tinta: chao.hairline }
+              : a.superficie === "contorno"
+                ? { modo: "caixa" as const, tinta: chao.divider }
+                : { modo: "cartao" as const, tinta: veuComposto },
         traco: borda,
         ponta: raio === 0 ? ("square" as const) : ("round" as const),
-        inset: raio ? espaco.step : 0,
+        // O CARIMBO COBRA RECUO MESMO SEM CANTO. `inset` nasceu para a família de canto
+        // arredondado (canto encostado na borda da tela não lê como canto, lê como erro),
+        // então na família reta ele é zero e a superfície sangra. Só que o bloco deslocado
+        // do carimbo mora FORA da peça: com recuo zero ele sai pela borda da tela e é
+        // cortado, e o material vira uma borda grossa e nada mais. Regra do MATERIAL,
+        // resolvida no material.
+        inset: raio ? espaco.step : a.superficie === "carimbo" ? borda * 2 : 0,
         // A altura da ação só SOBE, e ALVO é o piso. Na anatomia empilhada ela vem das
         // duas caixas de linha que o botão passa a ter — a do rótulo e a do custo — mais o
         // respiro do bloco: se a altura ficasse no componente, o principal viraria uma laje
         // de 76pt ao lado de uma tira de 56 nas dez telas que têm os dois botões.
+        //
+        // O DEGRAU É `hair` PORQUE É `hair` QUE O BOTÃO PAGA. Enquanto isto orçava `tight`
+        // e os dois CTAs pagavam `step`, o teto do tema era ficção: `tools/botao.mjs` lê o
+        // degrau DENTRO de AccentCTA.tsx e mediu 100 das 144 combinações acima do teto
+        // premium, a mais alta em 100pt. Orçamento e pagamento agora são o mesmo degrau —
+        // trocar um sem o outro reprova na régua.
         alturaAcao: Math.max(
-          ALVO.acao,
-          ACOES[a.acao]?.empilha ? entrelinhas(par).body + entrelinhas(par).label + 2 * espaco.tight : 0,
+          PORTES[a.porte] ?? PORTES.padrao,
+          ACOES[a.acao]?.empilha ? entrelinhas(par).body + entrelinhas(par).label + 2 * espaco.hair : 0,
         ),
         alturaChip: ALVO.chip,
         alturaMinima: ALVO.minimo,
@@ -1938,7 +2464,7 @@ export function criarTema(a: Aparencia = APARENCIA_PADRAO): Tema {
         // e o desfoque —, nunca o VALOR da superfície.
         veu,
         veuComposto,
-        aresta: ehVidro || elevada ? withAlpha(chao.ink, claro ? 0.1 : 0.16) : "",
+        aresta: ehVidro || elevada || vinco || emFio ? withAlpha(chao.ink, claro ? 0.1 : 0.16) : "",
       };
     })(),
     primaria,

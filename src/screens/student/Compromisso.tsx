@@ -97,7 +97,10 @@ export function Compromisso({ token, time, onDone }: Props) {
   // A causa do número vive NA tela: o critério é o menor ato, e a ambição não é meta.
   const line =
     days === null
-      ? "Escolhe o piso: o menor número que você cumpre até na semana ruim."
+      // "Piso" é a mesma metáfora que o dono recusou em "chão" ("quem vai saber o que e
+      // chao?"), no mesmo registro, na tela onde a aluna nova faz o primeiro combinado da
+      // vida dela. A frase se explica sozinha sem a figura de linguagem.
+      ? "Escolha o menor número de dias que você cumpre até numa semana ruim."
       : `Semana boa você passa disso. O combinado continua ${days}.`;
 
   async function send() {

@@ -57,8 +57,19 @@ const usarEstilos = estilos(({ TYPE, TRACK, LEAD, FONTES }) =>
       fontFamily: FONTES.texto,
       fontSize: TYPE.label,
       lineHeight: LEAD.label,
-      letterSpacing: TRACK.label,
-      textTransform: "uppercase",
+      // O tracking do rótulo é o do degrau MAIS o da voz. São dois números porque são duas
+      // decisões: o degrau sabe que rótulo é caixa alta pequena e pede ar; a voz sabe se a
+      // face dela é estreita (Oswald pede mais) ou já larga (Inter pede nada).
+      letterSpacing: TRACK.label + FONTES.trackRotulo,
+      // O RÓTULO CARREGA NÚMERO QUE MUDA NO LUGAR: o valor ancorado da Baseline, o custo do
+      // botão ("52 MIN"), a carga na linha da ficha. Sem largura fixa de dígito, o número
+      // ANDA em relação ao próprio tique quando a contagem de algarismos muda. Não custa
+      // nada em letra — é operação nula onde não há dígito.
+      ...num,
+      // A CAIXA É DA VOZ, e este é o único canal tipográfico que se lê num sample do
+      // tamanho de um polegar sem reconhecer desenho de letra nenhum. Estava cravado em
+      // `uppercase` para o app inteiro: seis vozes, uma caixa só.
+      textTransform: FONTES.caixa === "alta" ? "uppercase" : "none",
     },
     // A LEGENDA. Mesmo corpo, mesma entrelinha e mesma face do `label` — de propósito: é o
     // rodapé do mesmo objeto. O que a separa do rótulo são DOIS canais, e este bloco
@@ -76,6 +87,7 @@ const usarEstilos = estilos(({ TYPE, TRACK, LEAD, FONTES }) =>
       fontSize: TYPE.label,
       lineHeight: LEAD.label,
       letterSpacing: 0,
+      ...num,
     },
     body: {
       fontFamily: FONTES.texto,

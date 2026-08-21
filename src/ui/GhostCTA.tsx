@@ -19,9 +19,11 @@ type Props = {
   /** `perigo` é declarado pela TELA, não adivinhado pelo rótulo: "Sair" e "Voltar" são
    *  hoje pixel a pixel o mesmo botão, e um deles derruba a sessão. */
   tom?: "neutro" | "perigo";
+  /** Encolhe até o rótulo. O padrão é a largura do pai. */
+  fit?: boolean;
 };
 
-export function GhostCTA({ label, onPress, disabled, fundo, tom }: Props) {
+export function GhostCTA({ label, onPress, disabled, fundo, tom, fit }: Props) {
   const styles = usarEstilos();
   const [down, setDown] = useState(false);
   const { T, MOTION, FORMA, secundario, errorInk } = useTema();
@@ -54,6 +56,7 @@ export function GhostCTA({ label, onPress, disabled, fundo, tom }: Props) {
       accessibilityRole="button"
       onPressIn={() => setDown(true)}
       onPressOut={() => setDown(false)}
+      style={fit ? styles.fit : undefined}
     >
       {/* Desligado é a TINTA descendo um degrau, não o botão inteiro a 35%: naquela
           opacidade o rótulo caía para ~3,3:1 e a borda sumia junto. Isto acontece com o
@@ -82,12 +85,13 @@ export function GhostCTA({ label, onPress, disabled, fundo, tom }: Props) {
 
 const usarEstilos = estilos(({ SPACE, TRACK, FORMA }) =>
   StyleSheet.create({
+    fit: { alignSelf: "center", maxWidth: "100%" },
     btn: {
-      paddingVertical: SPACE.step,
+      paddingVertical: SPACE.hair,
       paddingHorizontal: SPACE.step,
       minHeight: FORMA.alturaAcao,
       justifyContent: "center",
-      alignItems: FORMA.acao.alinha,
+      alignItems: "center",
       borderRadius: FORMA.raioAcao,
     },
     label: { letterSpacing: TRACK.body + FORMA.acao.tracking },

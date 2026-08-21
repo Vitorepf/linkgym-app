@@ -44,6 +44,7 @@ export function FichaTab({ token, time }: Props) {
   const A = acento();
   const nav = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [pres, setPres] = useState<Prescription>(null);
+  const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState("");
 
   const load = useCallback(async () => {
@@ -54,6 +55,8 @@ export function FichaTab({ token, time }: Props) {
     } catch {
       // Sem vermelho para o aluno: a falha é dita, não acusada.
       setError("Não deu para carregar agora.");
+    } finally {
+      setLoaded(true);
     }
   }, [token]);
 
@@ -72,7 +75,10 @@ export function FichaTab({ token, time }: Props) {
       <Head
         kicker={time.name}
         kickerMuted
-        title={pres?.name || "Nada para hoje"}
+        title={
+          pres?.name ||
+          (loaded && !error ? "Nada para hoje" : undefined)
+        }
         right={
           pres?.for_date ? (
             <Txt role="label" tone="dim" style={styles.stamp}>
@@ -91,7 +97,13 @@ export function FichaTab({ token, time }: Props) {
             <Txt role="body" tone="muted" style={styles.said}>
               {error}
             </Txt>
-            <GhostCTA label="Tentar de novo" onPress={load} />
+            <GhostCTA label="Tentar de novo" onPress={load} fundo={T.bg} />
+          </Band>
+        ) : !loaded ? (
+          <Band>
+            <Txt role="body" tone="muted">
+              Abrindo a ficha…
+            </Txt>
           </Band>
         ) : rows.length === 0 ? (
           <Band>
@@ -208,12 +220,12 @@ function say(item: TodayItem): string {
 
 const CHEV = 16;
 
-const usarEstilos = estilos(({ T }) =>
+const usarEstilos = estilos(({ T, SPACE }) =>
   StyleSheet.create({
     scroll: { flex: 1 },
     content: { flexGrow: 1 },
     stamp: { paddingTop: 2 },
-    said: { marginBottom: 16 },
+    said: { marginBottom: SPACE.tight },
     colHead: {
       flexDirection: "row",
       alignItems: "center",
@@ -230,7 +242,7 @@ const usarEstilos = estilos(({ T }) =>
     // O fixture dos shots tem 6 — o buraco só aparecia com dado real no aparelho.
     row: {
       paddingHorizontal: T.pad,
-      paddingVertical: 16,
+      paddingVertical: SPACE.tight,
       borderBottomWidth: 1,
       borderBottomColor: T.hairline,
       flexGrow: 1,
@@ -245,8 +257,8 @@ const usarEstilos = estilos(({ T }) =>
     chevPad: { paddingBottom: 2 },
     meta: { marginTop: 2 },
     notes: {
-      marginTop: 10,
-      paddingLeft: 10,
+      marginTop: SPACE.tight,
+      paddingLeft: SPACE.tight,
       borderLeftWidth: 2,
     },
   }),

@@ -2,12 +2,12 @@ import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { Pressable, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
+  IconCasa,
   IconCifrao,
   IconFicha,
   IconPeople,
   IconPerson,
   IconPulse,
-  IconTinta,
   IconTrend,
 } from "../ui/Icons";
 import { estilos, useTema } from "../ui/tema";
@@ -17,12 +17,11 @@ const ICONS: Record<string, typeof IconPulse> = {
   Hoje: IconPulse,
   Painel: IconPulse,
   MinhaFicha: IconFicha,
-  Fichas: IconFicha,
   Progresso: IconTrend,
   Semana: IconPeople,
   Perfil: IconPerson,
   Operacao: IconCifrao,
-  PerfilTime: IconTinta,
+  Mais: IconCasa,
 };
 
 /** O rótulo é PALAVRA DO ALUNO, nunca o nome da rota. `MinhaFicha` é identificador de
@@ -31,12 +30,11 @@ const LABELS: Record<string, string> = {
   Hoje: "HOJE",
   Painel: "HOJE",
   MinhaFicha: "FICHA",
-  Fichas: "FICHAS",
   Progresso: "PROGRESSO",
   Semana: "SEMANA",
   Perfil: "PERFIL",
   Operacao: "OPERAÇÃO",
-  PerfilTime: "PERFIL",
+  Mais: "CASA",
 };
 
 function DockTabBar({ state, navigation }: BottomTabBarProps) {
@@ -99,7 +97,7 @@ export function dockTabs() {
   };
 }
 
-const usarEstilos = estilos(({ FONTES, FORMA }) => {
+const usarEstilos = estilos(({ FONTES, FORMA, SPACE, TYPE, LEAD, TRACK }) => {
   // A MOLDURA que não rola com o conteúdo, lida do tema — fundo, traço (espessura e cor) e
   // sombra, os quatro campos, e nenhum campo da folha sobra sem ser pintado. Antes daqui a
   // barra perguntava só `FORMA.vidro`, e depois só `fundo` e `sombra`: nos dois casos
@@ -140,9 +138,10 @@ const usarEstilos = estilos(({ FONTES, FORMA }) => {
     item: {
       flex: 1,
       alignItems: "center",
-      gap: 5,
-      paddingTop: 10,
-      paddingBottom: 9,
+      gap: SPACE.hair,
+      // SIMÉTRICO, e na escada. Era 10 em cima e 9 embaixo — um ponto de assimetria sem
+      // motivo declarado, no cromo que aparece em toda tela do app.
+      paddingVertical: SPACE.tight,
       borderTopWidth: FORMA.borda,
       borderTopColor: "transparent",
       marginTop: -FORMA.borda,
@@ -151,9 +150,15 @@ const usarEstilos = estilos(({ FONTES, FORMA }) => {
     // vira o corpo da letra e corta o 'j' de HOJE e o 'g' de PROGRESSO na base.
     label: {
       fontFamily: FONTES.texto,
-      fontSize: 10,
-      lineHeight: 14,
-      letterSpacing: 0.8,
+      // O CORPO E O TRACKING SAEM DA VOZ. Estavam cravados aqui e, por virem como `style`,
+      // SOBRESCREVIAM o próprio `Txt`: a barra de abas era o único lugar do app onde a
+      // alavanca de letra não chegava — escolher a condensada, que é a voz que mais pede
+      // ar, não movia um ponto aqui. E o tracking estava invertido: 0,8 sobre 10pt é
+      // 0,080em, contra 0,108em do rótulo de 12pt, ou seja, a versalete MENOR saía 26%
+      // mais apertada que a maior, quando caixa alta pequena é justamente a que abre.
+      fontSize: TYPE.label,
+      lineHeight: LEAD.label,
+      letterSpacing: TRACK.label + FONTES.trackRotulo,
       flexShrink: 0,
     },
   });

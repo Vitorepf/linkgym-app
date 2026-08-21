@@ -125,7 +125,11 @@ const usarEstilos = estilos(({ T, FORMA, SPACE }) => {
     },
     cell: {
       paddingHorizontal: naGrade ? T.pad : meioVao,
-      paddingVertical: naGrade ? 22 : meioVao,
+      // `SPACE.block`, e não 22. O 22 estava fora de qualquer degrau e, ao contrário do seu
+      // par horizontal (`T.pad`, que a densidade remapeia), ele NUNCA andava: escolher
+      // "arejada" engordava a célula 9pt na horizontal e 0 na vertical — a proporção da
+      // célula de número mudava por baixo de uma alavanca que não é dela.
+      paddingVertical: naGrade ? SPACE.block : meioVao,
       alignItems: "center",
       // A altura da fila é ditada pela célula MAIS ALTA, e a célula sem `note` colava no
       // topo dessa altura: um buraco embaixo do número, do tamanho exato da legenda que a
@@ -157,7 +161,7 @@ const usarEstilos = estilos(({ T, FORMA, SPACE }) => {
       // densidade. Sem descontar, a peça de 1/3 de largura na densidade arejada gastava
       // 54pt de margem numa coluna de 120.
       paddingHorizontal: Math.max(0, T.pad - meioVao),
-      paddingVertical: Math.max(0, 22 - meioVao),
+      paddingVertical: Math.max(0, SPACE.block - meioVao),
       borderRadius: FORMA.raio,
       backgroundColor: f.fundo,
       borderWidth: f.borda,

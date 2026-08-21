@@ -1,5 +1,5 @@
 import { StyleSheet, View } from "react-native";
-import { UNIDADE_DE, folgaDaUnidade } from "../theme";
+import { SPACE, UNIDADE_DE, folgaDaUnidade } from "../theme";
 import { TrendMark } from "./Icons";
 import { useTema } from "./tema";
 import { Txt } from "./Txt";
@@ -165,5 +165,8 @@ const styles = StyleSheet.create({
   rotuloDaFila: { flexShrink: 1 },
   center: { alignItems: "center" },
   centerText: { textAlign: "center" },
-  note: { marginTop: 4 },
+  // A LEGENDA respira o degrau mínimo, e não metade dele. Quatro pontos debaixo de um
+  // número que pode medir 92 é a legenda encostada — e este é o par que mais aparece no
+  // app, porque toda célula de número o desenha.
+  note: { marginTop: SPACE.hair },
 });

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Pressable,
   ScrollView,
@@ -22,7 +22,7 @@ import { Avatar } from "../../ui/Avatar";
 import { Campo } from "../../ui/Campo";
 import { escolherFoto } from "../../ui/foto";
 import { GhostCTA } from "../../ui/GhostCTA";
-import { IconChevron } from "../../ui/Icons";
+import { IconChevron, IconClose } from "../../ui/Icons";
 import { Band, Head, neutroNaBand, Phone, useFimDaRolagem } from "../../ui/Screen";
 import { estilos, useTema } from "../../ui/tema";
 import { Txt } from "../../ui/Txt";
@@ -61,6 +61,29 @@ export function PerfilTime({ token, time, onTimeChange, onLeave }: Props) {
   // a config estrutural, editada como documento inteiro; o servidor valida o cardápio.
   const inicial = configDoTime(time);
   const [cfg, setCfg] = useState(inicial);
+
+  // ESTA TELA E A "COMO O APP FUNCIONA" EDITAM O MESMO DOCUMENTO, e as duas são abas
+  // MONTADAS: esta cópia nascia no primeiro render e nunca mais olhava para o `time`.
+  // Depois de escolher liga, selos e passo na outra tela, o `cfg` daqui continuava com os
+  // valores VELHOS enquanto `inicial` já vinha com os novos — então `cfgDirty` acendia
+  // sozinho numa tela que ele não tocou, e o Salvar daqui gravava o antigo por cima do que
+  // ele acabou de escolher. Perda de dado silenciosa, pela porta dos fundos.
+  //
+  // Só a metade ESTRUTURAL volta a sincronizar. As duas falas (`boas_vindas`, `retomada`)
+  // são editadas AQUI e um rascunho não salvo delas não pode ser apagado por uma gravação
+  // que aconteceu noutra tela. Cada metade tem um dono.
+  useEffect(() => {
+    const doServidor = configDoTime(time);
+    setCfg((c) => ({
+      ...c,
+      liga: doServidor.liga,
+      selos: doServidor.selos,
+      xp: doServidor.xp,
+      prontidao: doServidor.prontidao,
+      passo_kg: doServidor.passo_kg,
+      dias_padrao: doServidor.dias_padrao,
+    }));
+  }, [time]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [savedAt, setSavedAt] = useState(0);
@@ -149,7 +172,21 @@ export function PerfilTime({ token, time, onTimeChange, onLeave }: Props) {
           aparecia três vezes em duas dobras; no kicker (o lugar dele em Operação e
           Publicar) ele volta a ser de QUEM é o app, e o título diz o que a tela faz. Sem
           `kickerMuted`: assim o kicker é a prévia ao vivo da cor, sem peça nova. */}
-      <Head kicker={trimmed || time.name} title="O que os alunos veem" />
+      <Head
+        kicker={trimmed || time.name}
+        title="O que os alunos veem"
+        right={
+          <Pressable
+            onPress={() => navigation.goBack()}
+            accessibilityRole="button"
+            accessibilityLabel="Fechar"
+            hitSlop={8}
+            style={styles.fechar}
+          >
+            <IconClose color={T.muted} size={20} />
+          </Pressable>
+        }
+      />
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={[styles.content, fim]}
@@ -293,6 +330,7 @@ export function PerfilTime({ token, time, onTimeChange, onLeave }: Props) {
               disabled={!dirty || !trimmed}
               busy={busy}
               check
+              fit
             />
           </View>
           {error ? (
@@ -303,7 +341,7 @@ export function PerfilTime({ token, time, onTimeChange, onLeave }: Props) {
         </Band>
 
         <View style={styles.leave}>
-          <GhostCTA label="Sair" onPress={onLeave} fundo={T.bg} tom="perigo" />
+          <GhostCTA label="Sair" onPress={onLeave} fundo={T.bg} tom="perigo" fit />
         </View>
       </ScrollView>
     </Phone>
@@ -367,7 +405,7 @@ function Chip({
   );
 }
 
-const usarChipEstilos = estilos(({ T, FORMA }) =>
+const usarChipEstilos = estilos(({ T, FORMA, SPACE }) =>
   StyleSheet.create({
     chip: {
       // A espessura é CONSTANTE entre ligado e desligado. Ela mudava de `fio` para `borda`
@@ -427,9 +465,9 @@ const usarEstilos = estilos(({ T, SPACE, FONTES, FORMA }) =>
       flexDirection: "row",
       flexWrap: "wrap",
       gap: 8,
-      marginTop: 10,
+      marginTop: SPACE.tight,
     },
-    grupo: { marginTop: 14 },
+    grupo: { marginTop: SPACE.tight },
     logoRow: { flexDirection: "row", alignItems: "center", gap: 12 },
     logoCopy: { flex: 1, minWidth: 0 },
     logoNote: { marginTop: 2 },
@@ -438,7 +476,7 @@ const usarEstilos = estilos(({ T, SPACE, FONTES, FORMA }) =>
       borderColor: T.divider,
       borderRadius: FORMA.raioAcao,
       paddingVertical: 8,
-      paddingHorizontal: 14,
+      paddingHorizontal: SPACE.tight,
     },
     previewRow: { flexDirection: "row", alignItems: "center", gap: 12 },
     previewCopy: { flex: 1, minWidth: 0 },
@@ -446,8 +484,14 @@ const usarEstilos = estilos(({ T, SPACE, FONTES, FORMA }) =>
     leave: {
       marginTop: "auto",
       paddingHorizontal: T.pad,
-      paddingTop: 24,
+      paddingTop: SPACE.step,
       paddingBottom: 8,
+    },
+    fechar: {
+      width: FORMA.alturaMinima,
+      height: FORMA.alturaMinima,
+      alignItems: "center",
+      justifyContent: "center",
     },
   }),
 );
@@ -473,6 +517,10 @@ function resumoDaAparencia(a: Aparencia): string {
     contorno: "contorno",
     elevada: "elevada",
     vidro: "vidro",
+    fio: "fio duplo",
+    vinco: "vinco",
+    carimbo: "carimbo",
+    nenhuma: "sem bloco",
   };
   return `${chao[a.chao]} · ${forma[a.forma]} · ${sup[a.superficie]}`;
 }

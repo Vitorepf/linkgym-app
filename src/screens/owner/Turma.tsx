@@ -4,9 +4,10 @@ import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { ownerWeek, type OwnerWeekItem } from "../../api";
 import type { OwnerTabNavigation } from "../../nav/types";
 import { Campo } from "../../ui/Campo";
-import { IconChevron } from "../../ui/Icons";
+import { IconChevron, IconClose } from "../../ui/Icons";
 import { Initials } from "../../ui/Initials";
 import { AccentCTA } from "../../ui/AccentCTA";
+import { GhostCTA } from "../../ui/GhostCTA";
 import { Band, Head, Phone, useFimDaRolagem } from "../../ui/Screen";
 import { Txt } from "../../ui/Txt";
 import { estilos, useTema } from "../../ui/tema";
@@ -70,17 +71,32 @@ export function Turma({ token, timeName }: Props) {
           — que é exatamente o momento em que ele tem menos motivo para estar no app. */}
       <Head
         kicker={timeName}
-        title={`A turma de ${items.length}`}
+        title={
+          !loaded || (error && items.length === 0)
+            ? undefined
+            : `A turma de ${items.length}`
+        }
         right={
-          <Pressable
-            onPress={() => navigation.navigate("Convite")}
-            accessibilityRole="button"
-            accessibilityLabel="Chamar um aluno"
-            hitSlop={8}
-            style={styles.convidar}
-          >
-            <Txt role="label">Chamar</Txt>
-          </Pressable>
+          <View style={styles.headRight}>
+            <Pressable
+              onPress={() => navigation.navigate("Convite")}
+              accessibilityRole="button"
+              accessibilityLabel="Chamar um aluno"
+              hitSlop={8}
+              style={styles.convidar}
+            >
+              <Txt role="label">Chamar</Txt>
+            </Pressable>
+            <Pressable
+              onPress={() => navigation.goBack()}
+              accessibilityRole="button"
+              accessibilityLabel="Fechar"
+              hitSlop={8}
+              style={styles.fechar}
+            >
+              <IconClose color={T.muted} size={20} />
+            </Pressable>
+          </View>
         }
       >
         <Campo
@@ -107,6 +123,13 @@ export function Turma({ token, timeName }: Props) {
             <Txt role="body" color={errorInk}>
               {error}
             </Txt>
+            <View style={styles.retry}>
+              <GhostCTA
+                label="Tentar de novo"
+                onPress={() => void load()}
+                fundo={T.bg}
+              />
+            </View>
           </Band>
         ) : null}
 
@@ -181,7 +204,15 @@ const usarEstilos = estilos(({ T, FORMA, SPACE }) =>
     scroll: { flex: 1 },
     content: { flexGrow: 1 },
     busca: { marginTop: SPACE.tight },
+    retry: { marginTop: SPACE.tight, alignSelf: "flex-start" },
     convite: { marginTop: SPACE.step },
+    headRight: { flexDirection: "row", alignItems: "center", gap: SPACE.tight },
+    fechar: {
+      width: FORMA.alturaMinima,
+      height: FORMA.alturaMinima,
+      alignItems: "center",
+      justifyContent: "center",
+    },
     convidar: {
       borderWidth: FORMA.borda,
       borderColor: T.divider,

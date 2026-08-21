@@ -1,10 +1,11 @@
 import { useNavigation } from "@react-navigation/native";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import {
   configDoTime,
   progress,
   putProntidao,
+  resultadoDaSessao,
   today,
   type Person,
   type Prontidao,
@@ -72,39 +73,34 @@ export function Hoje({ token, time, needsCommitment }: Props) {
   const [comebackOff, setComebackOff] = useState(false);
   const savingRef = useRef(false);
 
-  useEffect(() => {
-    let alive = true;
-    (async () => {
-      try {
-        const payload = await today(token);
-        if (alive) {
-          setData(payload);
-          setEnergy(payload.prontidao.energy);
-          setSoreness(payload.prontidao.soreness);
-          setSleep(payload.prontidao.sleep);
-          setError("");
-        }
-      } catch {
-        if (alive) setError("Não deu para abrir o hoje.");
-      }
-      try {
-        // A série de prontidão da semana já é servida para a Progresso. É dela que saem o
-        // delta e a baseline daqui — números reais, do mesmo corpo. Sem ela, os dois somem.
-        const p = await progress(token);
-        if (alive) setWeek(p.prontidao_week);
-      } catch {
-        /* sem histórico: o 84 fica sem delta e sem baseline, e é só isso. */
-      }
-      const result = await flush(token);
-      if (!alive) return;
-      const leftover = await loadCurrent();
-      setPendingLocal(!result.ok);
-      setResume(leftover !== null && leftover.finished === undefined);
-    })();
-    return () => {
-      alive = false;
-    };
+  const load = useCallback(async () => {
+    try {
+      const payload = await today(token);
+      setData(payload);
+      setEnergy(payload.prontidao.energy);
+      setSoreness(payload.prontidao.soreness);
+      setSleep(payload.prontidao.sleep);
+      setError("");
+    } catch {
+      setError("Não deu para abrir o hoje.");
+    }
+    try {
+      // A série de prontidão da semana já é servida para a Progresso. É dela que saem o
+      // delta e a baseline daqui — números reais, do mesmo corpo. Sem ela, os dois somem.
+      const p = await progress(token);
+      setWeek(p.prontidao_week);
+    } catch {
+      /* sem histórico: o 84 fica sem delta e sem baseline, e é só isso. */
+    }
+    const result = await flush(token);
+    const leftover = await loadCurrent();
+    setPendingLocal(!result.ok);
+    setResume(leftover !== null && leftover.finished === undefined);
   }, [token]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   const prescription = data?.prescription ?? null;
   const answered = inScale(energy) && inScale(soreness) && inScale(sleep);
@@ -153,13 +149,16 @@ export function Hoje({ token, time, needsCommitment }: Props) {
         const proof = sessionProof(existing);
         const result = await flush(token, existing.local_id);
         const finish = result.ok ? result.finish : undefined;
+        const resultado = resultadoDaSessao(finish, !result.ok, {
+          ofensiva: data.ofensiva.current_count,
+          xpTotal: data.xp_total,
+        });
         navigation.navigate("Feito", {
           timeName: time.name,
-          ofensivaCount:
-            finish?.ofensiva.current_count ?? data.ofensiva.current_count + 1,
-          xpGained: finish?.xp_gained ?? 10,
-          xpTotal: finish?.xp_total ?? data.xp_total + 10,
-          records: finish?.records ?? [],
+          ofensivaCount: resultado.ofensivaCount,
+          xpGained: resultado.xpGained,
+          xpTotal: resultado.xpTotal,
+          records: resultado.records,
           proof,
           pending: !result.ok,
           needsCommitment,
@@ -259,6 +258,13 @@ export function Hoje({ token, time, needsCommitment }: Props) {
             <Txt role="body" color={errorInk}>
               {error}
             </Txt>
+            <View style={styles.retry}>
+              <GhostCTA
+                label="Tentar de novo"
+                onPress={() => void load()}
+                fundo={T.bg}
+              />
+            </View>
           </Band>
         ) : null}
 
@@ -299,7 +305,8 @@ export function Hoje({ token, time, needsCommitment }: Props) {
 
             Dia vazio: esta faixa e a de prontidão crescem e dividem a sobra da tela entre
             si — era um vão de 235pt de chão nu entre as escalas e a tab bar. */}
-        <Band grow={data !== null && !prescription}>
+        {data ? (
+        <Band grow={!prescription}>
           <View style={styles.anchorRow}>
             <IconFicha color={T.muted} size={14} />
             <Txt role="label" color={A.text}>
@@ -335,13 +342,14 @@ export function Hoje({ token, time, needsCommitment }: Props) {
             </>
           ) : null}
         </Band>
+        ) : null}
 
         {cfg.prontidao && answered ? (
           <>
             <Band rule="none">
               {/* Âncora de varredura: a seção se acha pelo ícone, antes de ler a palavra. */}
               <View style={styles.anchored}>
-                <View style={styles.anchorIcon}>
+                <View >
                   <IconPulse color={T.muted} size={14} />
                 </View>
                 <View style={styles.grow}>
@@ -574,34 +582,57 @@ function ctaLabel(label: string): string {
   return "Começar";
 }
 
-const usarEstilos = estilos(({ T }) =>
+/** TODO VÃO DESTA TELA SAI DA ESCADA, e antes nenhum saía.
+ *
+ *  Esta é a tela que a aluna abre todos os dias, e ela pagava doze vãos escritos à mão:
+ *  quatro irmãos numa coluna com quatro margens diferentes (18, 14, 10, 12), um `marginTop:
+ *  5` para a mesma relação que o cabeçalho resolve com `SPACE.hair`, um `gap: 20` que não
+ *  existe em degrau nenhum, e um `paddingTop: 1` de empurrão óptico numa linha que já
+ *  centraliza sozinha. `theme.ts` declara o PISO 8 com todas as letras — "abaixo de 8 não
+ *  existe separação, existe defeito de renderização" — e esta tela tinha seis vãos abaixo
+ *  dele.
+ *
+ *  Nada disso se via numa revisão: são números plausíveis, um por linha, escritos em
+ *  meses diferentes. Quem vê é `tools/vaos.mjs`, que conta literal de espaço fora dos seis
+ *  degraus e achou 161 no app inteiro. */
+const usarEstilos = estilos(({ T, SPACE, FORMA }) =>
   StyleSheet.create({
-    streak: { flexDirection: "row", alignItems: "center", gap: 6 },
+    streak: { flexDirection: "row", alignItems: "center", gap: SPACE.hair },
     scroll: { flex: 1 },
     content: { flexGrow: 1 },
-    row: { flexDirection: "row", alignItems: "center", gap: 12 },
+    retry: { marginTop: SPACE.tight, alignSelf: "flex-start" },
+    row: { flexDirection: "row", alignItems: "center", gap: SPACE.tight },
     grow: { flex: 1, minWidth: 0 },
-    title: { marginTop: 5 },
-    stats: { flexDirection: "row", gap: 20, marginTop: 12 },
+    title: { marginTop: SPACE.hair },
+    stats: { flexDirection: "row", gap: SPACE.step, marginTop: SPACE.tight },
     // Base comum, como na Figure: alinhar pelo fundo da caixa desalinha as duas bases,
     // porque a sobra da entrelinha é diferente em cada degrau.
-    stat: { flexDirection: "row", alignItems: "baseline", gap: 6 },
-    cta: { marginTop: 18 },
-    scales: { marginTop: 14 },
-    saving: { marginTop: 10 },
+    stat: { flexDirection: "row", alignItems: "baseline", gap: SPACE.hair },
+    // A AÇÃO respira um degrau a mais que os irmãos dela; os irmãos respiram igual entre
+    // si. Era o contrário: quatro margens distintas sem hierarquia nenhuma.
+    cta: { marginTop: SPACE.step },
+    scales: { marginTop: SPACE.tight },
+    saving: { marginTop: SPACE.tight },
     // Âncoras de varredura: ícone mudo à esquerda do rótulo da seção. Monocromático de
     // propósito — matiz aqui é do personal e nunca significa nada.
-    anchorRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-    anchored: { flexDirection: "row", gap: 8 },
-    anchorIcon: { paddingTop: 1 },
-    delta: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 6 },
-    reading: { marginTop: 10 },
-    ghost: { marginTop: 12 },
+    anchorRow: { flexDirection: "row", alignItems: "center", gap: SPACE.hair },
+    anchored: { flexDirection: "row", gap: SPACE.hair },
+    delta: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: SPACE.hair,
+      marginTop: SPACE.hair,
+    },
+    reading: { marginTop: SPACE.tight },
+    ghost: { marginTop: SPACE.tight },
+    // A LINHA DO PERSONAL É UM DELIMITADOR, e delimitador é `divider` ou `ink` (SPEC §3).
+    // Estava em `T.hairline`, que mede 1,23:1 contra o chão — o mesmo defeito que o filete
+    // fino da Band embarcava, no mesmo dia, em outro arquivo.
     coachLine: {
-      marginTop: 14,
-      paddingTop: 14,
-      borderTopWidth: 1,
-      borderTopColor: T.hairline,
+      marginTop: SPACE.tight,
+      paddingTop: SPACE.tight,
+      borderTopWidth: FORMA.fio,
+      borderTopColor: T.divider,
     },
   }),
 );

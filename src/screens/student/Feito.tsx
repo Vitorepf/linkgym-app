@@ -66,6 +66,7 @@ function Camada({
   note,
   ink,
   quiet,
+  pending,
 }: {
   n: number;
   gained: number;
@@ -74,6 +75,7 @@ function Camada({
   note: string;
   ink: string;
   quiet: string;
+  pending?: boolean;
 }) {
   const styles = usarEstilos();
   const before = pr && pr.previous_kg > 0 && pr.previous_kg < pr.load_kg ? pr.previous_kg : null;
@@ -128,6 +130,7 @@ function Camada({
 
       <View style={[styles.rule, { backgroundColor: quiet }]} />
       <View style={styles.row}>
+        {pending || gained <= 0 ? null : (
         <View
           style={styles.cell}
           accessible
@@ -145,6 +148,7 @@ function Camada({
             </Txt>
           </View>
         </View>
+        )}
 
         {pr ? (
           <View
@@ -194,6 +198,7 @@ export function Feito({ navigation, route }: Props) {
     pending,
     needsCommitment,
   } = route.params;
+  const pendingNow = !!pending;
   // O acento em ÁREA desta tela é o FUNDO. É o único lugar do app onde a comemoração
   // justifica o orçamento inteiro — por isso o botão vai de par neutro (`quiet`).
   const { fill, ink } = useAccentMass("Fundo da comemoração");
@@ -249,13 +254,14 @@ export function Feito({ navigation, route }: Props) {
           importantForAccessibility="no-hide-descendants"
         >
           <Camada
-            n={Math.max(0, ofensivaCount - 1)}
+            n={pendingNow ? ofensivaCount : Math.max(0, ofensivaCount - 1)}
             gained={xpGained}
             pr={pr}
             proof={proof}
             note={note}
             ink={A.text}
             quiet={T.muted}
+            pending={pendingNow}
           />
         </View>
         <Animated.View
@@ -269,6 +275,7 @@ export function Feito({ navigation, route }: Props) {
             note={note}
             ink={ink}
             quiet={ink}
+            pending={pendingNow}
           />
         </Animated.View>
       </View>
@@ -317,26 +324,26 @@ function Prova({
   );
 }
 
-const usarEstilos = estilos(({ T }) =>
+const usarEstilos = estilos(({ T, SPACE }) =>
   StyleSheet.create({
     plane: { flex: 1 },
     field: {
       flex: 1,
       paddingHorizontal: T.pad,
       paddingTop: 18,
-      paddingBottom: 16,
+      paddingBottom: SPACE.tight,
     },
-    rule: { height: 2, marginTop: 16 },
-    proof: { flexDirection: "row", gap: 16, paddingTop: 14 },
+    rule: { height: 2, marginTop: SPACE.tight },
+    proof: { flexDirection: "row", gap: SPACE.tight, paddingTop: SPACE.tight },
     num: { fontVariant: ["tabular-nums"] },
-    row: { flexDirection: "row", gap: 20, paddingVertical: 16 },
+    row: { flexDirection: "row", gap: SPACE.step, paddingVertical: SPACE.tight },
     cell: { flex: 1 },
     // Mesma base, não mesmo fundo de caixa: a Figure carregava este defeito e esta tela
     // carregava a cópia dele, com dois `paddingBottom` de compensação por cima.
-    line: { flexDirection: "row", alignItems: "baseline", gap: 6 },
+    line: { flexDirection: "row", alignItems: "baseline", gap: SPACE.hair },
     // O número flutua no MEIO do que sobra: folga em cima e embaixo. Uma folga só, de um
     // lado, é o terço perdido que os juízes cobraram.
     stage: { flex: 1, justifyContent: "center" },
-    note: { marginTop: 14 },
+    note: { marginTop: SPACE.tight },
   }),
 );

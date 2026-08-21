@@ -21,8 +21,14 @@ export function IconFicha({ color, size = 17 }: Props) {
   const { FORMA } = useTema();
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Rect x={5} y={4} width={14} height={17} stroke={color} strokeWidth={FORMA.traco} />
-      <Path d="M9 9h6M9 13h6M9 17h4" stroke={color} strokeWidth={FORMA.traco} />
+      <Rect x={6} y={5} width={12} height={16} stroke={color} strokeWidth={FORMA.traco} />
+      <Path
+        d="M9 5V3.5h6V5"
+        stroke={color}
+        strokeWidth={FORMA.traco}
+        strokeLinecap={FORMA.ponta}
+      />
+      <Path d="M9 10h6M9 14h6M9 18h3.5" stroke={color} strokeWidth={FORMA.traco} />
     </Svg>
   );
 }
@@ -56,13 +62,20 @@ export function IconPeople({ color, size = 17 }: Props) {
   const { FORMA } = useTema();
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Circle cx={8.5} cy={7.5} r={3.2} stroke={color} strokeWidth={FORMA.traco} />
       <Path
-        d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"
+        d="M3 20.5v-.8c0-2.3 1.9-4.2 4.3-4.2h2.4c2.4 0 4.3 1.9 4.3 4.2v.8"
         stroke={color}
         strokeWidth={FORMA.traco}
+        strokeLinecap={FORMA.ponta}
       />
-      <Circle cx={9} cy={7} r={4} stroke={color} strokeWidth={FORMA.traco} />
-      <Path d="M22 21v-2a4 4 0 0 0-3-3.9" stroke={color} strokeWidth={FORMA.traco} />
+      <Circle cx={16.8} cy={8.2} r={2.5} stroke={color} strokeWidth={FORMA.traco} />
+      <Path
+        d="M13.5 20.5v-.6c0-1.7 1.3-3.1 3-3.1h1.4c1.7 0 3 1.4 3 3.1v.6"
+        stroke={color}
+        strokeWidth={FORMA.traco}
+        strokeLinecap={FORMA.ponta}
+      />
     </Svg>
   );
 }
@@ -90,6 +103,28 @@ export function IconCifrao({ color, size = 17 }: Props) {
         d="M16.5 7c-.8-1.6-2.5-2.4-4.5-2.4-2.5 0-4.5 1.3-4.5 3.4s1.8 2.9 4.5 3.5 4.5 1.5 4.5 3.5-2 3.4-4.5 3.4c-2 0-3.7-.8-4.5-2.4"
         stroke={color}
         strokeWidth={FORMA.traco}
+      />
+    </Svg>
+  );
+}
+
+/** A casa do personal: perfil, fichas e a turma. Telhado e parede, o mesmo traço
+ *  dos outros da barra — a grade de quatro caixas dizia "menu", não o lugar. */
+export function IconCasa({ color, size = 17 }: Props) {
+  const { FORMA } = useTema();
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M3 11.5 12 4l9 7.5"
+        stroke={color}
+        strokeWidth={FORMA.traco}
+        strokeLinecap={FORMA.ponta}
+      />
+      <Path
+        d="M6 10.5V20h12V10.5"
+        stroke={color}
+        strokeWidth={FORMA.traco}
+        strokeLinecap={FORMA.ponta}
       />
     </Svg>
   );

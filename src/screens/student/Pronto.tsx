@@ -77,22 +77,26 @@ export function Pronto({ token, time, onContinue }: Props) {
           por aviso" era um app falando de si — ninguém se afeiçoa a um agendador. Quem monta
           a próxima sessão é uma pessoa com nome, e é ela que está combinando de te chamar.
           É a maior alavanca emocional deste produto e ela custa uma linha. */}
+      {/* O QUE ESTA TELA PROMETIA NÃO EXISTE. Ela dizia que "o aviso chega aqui" e o botão
+          dizia "Quero o aviso" — pedindo consentimento para uma notificação que o app não
+          sabe mandar, porque `expo-notifications` não está instalado e dependência nova é
+          proibida. A última tela da entrada terminava com a aluna esperando um aviso que
+          nunca ia chegar.
+          O que fica é a alavanca de verdade, que nunca dependeu da notificação: quem monta
+          a próxima sessão é uma PESSOA com nome, e é ela que está combinando de te chamar.
+          No dia em que a dependência entrar, a frase do aviso volta — junto com o aviso. */}
       <Band raised grow rule="none">
         <Txt role="title">
-          Quando o {time.name} montar sua próxima sessão, o{" "}
+          O {time.name} monta a sua próxima sessão, e ela aparece{" "}
           <Txt role="title" color={A.text}>
-            aviso
-          </Txt>{" "}
-          chega aqui.
+            aqui no Hoje
+          </Txt>
+          .
         </Txt>
       </Band>
 
       <DockFooter>
-        {/* ponytail: expo-notifications não está instalado e dependência nova é proibida,
-            então o toque só avança. O quadro — motivo dito primeiro, um botão, sempre o
-            mesmo rótulo — é a parte que fica. Upgrade: chamar requestPermissionsAsync()
-            aqui, antes do onContinue, no dia em que a dependência entrar. */}
-        <AccentCTA label="Quero o aviso" onPress={onContinue} />
+        <AccentCTA label="Entendi" onPress={onContinue} />
       </DockFooter>
     </Phone>
   );

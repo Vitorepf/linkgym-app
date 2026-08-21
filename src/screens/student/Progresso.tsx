@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import {
   configDoTime,
@@ -11,6 +11,7 @@ import { useAccentMass } from "../../ui/accent";
 import { Baseline } from "../../ui/Baseline";
 import { Figure } from "../../ui/Figure";
 import { formatNum } from "../../ui/format";
+import { GhostCTA } from "../../ui/GhostCTA";
 import { Band, Head, neutroNaBand, Phone, useFimDaRolagem } from "../../ui/Screen";
 import { estilos, useTema } from "../../ui/tema";
 import { Txt } from "../../ui/Txt";
@@ -56,23 +57,19 @@ export function Progresso({ token, time }: Props) {
   const [data, setData] = useState<ProgressPayload | null>(null);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    let alive = true;
-    (async () => {
-      try {
-        const payload = await progress(token);
-        if (alive) {
-          setData(payload);
-          setError("");
-        }
-      } catch {
-        if (alive) setError("Não deu para abrir o progresso.");
-      }
-    })();
-    return () => {
-      alive = false;
-    };
+  const load = useCallback(async () => {
+    try {
+      const payload = await progress(token);
+      setData(payload);
+      setError("");
+    } catch {
+      setError("Não deu para abrir o progresso.");
+    }
   }, [token]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   const earned = new Set((data?.badges ?? []).map((b) => b.badge_key));
   const selos = Object.keys(SELOS).filter((k) => earned.has(k));
@@ -101,9 +98,18 @@ export function Progresso({ token, time }: Props) {
         showsVerticalScrollIndicator={false}
       >
         {error ? (
-          <Txt role="body" color={errorInk} style={styles.error}>
-            {error}
-          </Txt>
+          <View style={styles.error}>
+            <Txt role="body" color={errorInk}>
+              {error}
+            </Txt>
+            <View style={styles.retry}>
+              <GhostCTA
+                label="Tentar de novo"
+                onPress={() => void load()}
+                fundo={T.bg}
+              />
+            </View>
+          </View>
         ) : null}
 
         {data ? (
@@ -120,11 +126,10 @@ export function Progresso({ token, time }: Props) {
                   ? `Sua primeira sessão com ${time.name} abre a ofensiva.`
                   : `Sessões seguidas com ${time.name}.`}
               </Txt>
-              {data.ofensiva.current_count > 0 ? (
+              {data.ofensiva.current_count > 0 &&
+              data.ofensiva.protector_available ? (
                 <Txt role="label" color={hero.ink} style={styles.heroState}>
-                  {data.ofensiva.protector_available
-                    ? "Protetor guardado"
-                    : "Protetor gasto"}
+                  Protetor guardado
                 </Txt>
               ) : null}
             </View>
@@ -143,8 +148,12 @@ export function Progresso({ token, time }: Props) {
                 <Band raised grow rule="none">
                   <Figure
                     label="Protetor"
-                    value={0}
-                    note="Abre com a ofensiva e segura o primeiro dia sem sessão."
+                    value={data.ofensiva.protector_available ? "1" : "—"}
+                    note={
+                      data.ofensiva.protector_available
+                        ? "Abre com a ofensiva e segura o primeiro dia sem sessão."
+                        : "Já segurou um dia sem sessão nesta ofensiva."
+                    }
                   />
                 </Band>
               </>
@@ -264,6 +273,7 @@ export function Progresso({ token, time }: Props) {
 }
 
 const usarEstilos = estilos((tema) => {
+  const { SPACE } = tema;
   const { T } = tema;
   // O selo e a linha "Você" pousam DENTRO da Band, não no chão: o degrau é contado a
   // partir do fundo dela. Hoje isso é exatamente `T.fill`; no dia em que a Band for
@@ -272,12 +282,12 @@ const usarEstilos = estilos((tema) => {
   return StyleSheet.create({
     scroll: { flex: 1 },
     content: { flexGrow: 1 },
-    error: { paddingHorizontal: T.pad, paddingTop: 12 },
+    error: { paddingHorizontal: T.pad, paddingTop: SPACE.tight },
+    retry: { marginTop: SPACE.tight, alignSelf: "flex-start" },
 
     hero: {
       paddingHorizontal: T.pad,
-      paddingTop: 20,
-      paddingBottom: 20,
+      paddingVertical: SPACE.step,
     },
     heroProse: { marginTop: 8 },
     heroState: { marginTop: 8 },
@@ -285,23 +295,23 @@ const usarEstilos = estilos((tema) => {
     selos: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 12 },
     selo: {
       backgroundColor: degrau,
-      paddingHorizontal: 10,
-      paddingVertical: 7,
+      paddingHorizontal: SPACE.tight,
+      paddingVertical: SPACE.hair,
     },
 
-    week: { flexDirection: "row", gap: 6, marginTop: 16 },
+    week: { flexDirection: "row", gap: SPACE.hair, marginTop: SPACE.tight },
     day: { flex: 1, alignItems: "center" },
     dayBar: { height: BAR, alignSelf: "stretch", justifyContent: "flex-end" },
     bar: { alignSelf: "stretch" },
-    dayNum: { marginTop: 6, letterSpacing: 0 },
-    legend: { marginTop: 4 },
+    dayNum: { marginTop: SPACE.hair, letterSpacing: 0 },
+    legend: { marginTop: SPACE.hair },
 
-    league: { marginTop: 6 },
+    league: { marginTop: SPACE.hair },
     row: {
       flexDirection: "row",
       alignItems: "center",
-      gap: 12,
-      paddingVertical: 7,
+      gap: SPACE.tight,
+      paddingVertical: SPACE.hair,
     },
     rowMe: {
       backgroundColor: degrau,

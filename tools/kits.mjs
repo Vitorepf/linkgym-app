@@ -18,12 +18,14 @@ import { impressaoDoCodigo } from "./toques.mjs";
  *  de propósito: se alguém mexer num kit na tela e esquecer do medidor, a divergência tem
  *  que aparecer como kit não medido, e não como medição fantasma de algo que sumiu. */
 const KITS = {
-  Ferro: { acao: "linha", voz: "bloco", chao: "carvao", forma: "reta", superficie: "solida", peso: "medio", densidade: "normal", movimento: "normal", hierarquia: "salto", anel: "resgate", numero: "empilhado", contraste: "normal" },
-  Clinica: { acao: "centro", voz: "tecnica", chao: "neve", forma: "reta", superficie: "contorno", peso: "medio", densidade: "arejada", movimento: "seco", hierarquia: "eco", anel: "resgate", numero: "linha", contraste: "alto" },
-  Boutique: { acao: "centro", voz: "editorial", chao: "papel", forma: "macia", superficie: "elevada", peso: "fino", densidade: "arejada", movimento: "normal", hierarquia: "salto", anel: "sempre", numero: "cartaz", contraste: "normal" },
-  Vitrine: { acao: "linha", voz: "tecnica", chao: "breu", forma: "pilula", superficie: "vidro", peso: "fino", densidade: "normal", movimento: "generoso", hierarquia: "parelha", anel: "sempre", numero: "cartaz", contraste: "normal" },
-  Garagem: { acao: "caixa", voz: "condensada", chao: "papel", forma: "reta", superficie: "solida", peso: "grosso", densidade: "compacta", movimento: "seco", hierarquia: "parelha", anel: "sempre", numero: "empilhado", contraste: "alto" },
-  Sereno: { acao: "centro", voz: "suave", chao: "linho", forma: "macia", superficie: "solida", peso: "fino", densidade: "arejada", movimento: "generoso", hierarquia: "eco", anel: "resgate", numero: "cartaz", contraste: "normal" },
+  Ferro: { acao: "linha", voz: "bloco", chao: "carvao", porte: "padrao", forma: "reta", superficie: "solida", peso: "medio", densidade: "normal", movimento: "normal", hierarquia: "salto", anel: "resgate", numero: "empilhado", contraste: "normal" },
+  Moderno: { acao: "empilhada", voz: "neutra", chao: "grafite", porte: "padrao", forma: "macia", superficie: "elevada", peso: "fino", densidade: "normal", movimento: "generoso", hierarquia: "eco", anel: "resgate", numero: "cartaz", contraste: "normal" },
+  Minimalista: { acao: "centro", voz: "neutra", chao: "linho", porte: "justo", forma: "reta", superficie: "nenhuma", peso: "fino", densidade: "arejada", movimento: "seco", hierarquia: "eco", anel: "resgate", numero: "linha", contraste: "normal" },
+  Cartaz: { acao: "caixa", voz: "condensada", chao: "papel", porte: "folgado", forma: "reta", superficie: "carimbo", peso: "grosso", densidade: "compacta", movimento: "seco", hierarquia: "parelha", anel: "sempre", numero: "empilhado", contraste: "alto" },
+  Vitrine: { acao: "linha", voz: "tecnica", chao: "breu", porte: "padrao", forma: "pilula", superficie: "vidro", peso: "fino", densidade: "normal", movimento: "generoso", hierarquia: "parelha", anel: "sempre", numero: "cartaz", contraste: "normal" },
+  Boutique: { acao: "centro", voz: "editorial", chao: "papel", porte: "folgado", forma: "macia", superficie: "elevada", peso: "fino", densidade: "arejada", movimento: "normal", hierarquia: "salto", anel: "sempre", numero: "cartaz", contraste: "normal" },
+  Clinica: { acao: "centro", voz: "tecnica", chao: "neve", porte: "justo", forma: "macia", superficie: "fio", peso: "medio", densidade: "compacta", movimento: "seco", hierarquia: "eco", anel: "resgate", numero: "linha", contraste: "alto" },
+  Sereno: { acao: "centro", voz: "suave", chao: "tabaco", porte: "folgado", forma: "pilula", superficie: "solida", peso: "fino", densidade: "arejada", movimento: "generoso", hierarquia: "eco", anel: "resgate", numero: "cartaz", contraste: "normal" },
 };
 
 const arg = (nome, padrao) => {

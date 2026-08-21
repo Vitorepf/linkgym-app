@@ -12,7 +12,6 @@ import {
 } from "../../api";
 import type { RootStackParamList } from "../../nav/types";
 import { AccentCTA } from "../../ui/AccentCTA";
-import { Figure } from "../../ui/Figure";
 import { GhostCTA } from "../../ui/GhostCTA";
 import { IconChevron } from "../../ui/Icons";
 import { Initials } from "../../ui/Initials";
@@ -52,7 +51,6 @@ export function Atencao({ route }: Props) {
       setItems(payload.items);
       setError("");
     } catch {
-      setItems([]);
       setError("Não deu para abrir a fila.");
     }
   }, [token]);
@@ -99,6 +97,13 @@ export function Atencao({ route }: Props) {
             <Txt role="body" color={errorInk}>
               {error}
             </Txt>
+            <View style={styles.retry}>
+              <GhostCTA
+                label="Tentar de novo"
+                onPress={() => void load()}
+                fundo={T.bg}
+              />
+            </View>
           </Band>
         ) : null}
 
@@ -115,23 +120,41 @@ export function Atencao({ route }: Props) {
             cada uma com `grow`: a sobra da tela é dividida entre elas e vira respiro
             interno com dono, em vez de um buraco único entre a mensagem e o rodapé. */}
         {items !== null && queue.length === 0 && !error ? (
+          // FILA VAZIA É UMA FRASE, NÃO TRÊS ZEROS. Estavam aqui três `Figure` heroicos —
+          // "Sumiram 0", "Com dor 0", "Sem ficha 0" — enchendo a tela com o número que este
+          // produto não desenha em lugar nenhum (Retomada.tsx explica por quê: zero é marca
+          // de falha, e ausência se diz com ausência). E os três rótulos são a taxonomia da
+          // fila: quem não é fluente nela não tem o que fazer com eles. O Painel já resolve
+          // o mesmo estado em uma frase; esta tela sai dele.
+          // E SÃO TRÊS FRASES, uma por superfície que ENGORDA — não um parágrafo só
+          // flutuando no meio de 700pt. Medido: a frase única centrada deixava 282pt de
+          // vazio acima e 281 abaixo, a pior razão de ritmo das 57 telas do app (24,5
+          // contra a mediana de 2,4), e uma linha só de texto boiando num retângulo é
+          // exatamente o "buraco no meio da tela" que a doutrina condena. Dividida em três,
+          // a mesma sobra vira respiro INTERNO com dono e nenhum vão passa de ~100pt.
+          //
+          // As três frases são as mesmas palavras de antes, e continuam sendo prosa — não
+          // são os três rótulos da taxonomia da fila com um zero embaixo, que é o desenho
+          // que saiu daqui e não volta.
           <>
-            <Band raised grow rule="none">
-              <Figure label="Sumiram" value={0} />
-            </Band>
-            <Band raised grow rule="none">
-              <Figure label="Com dor" value={0} />
-            </Band>
-            <Band raised grow rule="none">
-              <Figure label="Sem ficha" value={0} />
-            </Band>
-            <Band rule="none">
-              <Txt role="body" tone="muted">
-                {done > 0
-                  ? `${done} resolvidos. Pode voltar para a aula.`
-                  : "Todo mundo está no automático."}
-              </Txt>
-            </Band>
+            {(done > 0
+              ? [
+                  `${done} ${done === 1 ? "resolvido" : "resolvidos"}.`,
+                  "Ninguém sumiu, ninguém marcou dor, ninguém está sem ficha.",
+                  "Pode voltar para a aula.",
+                ]
+              : [
+                  "Ninguém sumiu.",
+                  "Ninguém marcou dor, ninguém está sem ficha.",
+                  "Pode voltar para a aula.",
+                ]
+            ).map((frase) => (
+              <Band key={frase} grow rule="none">
+                <Txt role="body" tone="muted">
+                  {frase}
+                </Txt>
+              </Band>
+            ))}
           </>
         ) : null}
 
@@ -150,7 +173,13 @@ export function Atencao({ route }: Props) {
             >
               <Initials name={row.name} size={i === 0 ? 44 : 34} />
               <View style={styles.whoCopy}>
-                <Txt role={i === 0 ? "title" : "body"} numberOfLines={2}>
+                {/* O TAMANHO enfatiza a primeira da fila — é ela que se resolve agora, e
+                    esta tela é a do "uma por uma". O PAPEL não: `title` desenha na face de
+                    DISPLAY e `body` na de TEXTO, e depois do ciclo 9 essas duas faces são
+                    de verdade diferentes (Playfair contra Inter na editorial, Oswald contra
+                    Archivo na condensada). Trocar o papel entre a primeira linha e as
+                    outras deixava a mesma fila em dois tipos de letra. */}
+                <Txt role="body" numberOfLines={2}>
                   {row.name}
                 </Txt>
                 <Txt role="note" style={styles.why}>
@@ -163,7 +192,10 @@ export function Atencao({ route }: Props) {
                 repetia a frase logo acima — a frase virou o botão. */}
             <View style={styles.act}>
               <AccentCTA
-                label={row.decision}
+                // `decision` vem do servidor e pode chegar vazia. Sem a queda, o botão
+                // vira um retângulo de acento SEM PALAVRA NENHUMA — e tocável, aplicando a
+                // sugestão. O Painel já tem esta queda; a fila que sai dele, não.
+                label={row.decision || "Aplicar a sugestão"}
                 onPress={() => void apply(row.id)}
                 busy={busy === row.id}
                 disabled={busy !== null && busy !== row.id}
@@ -238,12 +270,13 @@ const usarEstilos = estilos(({ T, SPACE }) =>
     },
     whoCopy: { flex: 1, minWidth: 0 },
     why: { marginTop: 2 },
-    act: { marginTop: 14 },
+    act: { marginTop: SPACE.tight },
     dockRow: {
       flexDirection: "row",
       alignItems: "center",
-      gap: 14,
+      gap: SPACE.tight,
     },
     count: { flex: 1 },
+    retry: { marginTop: SPACE.tight, alignSelf: "flex-start" },
   }),
 );

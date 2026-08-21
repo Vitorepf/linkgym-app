@@ -21,7 +21,7 @@ import { formatKg } from "../../ui/format";
 import { GhostCTA } from "../../ui/GhostCTA";
 import { HoldTick } from "../../ui/HoldTick";
 import { IconPlay } from "../../ui/Icons";
-import { Band, DockFooter, Phone } from "../../ui/Screen";
+import { Band, DockFooter, Head, Phone } from "../../ui/Screen";
 import { estilos, useTema } from "../../ui/tema";
 import { Txt } from "../../ui/Txt";
 
@@ -134,13 +134,22 @@ export function Serie({ navigation, route }: Props) {
   }
 
   if (!item) {
+    // ARMADILHA, e das piores: esta tela roda com `headerShown: false` e
+    // `gestureEnabled: false` (nav/Root.tsx), então sem um botão aqui o único jeito de sair
+    // é matar o app — no meio de uma sessão, com treino guardado no celular esperando
+    // subir. Acontece de verdade: o cursor de uma sessão retomada sobrevive a uma ficha
+    // republicada, e a série que ele aponta some.
+    //
+    // E a frase mudou junto. "Esta série não está na ficha" descreve o banco; quem está
+    // com o celular na mão no meio do treino precisa saber que não é culpa dela e o que
+    // fazer agora.
     return (
       <Phone>
-        <Band>
-          <Txt role="body" tone="muted">
-            Esta série não está na ficha.
-          </Txt>
-        </Band>
+        <Head title="Essa série saiu da ficha" body={`O ${timeName} publicou uma nova.`} />
+        <View style={styles.vazio} />
+        <DockFooter>
+          <AccentCTA label="Voltar para o Hoje" onPress={() => navigation.popToTop()} />
+        </DockFooter>
       </Phone>
     );
   }
@@ -264,14 +273,14 @@ export function Serie({ navigation, route }: Props) {
               <HoldTick
                 onTick={() => setLoad((n) => stepKg(n, -passo))}
                 label={`− ${formatKg(passo)} kg`}
-                hint="Menos dois e meio"
+                hint={`Menos ${formatKg(passo)} kg`}
               />
             </View>
             <View style={styles.step}>
               <HoldTick
                 onTick={() => setLoad((n) => stepKg(n, passo))}
                 label={`+ ${formatKg(passo)} kg`}
-                hint="Mais dois e meio"
+                hint={`Mais ${formatKg(passo)}`}
               />
             </View>
           </View>
@@ -371,9 +380,10 @@ export function Serie({ navigation, route }: Props) {
   );
 }
 
-const usarEstilos = estilos(({ T, FORMA }) =>
+const usarEstilos = estilos(({ T, FORMA, SPACE }) =>
   StyleSheet.create({
-    feito: { marginTop: 6 },
+    feito: { marginTop: SPACE.hair },
+    vazio: { flex: 1 },
     top: {
       paddingHorizontal: T.pad,
       paddingTop: 8,
@@ -385,17 +395,17 @@ const usarEstilos = estilos(({ T, FORMA }) =>
       flexDirection: "row",
       justifyContent: "space-between",
     },
-    ticks: { flexDirection: "row", gap: 4, marginTop: 12, alignItems: "flex-end" },
+    ticks: { flexDirection: "row", gap: SPACE.hair, marginTop: 12, alignItems: "flex-end" },
     tick: { flex: 1, height: 4 },
     tickNow: { height: 10 },
     ex: {
       paddingHorizontal: T.pad,
-      paddingTop: 16,
+      paddingTop: SPACE.tight,
       paddingBottom: 18,
       borderBottomWidth: FORMA.borda,
       borderBottomColor: T.divider,
     },
-    rhythm: { marginTop: 4 },
+    rhythm: { marginTop: SPACE.hair },
     how: {
       flexDirection: "row",
       alignItems: "center",
@@ -409,7 +419,7 @@ const usarEstilos = estilos(({ T, FORMA }) =>
       borderBottomWidth: FORMA.borda,
       borderBottomColor: T.divider,
     },
-    stepRow: { flexDirection: "row", gap: 10, marginTop: 18 },
+    stepRow: { flexDirection: "row", gap: SPACE.tight, marginTop: 18 },
     // A moldura do HoldTick E a peca de acao: mesmo traco e mesmo canto do botao.
     step: {
       flex: 1,
@@ -432,8 +442,8 @@ const usarEstilos = estilos(({ T, FORMA }) =>
       borderLeftWidth: FORMA.borda + 1,
       borderLeftColor: "transparent",
     },
-    note: { marginTop: 6 },
-    dockRow: { flexDirection: "row", gap: 10, alignItems: "stretch" },
+    note: { marginTop: SPACE.hair },
+    dockRow: { flexDirection: "row", gap: SPACE.tight, alignItems: "stretch" },
     dockCta: { flex: 1 },
   }),
 );

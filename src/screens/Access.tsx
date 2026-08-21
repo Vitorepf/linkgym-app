@@ -329,7 +329,11 @@ function messageFor(e: unknown): string {
         return "Telefone inválido.";
     }
   }
-  return "Não deu para falar com a API. Ela está no ar?";
+  // "Não deu para falar com a API. Ela está no ar?" — era isto que estava escrito, na
+  // primeira tela que todo aluno de todo personal vê. Nomeia uma peça de dentro do produto
+  // e faz à pessoa uma pergunta que ela não tem como responder. É o exemplo mais literal do
+  // que o dono descreveu: "muitas coisa so de ler eu não faça a menor ideia o que faz".
+  return "Sem conexão agora. Confira a internet e tente de novo.";
 }
 
 const usarEstilos = estilos(({ T, FORMA, SPACE }) =>
@@ -340,13 +344,13 @@ const usarEstilos = estilos(({ T, FORMA, SPACE }) =>
     // filete no meio da tela. Era 400 px de nada no terço de baixo.
     content: { flexGrow: 1, justifyContent: "flex-end", paddingBottom: 8 },
     campo: { marginBottom: SPACE.tight },
-    error: { marginTop: 4 },
+    error: { marginTop: SPACE.hair },
     chips: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 12 },
     chip: {
       borderWidth: FORMA.borda,
       borderRadius: FORMA.raioAcao,
       borderColor: T.divider,
-      paddingHorizontal: 14,
+      paddingHorizontal: SPACE.tight,
       minHeight: FORMA.alturaMinima,
       justifyContent: "center",
     },
@@ -358,8 +362,8 @@ const usarEstilos = estilos(({ T, FORMA, SPACE }) =>
     stepRow: {
       flexDirection: "row",
       alignItems: "center",
-      gap: 14,
-      paddingVertical: 20,
+      gap: SPACE.tight,
+      paddingVertical: SPACE.step,
     },
     stepRule: { borderTopWidth: FORMA.fio, borderTopColor: T.hairline },
     mark: {
@@ -371,6 +375,6 @@ const usarEstilos = estilos(({ T, FORMA, SPACE }) =>
       flexShrink: 0,
     },
     markOn: { backgroundColor: T.ink, borderColor: T.ink },
-    ghost: { marginTop: 10 },
+    ghost: { marginTop: SPACE.tight },
   }),
 );

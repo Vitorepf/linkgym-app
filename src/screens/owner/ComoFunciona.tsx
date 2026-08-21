@@ -4,7 +4,7 @@ import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { configDoTime, me, patchTime, type Time, type TimeConfig } from "../../api";
 import { AccentCTA } from "../../ui/AccentCTA";
 import { GhostCTA } from "../../ui/GhostCTA";
-import { IconCheck } from "../../ui/Icons";
+import { IconCheck, IconClose } from "../../ui/Icons";
 import { Initials } from "../../ui/Initials";
 import { MetricGrid } from "../../ui/Metric";
 import { Band, DockFooter, Head, Phone } from "../../ui/Screen";
@@ -40,7 +40,7 @@ type Cfg = ReturnType<typeof configDoTime>;
 export function ComoFunciona({ token, time, onTimeChange }: Props) {
   const styles = usarEstilos();
   const navigation = useNavigation();
-  const { errorInk } = useTema();
+  const { T, errorInk } = useTema();
   const inicial = configDoTime(time);
   const [cfg, setCfg] = useState(inicial);
   const [busy, setBusy] = useState(false);
@@ -96,6 +96,22 @@ export function ComoFunciona({ token, time, onTimeChange }: Props) {
         kicker={time.name}
         title="Como o app funciona"
         body="Seis decisões que valem para todos os seus alunos. Cada uma mostra aqui o que o aluno passa a ver."
+        // A SAÍDA MORA NO CABEÇALHO. A regra que saiu do ciclo 9: uma ação de largura
+        // cheia por tela, a saída no cabeçalho, e uma terceira ação não existe. Aqui ela
+        // era uma laje no rodapé — 68 pontos de cromo permanente, sempre na tela, para
+        // duplicar o gesto de borda que a navegação já entende. No cabeçalho ela não custa
+        // ponto vertical nenhum: a linha já existe e já estava vazia.
+        right={
+          <Pressable
+            onPress={() => navigation.goBack()}
+            accessibilityRole="button"
+            accessibilityLabel="Fechar"
+            hitSlop={8}
+            style={styles.fechar}
+          >
+            <IconClose color={T.muted} size={20} />
+          </Pressable>
+        }
       />
 
       <ScrollView
@@ -243,9 +259,6 @@ export function ComoFunciona({ token, time, onTimeChange }: Props) {
           busy={busy}
           check
         />
-        <View style={styles.voltar}>
-          <GhostCTA label="Voltar" onPress={() => navigation.goBack()} />
-        </View>
       </DockFooter>
     </Phone>
   );
@@ -402,9 +415,14 @@ const usarEstilos = estilos(({ T, SPACE, FORMA }) =>
       justifyContent: "center",
     },
     palco: { gap: SPACE.hair },
-    rotulo: { flexDirection: "row", alignItems: "center", gap: 6 },
+    rotulo: { flexDirection: "row", alignItems: "center", gap: SPACE.hair },
     liga: { gap: SPACE.hair },
     ligaLinha: { flexDirection: "row", alignItems: "center", gap: SPACE.tight },
-    voltar: { marginTop: SPACE.tight },
+    fechar: {
+      width: FORMA.alturaMinima,
+      height: FORMA.alturaMinima,
+      alignItems: "center",
+      justifyContent: "center",
+    },
   }),
 );

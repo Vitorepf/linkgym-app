@@ -8,6 +8,7 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
+import { resultadoDaSessao } from "../../api";
 import {
   flush,
   loadSession,
@@ -154,6 +155,11 @@ export function Descanso({ navigation, route }: Props) {
       const proof = sessionProof(await markFinished(localId, effort));
       const result = await flush(token, localId);
       const finish = result.ok ? result.finish : undefined;
+      const pending = !result.ok;
+      const resultado = resultadoDaSessao(finish, pending, {
+        ofensiva: ofensivaCount,
+        xpTotal,
+      });
       navigation.reset({
         index: 1,
         routes: [
@@ -162,12 +168,12 @@ export function Descanso({ navigation, route }: Props) {
             name: "Feito",
             params: {
               timeName,
-              ofensivaCount: finish?.ofensiva.current_count ?? ofensivaCount + 1,
-              xpGained: finish?.xp_gained ?? 10,
-              xpTotal: finish?.xp_total ?? xpTotal + 10,
-              records: finish?.records ?? [],
+              ofensivaCount: resultado.ofensivaCount,
+              xpGained: resultado.xpGained,
+              xpTotal: resultado.xpTotal,
+              records: resultado.records,
               proof,
-              pending: !result.ok,
+              pending,
               needsCommitment: route.params.needsCommitment,
             },
           },
@@ -254,7 +260,16 @@ export function Descanso({ navigation, route }: Props) {
         <View style={styles.track}>
           <Animated.View style={[styles.fill, grow, done]} />
         </View>
-        <Txt role="note" tone="dim" style={styles.note}>
+      </Band>
+
+      {/* A NOTA EM SUPERFÍCIE PRÓPRIA, e ela também cresce. Enquanto morava dentro da
+          superfície do relógio, a série que NÃO fecha exercício tinha uma superfície só
+          para dividir a sobra — e a divisão de um vazio por um dá o vazio inteiro: 208pt
+          acima do número e 206 abaixo da nota, a segunda pior razão de ritmo do app (13,0
+          contra a mediana de 2,4). Com duas, cada vão cai pela metade e a nota continua
+          colada no número que ela explica, com o fio da superfície entre os dois. */}
+      <Band raised grow rule="none">
+        <Txt role="note" tone="dim">
           {left === 0
             ? "Descanso fechado. Marca como foi e segue."
             : `O ${timeName} pediu ${restSeconds}s entre as séries deste exercício.`}
@@ -311,7 +326,12 @@ export function Descanso({ navigation, route }: Props) {
               onPress={() => {
                 void goFinish();
               }}
-              disabled={!effort || busy}
+              // A MESMA GUARDA DO BOTÃO PRINCIPAL, e não `!effort`. A palavra do esforço só
+              // é PEDIDA quando o exercício fecha — entre séries do mesmo exercício as
+              // fichas nem aparecem na tela. Com `!effort` este botão ficava desligado para
+              // sempre nesse estado: quem precisava parar na segunda de três séries via um
+              // retângulo morto e nenhum controle na tela capaz de acordá-lo.
+              disabled={(fechaExercicio && !effort) || busy}
             />
           )}
         </View>

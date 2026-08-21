@@ -1,5 +1,7 @@
 import { useEffect } from "react";
 import { StyleSheet, View } from "react-native";
+import { MOTION } from "../theme";
+import { EASE } from "./motion";
 import Animated, {
   cancelAnimation,
   Extrapolation,
@@ -36,7 +38,11 @@ export function Entity({
       pulse.value = 1;
       return;
     }
-    pulse.value = withRepeat(withTiming(0.38, { duration: 1100 }), -1, true);
+    pulse.value = withRepeat(
+      withTiming(0.38, { duration: MOTION.respira, easing: EASE }),
+      -1,
+      true,
+    );
   }, [pulse, reduce]);
 
   useAnimatedReaction(

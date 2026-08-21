@@ -22,6 +22,7 @@ import {
   ACCENT_CHOICES,
   ANEL_DO_ROSTO,
   VOZES,
+  SUPERFICIES,
   compor,
   luminance,
   APARENCIA_PADRAO,
@@ -76,19 +77,58 @@ const MARCAS = [
   ...LIVRES.map((l) => ({ nome: `livre ${l.digitado.trim()}`, cor: l.cor })),
 ];
 const CHAOS_NOMES = Object.keys(CHAOS);
+/** A TELA FORÇA O FILETE QUANDO O BLOCO NÃO PINTA? Lido de `Screen.tsx`, não suposto —
+ *  é o pecado recorrente deste repo medir o objeto que a tela deixou de pintar. */
+const FORCA_A_REGUA = /semBloco && rule === "none"/.test(
+  readFileSync(join(ROOT, "src/ui/Screen.tsx"), "utf8"),
+);
 const DENSIDADES = ["compacta", "normal", "arejada"];
+/** AS SUPERFÍCIES, LIDAS DO TEMA E NÃO ESCRITAS AQUI.
+ *
+ *  Estavam escritas à mão em SEIS lugares deste arquivo. O ciclo 9 acrescentou `fio` e
+ *  `vinco` ao cardápio e o medidor continuou varrendo quatro — ou seja, dois materiais
+ *  novos chegariam à tela do personal sem um par medido, no arquivo cujo trabalho é
+ *  garantir que nenhuma combinação seja feia. Não reprovou nada, o que é pior que
+ *  reprovar: silêncio lido como aprovação.
+ *
+ *  É a mesma lição da lista de `tnum` neste mesmo ciclo. Lista escrita à mão é suposição
+ *  com data de validade. Esta sai de `SUPERFICIES` do tema, então material novo entra na
+ *  varredura no dia em que entra no cardápio, sem ninguém lembrar de nada. */
+const SUPERFICIES_TODAS = SUPERFICIES;
 const FORMAS = ["reta", "macia", "pilula"];
 
-/** As faces com `tnum` (dígito de largura fixa), lido do GSUB do TTF — não suposto.
- *  Archivo, Inter e Space Grotesk têm; Playfair, Nunito e Oswald não. */
-const COM_TNUM = [
-  "Archivo_800ExtraBold",
-  "Archivo_500Medium",
-  "Inter_700Bold",
-  "Inter_500Medium",
-  "SpaceGrotesk_700Bold",
-  "SpaceGrotesk_500Medium",
-];
+/** AS FACES COM `tnum` (dígito de largura fixa), LIDAS DO ARQUIVO.
+ *
+ *  Era uma lista escrita à mão com o comentário "lido do GSUB do TTF — não suposto". A
+ *  leitura tinha sido feita mesmo, uma vez, e a lista congelou nas seis faces daquele dia:
+ *  no ciclo 9 duas faces novas do MESMO Archivo e do MESMO Inter reprovaram por não
+ *  estarem na lista, e não por não terem a feature. Lista escrita à mão é suposição com
+ *  data de validade.
+ *
+ *  Agora a régua abre o TTF e procura a tag `tnum` na FeatureList do GSUB. Trinta linhas
+ *  de parser, zero dependência, e a resposta vale para qualquer face que alguém carregue
+ *  amanhã. */
+function temTnum(face) {
+  const pkg = face
+    .replace(/_.*$/, "")
+    .replace(/([a-z])([A-Z])/g, "$1-$2")
+    .toLowerCase();
+  const p = join(ROOT, "node_modules/@expo-google-fonts", pkg, face.replace(/^[A-Za-z]+_/, ""), `${face}.ttf`);
+  const b = readFileSync(p);
+  const n = b.readUInt16BE(4);
+  let gsub = 0;
+  for (let i = 0; i < n; i++) {
+    const o = 12 + i * 16;
+    if (b.toString("ascii", o, o + 4) === "GSUB") gsub = b.readUInt32BE(o + 8);
+  }
+  if (!gsub) return false;
+  const lista = gsub + b.readUInt16BE(gsub + 6);
+  const qtd = b.readUInt16BE(lista);
+  for (let i = 0; i < qtd; i++) {
+    if (b.toString("ascii", lista + 2 + i * 6, lista + 6 + i * 6) === "tnum") return true;
+  }
+  return false;
+}
 
 /** SEPARAÇÃO em L*, que é a régua que faltava e a razão de este arquivo já ter marcado
  *  "0 reprovam" com defeito real na tela. Razão de contraste responde "dá para ler"; ela
@@ -229,7 +269,7 @@ for (const chao of CHAOS_NOMES) {
 //    inclusive sobre o vidro, que é o único chão COMPOSTO do app. É aqui que a promessa
 //    "a família não muda o valor da superfície, só a textura" vira número.
 for (const chao of CHAOS_NOMES) {
-  for (const superficie of ["solida", "contorno", "elevada", "vidro"]) {
+  for (const superficie of SUPERFICIES_TODAS) {
     const t = criarTema({ ...APARENCIA_PADRAO, chao, superficie });
     const onde = `${chao}/${superficie}`;
     for (const tinta of ["ink", "muted", "muted2"]) {
@@ -251,21 +291,32 @@ for (const chao of CHAOS_NOMES) {
 
 // 7. A VOZ. Contraste é cego a fonte e `telas` só pergunta se montou — então até aqui a
 //    única alavanca vendida como premium que ninguém media era justamente a que muda mais
-//    a personalidade. O que dá para medir sem olho humano: o tamanho APARENTE do herói
-//    (caixa alta em pontos) e do corpo (altura de x), que têm que bater com a referência
-//    dentro de 3%, e a entrelinha, que não pode ser menor que a linha natural da face.
-for (const voz of ["bloco", "tecnica", "editorial", "suave", "condensada"]) {
+//    a personalidade.
+//
+//    ESTA SEÇÃO MEDIA O CONTRÁRIO DO QUE DEVIA, e é o defeito mais caro do ciclo 9.
+//    Ela exigia que o herói e o corpo de toda voz tivessem o MESMO tamanho aparente da
+//    referência, dentro de 3%. A intenção era boa (trocar a voz não pode mexer no corpo do
+//    texto sem querer) e o efeito foi o oposto do produto: com o tamanho travado, sobrava
+//    só o desenho da letra para separar seis opções — e o desenho de um dígito de 40pt em
+//    Archivo, Inter e Space Grotesk é a mesma imagem para qualquer olho. O dono olhou o
+//    cardápio e escreveu "letras, todas basicamente iguais". A régua estava garantindo
+//    exatamente isso.
+//
+//    O que fica: TODO piso de legibilidade (a linha natural cabe, o acento cabe, o dígito
+//    é de largura fixa) e a trava do CORPO, que continua sendo o mesmo em toda voz porque
+//    densidade de leitura não é gosto do personal.
+//    O que inverte: o herói deixa de precisar ser IGUAL e passa a precisar ser DIFERENTE.
+for (const voz of Object.keys(VOZES)) {
   const t = criarTema({ ...APARENCIA_PADRAO, voz });
   // `face`, e não `par`: `par()` é a função que registra a medida, e a sombra dela aqui
   // dentro fazia o arquivo inteiro morrer com "par is not a function".
   const face = VOZES[voz];
   const ref = criarTema({ ...APARENCIA_PADRAO, voz: "bloco" });
-  const capRef = ref.TYPE.hero * VOZES.bloco.cap;
   const xRef = ref.TYPE.body * VOZES.bloco.x;
   const onde = `voz/${voz}`;
   // razão entre o aparente e a referência, normalizada para "quanto falta para 1"
   const perto = (a, b) => 1 - Math.abs(a - b) / b;
-  par(onde, "tipografia", "herói do mesmo tamanho aparente", perto(t.TYPE.hero * face.cap, capRef), 0.97);
+  // O CORPO continua travado: o parágrafo lê do mesmo tamanho em toda voz.
   par(onde, "tipografia", "corpo do mesmo tamanho aparente", perto(t.TYPE.body * face.x, xRef), 0.97);
   // TEXTO: a caixa da linha tem que caber a LINHA NATURAL da face, senão o Á, o Ç e o Õ
   // raspam a base — em português isso é metade das palavras.
@@ -273,12 +324,43 @@ for (const voz of ["bloco", "tecnica", "editorial", "suave", "condensada"]) {
     par(onde, "tipografia", `entrelinha cabe (${degrau})`, t.LEAD[degrau], Math.ceil(t.TYPE[degrau] * face.linha));
   }
   // DISPLAY: entrelinha negativa é o desenho, não um defeito — o que não pode é a caixa
-  // ficar menor que a própria letra com acento. Piso = caixa alta + espaço do acento.
+  // ficar menor que a própria letra com acento. Piso = caixa alta + espaço do acento, e a
+  // caixa alta é a da face que DESENHA o degrau: o número desenha na face do número.
   for (const degrau of ["title", "value", "hero", "mega"]) {
-    par(onde, "tipografia", `acento cabe (${degrau})`, t.LEAD[degrau], Math.ceil(t.TYPE[degrau] * (face.cap + 0.15)));
+    const caixa = degrau === "title" ? face.cap : face.capNumero;
+    par(onde, "tipografia", `acento cabe (${degrau})`, t.LEAD[degrau], Math.ceil(t.TYPE[degrau] * (caixa + 0.15)));
   }
   // dígito de largura fixa: a face do NÚMERO tem que ser uma das que têm `tnum`.
-  par(onde, "tipografia", "dígito de largura fixa", COM_TNUM.includes(face.numero) ? 1 : 0, 1);
+  par(onde, "tipografia", "dígito de largura fixa", temTnum(face.numero) ? 1 : 0, 1);
+}
+
+// 7a. AS VOZES SE SEPARAM? A régua que faltava, e a única que responde à reclamação.
+//
+//     Duas vozes são duas se o olho separa — a mesma doutrina que `separadasNoMatiz` já
+//     aplica a duas cores, agora aplicada a duas tipografias. Três canais, e basta que UM
+//     deles abra: o tamanho aparente do herói, a face que desenha o número, ou a caixa do
+//     rótulo. Um cardápio em que duas linhas colidem nos três é um cardápio que vende seis
+//     opções e entrega cinco — que era o caso de `neutra` e `editorial`, idênticas nas
+//     três até este ciclo.
+const VOZES_NOMES = Object.keys(VOZES);
+/** 8% no tamanho aparente. Abaixo disso o olho não chama de "outro tamanho", chama de
+ *  renderização — e a diferença entre 40pt e 41pt era literalmente o que separava duas
+ *  opções do cardápio antigo. */
+const SEPARA = 0.08;
+for (let i = 0; i < VOZES_NOMES.length; i++) {
+  for (let j = i + 1; j < VOZES_NOMES.length; j++) {
+    const [a, b] = [VOZES_NOMES[i], VOZES_NOMES[j]];
+    const fa = VOZES[a], fb = VOZES[b];
+    const ta = criarTema({ ...APARENCIA_PADRAO, voz: a });
+    const tb = criarTema({ ...APARENCIA_PADRAO, voz: b });
+    const apA = ta.TYPE.hero * fa.capNumero;
+    const apB = tb.TYPE.hero * fb.capNumero;
+    const canais =
+      (Math.abs(apA - apB) / Math.max(apA, apB) >= SEPARA ? 1 : 0) +
+      (fa.numero !== fb.numero ? 1 : 0) +
+      (fa.caixa !== fb.caixa ? 1 : 0);
+    par(`voz/${a}+${b}`, "tipografia", "as duas vozes se separam", canais, 1);
+  }
 }
 
 // 7b. O CARDÁPIO DA API COBRE O DO APP? A whitelist do servidor e o cardápio da tela são
@@ -294,7 +376,8 @@ const CARDAPIO = {
   numero: ["empilhado", "linha", "cartaz"],
   contraste: ["normal", "alto"],
   forma: FORMAS,
-  superficie: ["solida", "contorno", "elevada", "vidro"],
+  superficie: SUPERFICIES_TODAS,
+  porte: ["justo", "padrao", "folgado"],
   densidade: DENSIDADES,
   movimento: ["seco", "normal", "generoso"],
   peso: ["fino", "medio", "grosso"],
@@ -329,6 +412,7 @@ try {
     acao: "ACOES_DO_CARDAPIO",
     forma: "FORMAS",
     superficie: "SUPERFICIES",
+    porte: "PORTES_DO_CARDAPIO",
     densidade: "DENSIDADES",
     movimento: "MOVIMENTOS",
     peso: "PESOS",
@@ -399,7 +483,7 @@ for (const densidade of DENSIDADES) {
 //    chão em que a grade pousa, na mesma L* e no mesmo piso 5 da separação de superfície.
 for (const chao of CHAOS_NOMES) {
   for (const forma of FORMAS) {
-    for (const superficie of ["solida", "contorno", "elevada", "vidro"]) {
+    for (const superficie of SUPERFICIES_TODAS) {
       const t = criarTema({ ...APARENCIA_PADRAO, chao, forma, superficie });
       const { modo, tinta } = t.FORMA.celula;
       const onde = `${chao}/${superficie}`;
@@ -440,7 +524,7 @@ for (const chao of CHAOS_NOMES) {
 //     cronômetro (Descanso), a barra apagada da semana (Compromisso) e o selo (Perfil) —
 //     e nenhum par olhava para lá, porque nenhum media contra o fundo REAL.
 for (const chao of CHAOS_NOMES) {
-  for (const superficie of ["solida", "contorno", "elevada", "vidro"]) {
+  for (const superficie of SUPERFICIES_TODAS) {
     const t = criarTema({ ...APARENCIA_PADRAO, chao, superficie });
     const { T } = t;
     // `veuComposto` é o fundo real da superfície levantada nas quatro famílias: `raised`
@@ -919,7 +1003,6 @@ for (const chao of CHAOS_NOMES) {
 //     carvão, breu, grafite e tabaco (o fio de luz era calculado e descartado), e no dock
 //     21 dos 42 pares colidiam porque o chrome só perguntava `vidro`. Agora a decisão é UM
 //     objeto por estrato, e é este objeto que a tela pinta e este medidor lê.
-const SUPERFICIES_TODAS = ["solida", "contorno", "elevada", "vidro"];
 /** O ÚNICO par de superfícies que pode colidir, e só na MOLDURA. O dock continua OPACO em
  *  `contorno` de propósito — moldura transparente deixa a lista correr por baixo do
  *  rótulo —, e não sobra nenhum canal onde `contorno` possa diferir de `solida` ali.
@@ -931,8 +1014,21 @@ const SUPERFICIES_TODAS = ["solida", "contorno", "elevada", "vidro"];
  *  traço da moldura é UM só, espessura e cor, e é o que a tela pinta), o par passou a
  *  colidir de verdade, e a isenção passou a estar aqui, onde se lê. A §33 mede o PIXEL com
  *  exatamente esta isenção e nenhuma outra. */
+/** AS COLISÕES QUE SÃO DECISÃO, e não descuido. Cada uma leva o motivo junto, porque uma
+ *  isenção sem motivo é a régua desligada com outro nome. */
 const COLIDE_DE_PROPOSITO = (estrato, a, b) =>
-  estrato === "chrome" && a === "solida" && b === "contorno";
+  // A MOLDURA É A MESMA NOS TRÊS MATERIAIS QUE NÃO LEVANTAM O BLOCO. O dock continua opaco
+  // e com a régua de sempre em `solida`, `contorno` e `nenhuma` — a §10.4 mediu o custo de
+  // deixá-lo vazar (o rótulo inativo cai de 4,52 para 1,04 com conteúdo passando por
+  // baixo), e nenhuma das três tem altura para se separar por outro canal ali. Quem muda a
+  // moldura é elevada, vidro, fio e vinco, e essas quatro são medidas contra todas.
+  (estrato === "chrome" &&
+    ["solida", "contorno", "nenhuma"].includes(a) &&
+    ["solida", "contorno", "nenhuma"].includes(b)) ||
+  // `nenhuma` tira o bloco do CONTEÚDO, não do CONTROLE. Um campo de texto sem fronteira
+  // deixa de ter onde começar e o dedo deixa de saber onde bater, então a peça miúda cai
+  // na forma do contorno nos dois materiais — de propósito, e é a mesma peça.
+  (estrato === "miuda" && a === "contorno" && b === "nenhuma");
 for (const chao of CHAOS_NOMES) {
   const temas = SUPERFICIES_TODAS.map((s) => criarTema({ ...APARENCIA_PADRAO, chao, superficie: s }));
   for (const estrato of ["peca", "chrome", "miuda"]) {
@@ -1164,8 +1260,23 @@ for (const chao of CHAOS_NOMES) {
                 // própria, ou por altura. A peça pequena pousa na peça, não no chão — é o
                 // degrau que `preenchimentoMiudo` derruba até a tinta voltar ao piso.
                 const atras = estrato === "miuda" ? temas[i].FORMA.folha.peca.composto : T.bg;
+                // TRÊS CANAIS DE FRONTEIRA, e basta um: a peça tem borda própria, ou ela
+                // se levanta do que está atrás, ou um FILETE a delimita.
+                //
+                // O terceiro entrou com o material `nenhuma`, e ele não afrouxa a régua —
+                // é o canal que a SPEC §3 já abençoa ("delimitador é sempre `divider` ou
+                // `ink`") e que a moldura do chrome já usava logo acima. O que a régua
+                // exigia antes era que TODA peça pintasse fundo ou borda, o que torna um
+                // material silencioso impossível de existir por construção.
+                //
+                // E o filete só conta se a TELA o pintar: `Screen.tsx` força a régua de
+                // volta quando o bloco não pinta nada (`semBloco && rule === "none"`), e é
+                // essa expressão que a linha abaixo procura no arquivo. Se alguém tirar a
+                // força, o par cai aqui — e não seis meses depois, numa captura.
+                const filete = FORCA_A_REGUA && sup === "nenhuma" ? ratio(T.divider, atras) : 0;
                 par(onde, `${quem} ${sup}/${estrato}`, "a peça tem fronteira",
-                  f.borda > 0 ? f.borda : separacao(f.composto, atras), f.borda > 0 ? 0.5 : 5);
+                  f.borda > 0 ? f.borda : Math.max(separacao(f.composto, atras), filete),
+                  f.borda > 0 ? 0.5 : filete ? UI : 5);
               }
               if (f.aresta) {
                 const alfa = Number(f.aresta.match(/([\d.]+)\)$/)[1]);
@@ -1526,6 +1637,10 @@ for (const arquivo of PECAS_MIUDAS) {
     });
     for (let i = 0; i < SUPERFICIES_TODAS.length; i++) {
       for (let j = i + 1; j < SUPERFICIES_TODAS.length; j++) {
+        // Este laço mede o mesmo estrato que a §16, então ele obedece às MESMAS isenções.
+        // Sem isto, a isenção registrada com motivo num lugar vira reprova sem motivo no
+        // outro, e a régua ensina a ignorar régua.
+        if (COLIDE_DE_PROPOSITO("miuda", SUPERFICIES_TODAS[i], SUPERFICIES_TODAS[j])) continue;
         par(
           chao,
           `${nome} pinta`,

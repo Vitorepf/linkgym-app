@@ -8,6 +8,7 @@ import Animated, {
   useSharedValue,
   withSpring,
 } from "react-native-reanimated";
+import { MOTION } from "../../theme";
 import { AccentCTA } from "../../ui/AccentCTA";
 import { Choice } from "../../ui/Choice";
 import { Entity } from "../../ui/Entity";
@@ -42,8 +43,6 @@ const WEIGHT_MIN = 40;
 const WEIGHT_MAX = 140;
 const HEIGHT_START = 170;
 const WEIGHT_START = 70;
-
-const SPRING = { damping: 16, stiffness: 140, mass: 0.8 };
 
 export function Criacao({
   timeName,
@@ -87,8 +86,8 @@ export function Criacao({
       assembled.value = 1;
       return;
     }
-    stance.value = withSpring(s, SPRING);
-    assembled.value = withSpring(1, { damping: 14, stiffness: 90, mass: 0.9 });
+    stance.value = withSpring(s, MOTION.molaAjuste);
+    assembled.value = withSpring(1, MOTION.molaMonta);
   }
 
   function setHeight(n: number) {
@@ -177,7 +176,7 @@ export function Criacao({
   return (
     <>
       {/* O que anima é o número; o rótulo e o botão ficam onde estão. */}
-      <Animated.View key={beat} entering={FadeIn.duration(180)}>
+      <Animated.View key={beat} entering={FadeIn.duration(MOTION.troca)}>
         {beat === "sex" ? (
           <Txt role="title">Masculino ou feminino?</Txt>
         ) : (
@@ -293,7 +292,7 @@ function clamp(n: number, min: number, max: number) {
 
 const usarEstilos = estilos(({ T, SPACE }) =>
   StyleSheet.create({
-    why: { marginTop: 10 },
+    why: { marginTop: SPACE.tight },
     // O palco tem CHÃO: superfície própria, sangrando até a borda (o -T.pad desfaz a margem
     // do contêiner — os dois montadores usam T.pad). O vazio em volta da figura vira respiro
     // interno do palco, não buraco de ninguém.
@@ -314,7 +313,7 @@ const usarEstilos = estilos(({ T, SPACE }) =>
     stage: {
       transform: [{ scale: 1.5 }],
       transformOrigin: "bottom",
-      marginBottom: 14,
+      marginBottom: SPACE.tight,
     },
     sex: { marginTop: 8, gap: 8 },
     stepper: {
@@ -326,7 +325,7 @@ const usarEstilos = estilos(({ T, SPACE }) =>
     error: { marginBottom: 8 },
     back: {
       alignSelf: "flex-start",
-      paddingVertical: 16,
+      paddingVertical: SPACE.tight,
     },
   }),
 );

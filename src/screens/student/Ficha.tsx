@@ -127,7 +127,7 @@ function spread(rows: TodayItem[]): string {
 
 const ORD = 26;
 
-const usarEstilos = estilos(({ T }) =>
+const usarEstilos = estilos(({ T, SPACE }) =>
   StyleSheet.create({
     scroll: { flex: 1 },
     // ponytail: sem folga no pé — a última régua encosta no dock. Vazio que não separa
@@ -147,7 +147,7 @@ const usarEstilos = estilos(({ T }) =>
     // vez de virar buraco órfão; com 6+ o conteúdo enche e o flexGrow é inerte.
     row: {
       paddingHorizontal: T.pad,
-      paddingVertical: 16,
+      paddingVertical: SPACE.tight,
       borderBottomWidth: 1,
       borderBottomColor: T.hairline,
       flexGrow: 1,
@@ -167,8 +167,8 @@ const usarEstilos = estilos(({ T }) =>
     meta: { marginLeft: ORD + 8, marginTop: 2 },
     said: {
       marginLeft: ORD + 8,
-      marginTop: 10,
-      paddingLeft: 10,
+      marginTop: SPACE.tight,
+      paddingLeft: SPACE.tight,
       borderLeftWidth: 2,
     },
   }),
