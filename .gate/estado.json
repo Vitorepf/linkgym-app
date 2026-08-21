@@ -3,7 +3,7 @@
   "fase": 10,
   "alvo": "CICLO 10 — O ARSENAL. A meta do dono mudou de foco: Perfil > Aparencia do app é O produto, num ciclo longo com JUIZES de qualidade, simplicidade e inovacao a cada rodada. O que ele pede agora e diferente do ciclo 9: nao mais alavancas isoladas, e sim LINGUAGENS DE DESIGN inteiras — minimalista, flat, moderno e o que mais existir — cada uma completa e de acabamento impecavel, feita a mao. Mais materiais, mais tipos de elemento, mais personalizacao, e acabamento/empacotamento/fluidez em nivel absurdo. Sem rolagem demais. Variedade de VERDADE: se duas opcoes chegam parecidas na tela, sao uma opcao com dois nomes.",
   "spec": "docs/operacao/SPEC.md (em producao pelo ciclo de ideacao+juri)",
-  "motivo": "Rodada 6 oficio-things: RACK vazio de verdade; serie/descanso/feito em CARDS. Sheet tall nos CARDS, veu 0%, Hoje visivel atras. tsc + medir 0 fora. Nao e aprovado.",
+  "motivo": "Rodada 7 oficio-things PERDEU: o disco mentiu — RACK tinha voltado a comer serie/descanso/feito e CARDS estava vazio. Fechei: RACK = new Set(), CARDS com os tres + como + fichaSessao. Medidor cartao le app-root.tsx e o tudo imprime FORA se RACK contiver serie/descanso/feito ou se CARDS perder os tres. tsc 0. medir tudo 0 fora DEPOIS do cheque, com o Set certo. Linear (hoje.tsx) nao tocado. Nao e aprovado — o eixo perdeu B20 nesta rodada.",
   "fabrica_entregue": {
     "api": [
       "migration 00009 studios.config jsonb + whitelist (internal/owner/config.go): liga nomes|anonima|off, selos, xp, prontidao, passo_kg 0.5|1|2.5, dias_padrao 2-6, boas_vindas <=100 sem URL/fone, retomada <=90; acoplamento liga!=off => xp visivel",
@@ -32,7 +32,8 @@
     "escala": "1 -> 0. O fontSize: 10 da barra de abas era o ultimo corpo cravado a mao no app, e era ele que fazia a barra ser o unico lugar onde a alavanca de letra nao chegava.",
     "material": "a alavanca de superficie alcancava 26 das 119 Bands do app: `raised` caia numa bandeira de captura (`__bandRaised`, sempre false em producao) e 93 chamadas nao passavam a prop. Agora quem responde e o material escolhido.",
     "linguagens": "tools/linguagens.mjs (NOVO) — 8 linguagens, 28 pares, piso de 3 canais grossos de 6. 0 reprovam; o par mais proximo e Moderno x Vitrine com 3. DENTES: contra os SEIS kits antigos, Boutique x Sereno media 2 — dois kits que eram quase o mesmo app.",
-    "juizes": "painel de tres juizes cegos + sintetizador que verificou no codigo: qualidade 6, simplicidade 5, inovacao 5. Quatro achados coincidentes, todos confirmados; um refutado na checagem."
+    "juizes": "painel de tres juizes cegos + sintetizador que verificou no codigo: qualidade 6, simplicidade 5, inovacao 5. Quatro achados coincidentes, todos confirmados; um refutado na checagem.",
+    "cartao": "proto-aluno/tools/medir.mjs cartao + trava no tudo. Le app-root.tsx. RACK com serie/descanso/feito = FORA; CARDS sem os tres = FORA. Revert de prova: 3 fora, exit 1. Set certo: 0 fora, exit 0."
   },
   "perfil_do_personal": {
     "pedido": "dono apontou a tela no aparelho: 'use o simulador e presta atencao no perfil do personal'",
@@ -146,6 +147,13 @@
       "eixo": "operacao",
       "estado": "aberto",
       "prova": "registrar eixo e ato do humano; script pronto no scratchpad"
+    },
+    {
+      "id": "C10-11",
+      "o": "RACK voltou a comer serie/descanso/feito e apagou o Hoje — Things B20",
+      "eixo": "oficio",
+      "estado": "em andamento",
+      "prova": "RACK = new Set(); CARDS tem os tres; medir cartao le o disco; o tudo imprime FORA no revert. Eixo ainda perdeu a rodada 7."
     }
   ],
   "defeitos_abertos": {

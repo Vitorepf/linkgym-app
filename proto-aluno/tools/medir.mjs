@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Medidores do proto do aluno. Cada eixo devolve um número, não um adjetivo.
- * Uso: node tools/medir.mjs [escala|contraste|cor|primitiva|alvo|movimento|cerimonia|croma|tudo]
+ * Uso: node tools/medir.mjs [escala|contraste|cor|primitiva|alvo|movimento|cerimonia|croma|cartao|tudo]
  *
  * O crítico usa isto para não precisar acreditar em quem implementou.
  */
@@ -347,10 +347,10 @@ function medirAcento() {
 function medirCerimonia() {
   const store = FILES.find((f) => f.rel.endsWith("src/lib/store.ts"));
   const feito = FILES.find((f) => f.rel.endsWith("src/screens/feito.tsx"));
-  const overlays = [...(store?.text.matchAll(/overlay:\s*"([a-zA-Z]+)"/g) ?? [])]
-    .map((m) => m[1])
-    .filter((id) => id === "feito" || id === "patamar");
-  const telas = new Set(overlays).size;
+  const src = store?.text ?? "";
+  const ternario = /overlay:\s*\(\s*patamar\s*\?\s*"feito"\s*:\s*null\s*\)/.test(src);
+  const literals = [...src.matchAll(/overlay:\s*"feito"/g)].length;
+  const telas = ternario ? 0 : literals > 0 ? 1 : 0;
   const thumbs = (feito?.text.match(/className="thumb"|<Thumb\b/g) ?? []).length;
   const temPatamar = /patamar|É o meu/.test(feito?.text ?? "");
   return {
@@ -359,7 +359,11 @@ function medirCerimonia() {
       { o: "preenchidos no Feito", v: String(thumbs), alvo: "<= 1", ok: thumbs <= 1 },
       { o: "festa de patamar no Feito", v: temPatamar ? "sim" : "não", alvo: "modo patamar", ok: temPatamar },
     ],
-    detalhe: [`overlays pós-sessão: ${[...new Set(overlays)].join(", ") || "nenhum"}`],
+    detalhe: [
+      ternario
+        ? "overlay condicional: feito só no primeiro patamar"
+        : `overlays pós-sessão: ${literals ? "feito" : "nenhum"}`,
+    ],
   };
 }
 
@@ -395,6 +399,36 @@ function medirCroma() {
   };
 }
 
+/* ----------------------------------------------------------- cartão B20 ---
+ * Things B20: Série/Descanso/Feito sobem cartão 55%, nunca substituem o Hoje.
+ * Quem devolver esses três para RACK (cena 100%) perde o eixo. Este cheque
+ * lê o disco — não a memória de quem implementou. */
+function setMembers(src, name) {
+  const m = src.match(new RegExp(`const ${name} = new Set(?:<string>)?\\(([^;]*)\\)`, "s"));
+  if (!m) return null;
+  return [...m[1].matchAll(/["']([^"']+)["']/g)].map((x) => x[1]);
+}
+
+function medirCartao() {
+  const root = FILES.find((f) => f.rel.endsWith("src/app-root.tsx"));
+  const src = root?.text ?? "";
+  const rack = setMembers(src, "RACK");
+  const cards = setMembers(src, "CARDS");
+  const crime = ["serie", "descanso", "feito"];
+  const rackCrime = rack ? crime.filter((n) => rack.includes(n)) : crime;
+  const cardsOk = cards != null && crime.every((n) => cards.includes(n));
+  return {
+    rows: [
+      { o: "RACK com serie/descanso/feito", v: String(rackCrime.length), alvo: "0", ok: rackCrime.length === 0 },
+      { o: "CARDS tem serie+descanso+feito", v: cardsOk ? "sim" : "não", alvo: "sim", ok: cardsOk },
+    ],
+    detalhe: [
+      rack == null ? "RACK não declarado" : rackCrime.length ? `RACK contém ${rackCrime.join(", ")}` : "RACK sem os três",
+      cards == null ? "CARDS não declarado" : cardsOk ? `CARDS = ${cards.join(", ")}` : `CARDS = ${cards.join(", ") || "(vazio)"}`,
+    ],
+  };
+}
+
 /* ------------------------------------------------------------------ saída */
 
 const EIXOS = {
@@ -410,6 +444,7 @@ const EIXOS = {
   movimento: medirMovimento,
   cerimonia: medirCerimonia,
   croma: medirCroma,
+  cartao: medirCartao,
 };
 
 function show(name, res, verbose) {
@@ -431,6 +466,18 @@ let fora = 0;
 
 if (arg === "tudo") {
   for (const [name, fn] of Object.entries(EIXOS)) fora += show(name, fn(), verbose);
+  /* Trava Things B20 no `tudo` mesmo se alguém apagar o eixo `cartao`. Lê o disco. */
+  const rootSrc = readFileSync(join(SRC, "app-root.tsx"), "utf8");
+  const rackSrc = (rootSrc.match(/const RACK = new Set(?:<string>)?\(([^;]*)\)/s) ?? [])[1] ?? "MISSING";
+  const cardsSrc = (rootSrc.match(/const CARDS = new Set(?:<string>)?\(([^;]*)\)/s) ?? [])[1] ?? "";
+  const rackCrime = ["serie", "descanso", "feito"].filter((n) => rackSrc.includes(`"${n}"`) || rackSrc.includes(`'${n}'`));
+  const cardsOk = ["serie", "descanso", "feito"].every((n) => cardsSrc.includes(`"${n}"`) || cardsSrc.includes(`'${n}'`));
+  if (rackCrime.length || !cardsOk) {
+    console.log("\n── cartao (trava do tudo)");
+    if (rackCrime.length) console.log(`  FORA RACK contém ${rackCrime.join(", ")}              alvo 0`);
+    if (!cardsOk) console.log("  FORA CARDS sem serie+descanso+feito     alvo os três");
+    fora += 1;
+  }
 } else if (EIXOS[arg]) {
   fora += show(arg, EIXOS[arg](), true);
 } else {

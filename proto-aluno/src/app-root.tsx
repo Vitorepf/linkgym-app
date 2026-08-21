@@ -93,6 +93,7 @@ class SceneBoundary extends Component<{ children: ReactNode; onLeave: () => void
 }
 
 /** O rack é uma corrente: avança de lado. Cartão sobe no sítio. Página substitui a aba. */
+/* RACK vazio. Série/Descanso/Feito são CARDS 55%. Quem puser serie em RACK perde Things B20. */
 const RACK = new Set<string>();
 const CARDS = new Set<string>(["serie", "descanso", "feito", "como", "fichaSessao"]);
 const PAGES = new Set<string>(["prova", "pessoa", "composer", "versus"]);
